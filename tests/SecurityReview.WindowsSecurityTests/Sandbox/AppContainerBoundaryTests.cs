@@ -54,6 +54,11 @@ public sealed class AppContainerBoundaryTests
         Assert.NotNull(run.Result);
         Assert.True(run.Result.IsAppContainer);
         Assert.Equal(host.ExpectedAppContainerSid, run.Result.AppContainerSid);
+        // The same stride-correct enumeration must locate the Everyone group
+        // that every token contains; only then is the empty capability list
+        // evidence instead of a possibly-broken parse passing vacuously.
+        Assert.True(run.Result.GroupEnumerationProven,
+            "Group enumeration must locate the Everyone group (S-1-1-0).");
         Assert.Empty(run.Result.TokenCapabilities);
         Assert.DoesNotContain(run.Result.TokenCapabilities, sid =>
             SandboxProbeHost.NetworkCapabilitySidsUnderTest.Contains(sid,

@@ -41,10 +41,11 @@ internal sealed record SandboxProbeResult(
     IReadOnlyList<string> TokenCapabilities,
     ProbeAccess ChildSpawn,
     int AllocatedMebiBytes,
+    bool GroupEnumerationProven,
     string? Note)
 {
     public static SandboxProbeResult Empty(string scenario) => new(
         scenario, null, ProbeAccess.Unknown, ProbeAccess.Unknown,
-        [], false, null, [], ProbeAccess.Unknown, 0, null);
+        [], false, null, [], ProbeAccess.Unknown, 0, false, null);
 }
 #endif

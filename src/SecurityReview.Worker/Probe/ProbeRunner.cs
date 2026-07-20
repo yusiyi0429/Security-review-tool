@@ -209,6 +209,7 @@ internal static class ProbeRunner
         bool isAppContainer = false;
         string? appContainerSid = null;
         var capabilities = new List<string>();
+        bool groupEnumerationProven = false;
         string? note = null;
         try
         {
@@ -216,6 +217,11 @@ internal static class ProbeRunner
             isAppContainer = token.IsAppContainer();
             appContainerSid = token.AppContainerSid();
             capabilities.AddRange(token.CapabilitySids());
+            // Every token contains the Everyone group; locating it through the
+            // same enumeration path proves the stride-correct parsing works,
+            // so an empty capability list is evidence rather than a parse bug.
+            groupEnumerationProven = token.GroupSids()
+                .Contains("S-1-1-0", StringComparer.OrdinalIgnoreCase);
         }
         catch (Win32Exception)
         {
@@ -227,6 +233,7 @@ internal static class ProbeRunner
             IsAppContainer = isAppContainer,
             AppContainerSid = appContainerSid,
             TokenCapabilities = capabilities,
+            GroupEnumerationProven = groupEnumerationProven,
             Note = note,
         };
         await context.SendAsync(MessageType.ParseCompleted, Serialize(result))
@@ -423,6 +430,7 @@ internal static class ProbeRunner
 internal sealed class ProbeTokenHandle : SafeHandleZeroOrMinusOneIsInvalid
 {
     private const uint TokenQuery = 0x0008;
+    private const uint TokenGroups = 2;
     private const uint TokenIsAppContainer = 29;
     private const uint TokenCapabilities = 30;
     private const uint TokenAppContainerSid = 31;
@@ -493,10 +501,28 @@ internal sealed class ProbeTokenHandle : SafeHandleZeroOrMinusOneIsInvalid
         }
     }
 
-    public IReadOnlyList<string> CapabilitySids()
+    public IReadOnlyList<string> CapabilitySids() => EnumerateSids(TokenCapabilities);
+
+    public IReadOnlyList<string> GroupSids() => EnumerateSids(TokenGroups);
+
+    // Both TokenCapabilities and TokenGroups return a TOKEN_GROUPS-shaped
+    // buffer: DWORD Count, then an array of SID_AND_ATTRIBUTES
+    // { PSID Sid; DWORD Attributes; }. On x64 the pointer alignment inserts
+    // 4 bytes of padding after the count and after Attributes, so the first
+    // entry starts at offset 8 and the stride is 16; on x86 both are exact
+    // (4 and 8). nint.Size and Marshal.SizeOf express this without magic
+    // constants.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SidAndAttributes
+    {
+        public nint Sid;
+        public uint Attributes;
+    }
+
+    private List<string> EnumerateSids(uint informationClass)
     {
         var sids = new List<string>();
-        if (!ProbeNative.GetTokenInformation(this, TokenCapabilities, nint.Zero, 0,
+        if (!ProbeNative.GetTokenInformation(this, informationClass, nint.Zero, 0,
             out uint required) && Marshal.GetLastPInvokeError() != 122)
         {
             throw new Win32Exception(Marshal.GetLastPInvokeError());
@@ -510,20 +536,21 @@ internal sealed class ProbeTokenHandle : SafeHandleZeroOrMinusOneIsInvalid
         nint buffer = Marshal.AllocHGlobal((int)required);
         try
         {
-            if (!ProbeNative.GetTokenInformation(this, TokenCapabilities, buffer, required,
+            if (!ProbeNative.GetTokenInformation(this, informationClass, buffer, required,
                 out _))
             {
                 throw new Win32Exception(Marshal.GetLastPInvokeError());
             }
 
             uint count = (uint)Marshal.ReadInt32(buffer);
-            nint entry = buffer + sizeof(uint);
-            for (uint i = 0; i < count; i++, entry += nint.Size + sizeof(uint))
+            int stride = Marshal.SizeOf<SidAndAttributes>();
+            nint entry = buffer + nint.Size;
+            for (uint i = 0; i < count; i++, entry += stride)
             {
-                nint sid = Marshal.ReadIntPtr(entry);
-                if (sid != nint.Zero)
+                var sidAndAttributes = Marshal.PtrToStructure<SidAndAttributes>(entry);
+                if (sidAndAttributes.Sid != nint.Zero)
                 {
-                    sids.Add(SidToString(sid));
+                    sids.Add(SidToString(sidAndAttributes.Sid));
                 }
             }
 
