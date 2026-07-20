@@ -15,6 +15,7 @@ $projects = @{
   Performance = "tests/SecurityReview.PerformanceTests/SecurityReview.PerformanceTests.csproj"
 }
 if ($RequireWindowsSecurity -and -not $IsWindows) { throw "WindowsSecurity lane requires Windows." }
+if ($RequireWindowsSecurity -and $env:SECURITY_REVIEW_RUN_WINDOWS_SECURITY -ne "1") { throw "SECURITY_REVIEW_RUN_WINDOWS_SECURITY=1 is required so the lane cannot report success from skipped tests." }
 if ($RequireCorpus -and -not (Test-Path "tests/Corpus/corpus-manifest.json")) { throw "Corpus manifest is required." }
 if ($RequirePerformanceHost -and $env:SECURITY_REVIEW_PERF_HOST -ne "1") { throw "Performance host marker is required." }
 $restoreArgs = @("restore", "SecurityReviewTool.sln", "--locked-mode", "--verbosity", "minimal")

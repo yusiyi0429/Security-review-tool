@@ -22,6 +22,14 @@
          legacy-GBK workbook decoding path, so the reference stays and the warning is
          suppressed for this project only. -->
     <NoWarn>$(NoWarn);NU1510</NoWarn>
+    <!-- LibraryImport source generation requires unsafe blocks. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- Probe-only sandbox commands. Never set in release builds; the Windows
+       security lane publishes with -p:SecurityReviewSandboxProbe=true. -->
+  <PropertyGroup Condition="'$(SecurityReviewSandboxProbe)' == 'true'">
+    <DefineConstants>$(DefineConstants);SECURITY_REVIEW_SANDBOX_PROBE</DefineConstants>
   </PropertyGroup>
 
 </Project>

@@ -18,6 +18,15 @@ public static class LengthPrefixedJsonProtocol
 
     public static async Task<ProtocolEnvelope> ReadAsync(Stream stream, CancellationToken cancellationToken)
     {
+        (ProtocolEnvelope message, _) = await ReadWithRawAsync(stream, cancellationToken).ConfigureAwait(false);
+        return message;
+    }
+
+    // Returns the parsed message together with the exact frame bytes so callers
+    // can feed the canonical frame to ProtocolSessionValidator.
+    public static async Task<(ProtocolEnvelope Message, byte[] CanonicalFrame)> ReadWithRawAsync(
+        Stream stream, CancellationToken cancellationToken)
+    {
         byte[] header = new byte[4];
         await stream.ReadExactlyAsync(header, cancellationToken).ConfigureAwait(false);
         int length = BinaryPrimitives.ReadInt32LittleEndian(header);
@@ -36,6 +45,6 @@ public static class LengthPrefixedJsonProtocol
 
         if (message is null) throw new ProtocolException("Frame JSON is null.");
         if (message.ProtocolVersion != ProtocolConstants.Version) throw new ProtocolException("Protocol version mismatch.");
-        return message;
+        return (message, payload);
     }
 }
