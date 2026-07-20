@@ -5,6 +5,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+    <!-- GHSA-2m69-gcr7-jv3q: lift the SQLitePCLRaw transitive chain off vulnerable 2.1.11 (Apache-2.0, unchanged). -->
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
+    <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.12" />
+    <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.12" />
     <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="10.0.10" />
     <PackageVersion Include="System.Text.Encoding.CodePages" Version="10.0.10" />
     <PackageVersion Include="DocumentFormat.OpenXml" Version="3.5.1" />
