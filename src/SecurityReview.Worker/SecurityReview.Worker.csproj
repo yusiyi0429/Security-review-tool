@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Encoding.CodePages" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SecurityReview.Domain\SecurityReview.Domain.csproj" />
+    <ProjectReference Include="..\SecurityReview.ParserContracts\SecurityReview.ParserContracts.csproj" />
+    <ProjectReference Include="..\SecurityReview.Parsers\SecurityReview.Parsers.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- NU1510: System.Text.Encoding.CodePages is inbox in .NET 10 and NuGet flags the
+         direct reference as unnecessary. The plan pins this package explicitly for the
+         legacy-GBK workbook decoding path, so the reference stays and the warning is
+         suppressed for this project only. -->
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
+  </PropertyGroup>
+
+</Project>

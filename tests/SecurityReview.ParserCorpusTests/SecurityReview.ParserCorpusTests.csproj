@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" PrivateAssets="all" />
+    <PackageReference Include="coverlet.collector" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SecurityReview.Domain\SecurityReview.Domain.csproj" />
+    <ProjectReference Include="..\..\src\SecurityReview.ParserContracts\SecurityReview.ParserContracts.csproj" />
+    <ProjectReference Include="..\..\src\SecurityReview.Parsers\SecurityReview.Parsers.csproj" />
+    <ProjectReference Include="..\..\src\SecurityReview.RulePack\SecurityReview.RulePack.csproj" />
+  </ItemGroup>
+
+</Project>

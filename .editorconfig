@@ -1,0 +1,42 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.md]
+# Markdown trailing two spaces intentionally create a line break.
+trim_trailing_whitespace = false
+
+[*.{json,yml,yaml,xml,csproj,props,targets,config}]
+indent_size = 2
+
+[*.{ps1,psm1,psd1}]
+indent_size = 4
+
+[*.cs]
+indent_size = 4
+
+# Test methods use snake_case naming by convention; CA1707 does not apply there.
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+
+# Sorted usings, System first
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Explicit accessibility and file-scoped namespaces
+dotnet_style_require_accessibility_modifiers = always:suggestion
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+# Build-enforced .NET analyzer severities (AnalysisLevel latest-recommended)
+dotnet_analyzer_diagnostic.category-Design.severity = warning
+dotnet_analyzer_diagnostic.category-Performance.severity = warning
+dotnet_analyzer_diagnostic.category-Security.severity = warning
+dotnet_analyzer_diagnostic.category-Usage.severity = warning
+dotnet_analyzer_diagnostic.category-Reliability.severity = warning
+dotnet_analyzer_diagnostic.category-Globalization.severity = warning

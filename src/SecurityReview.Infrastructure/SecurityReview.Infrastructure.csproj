@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SecurityReview.Domain\SecurityReview.Domain.csproj" />
+    <ProjectReference Include="..\SecurityReview.Application\SecurityReview.Application.csproj" />
+    <ProjectReference Include="..\SecurityReview.ParserContracts\SecurityReview.ParserContracts.csproj" />
+    <ProjectReference Include="..\SecurityReview.RulePack\SecurityReview.RulePack.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
