@@ -13,7 +13,7 @@ namespace SecurityReview.Infrastructure.Windows.Sandbox;
 // nested Job limits, a read-only duplicated input handle, and a restricted
 // named pipe. Fail-closed: any error terminates the job and disposes every
 // handle; there is no unsandboxed fallback.
-public sealed class AppContainerWorkerLauncher : IWorkerLauncher
+public sealed class AppContainerWorkerLauncher : IWorkerLauncher, IWorkerLaunchPreparer
 {
     private const string ManifestFileName = "worker-manifest.json";
 
@@ -36,6 +36,15 @@ public sealed class AppContainerWorkerLauncher : IWorkerLauncher
         PreparedWorker prepared = await EnsurePreparedAsync(workerStagingDirectory,
             workerExecutableName, cancellationToken).ConfigureAwait(false);
         return prepared.Profile;
+    }
+
+    // Returns the manifest-verified SHA-256 of the staged worker executable.
+    public async Task<string> GetVerifiedWorkerBuildHashAsync(string workerStagingDirectory,
+        string workerExecutableName, CancellationToken cancellationToken)
+    {
+        PreparedWorker prepared = await EnsurePreparedAsync(workerStagingDirectory,
+            workerExecutableName, cancellationToken).ConfigureAwait(false);
+        return prepared.WorkerBuildSha256;
     }
 
     public async Task<SandboxedWorkerProcess> LaunchAsync(WorkerLaunchRequest request,
