@@ -21,6 +21,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private string _appVersion = "";
     private bool _nonLatestRuleWarning;
     private bool _scanEnabled;
+    private object? _currentView;
 
     public MainWindowViewModel(
         NavigationService navigation,
@@ -43,11 +44,21 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ICommand NavigateCommand { get; }
 
+    /// <summary>The navigation service instance for the shell.</summary>
+    public NavigationService NavigationService => _navigation;
+
     /// <summary>The currently selected navigation entry.</summary>
     public NavigationEntry CurrentEntry
     {
         get => _navigation.CurrentEntry;
         set => _navigation.CurrentEntry = value;
+    }
+
+    /// <summary>The view model for the currently active content view.</summary>
+    public object? CurrentView
+    {
+        get => _currentView;
+        set => SetProperty(ref _currentView, value);
     }
 
     private Task NavigateToAsync(NavigationEntry entry)

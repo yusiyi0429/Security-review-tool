@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using SecurityReview.Application.Abstractions;
 using SecurityReview.Application.Diagnostics;
+using SecurityReview.Application.History;
 using SecurityReview.Application.Llm;
 using SecurityReview.Application.Reviews;
 using SecurityReview.Application.Rules;
@@ -8,6 +9,7 @@ using SecurityReview.Application.Scans;
 using SecurityReview.Application.Scans.Preflight;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
+using SecurityReview.Domain.Llm;
 using SecurityReview.Infrastructure.Cryptography;
 using SecurityReview.Infrastructure.Llm;
 using SecurityReview.Infrastructure.Persistence;
@@ -289,6 +291,14 @@ public sealed class CompositionRoot : IDisposable
         RegisterConcrete(ErrorSink);
         RegisterConcrete(NavigationService);
         RegisterConcrete(MainWindowViewModel);
+
+        // Register UI services
+        var safePreviewService = new Services.SafePreviewService();
+        RegisterConcrete(safePreviewService);
+
+        var explorerService = new Services.ExplorerService(
+            path => true); // Warning dialog will be shown by the ViewModel
+        RegisterConcrete(explorerService);
     }
 
     // ------------------------------------------------------------------ Service resolution
@@ -337,6 +347,56 @@ public sealed class CompositionRoot : IDisposable
 
     public MainWindowViewModel MainWindowViewModel
         => new(NavigationService, Health, ErrorSink);
+
+    // ------------------------------------------------------------------ ViewModel factories (lazy, re-created on navigation)
+
+    public NewScanViewModel GetNewScanViewModel()
+    {
+        var createHandler = TryGet<CreateScanHandler>();
+        var startHandler = TryGet<StartScanHandler>();
+        return new NewScanViewModel(
+            ErrorSink,
+            createHandler is not null ? () => createHandler : null!,
+            startHandler is not null ? () => startHandler : null!);
+    }
+
+    public HistoryViewModel GetHistoryViewModel()
+    {
+        var query = TryGet<ScanQueryService>();
+        var rescan = TryGet<RescanHandler>();
+        var retention = TryGet<RetentionService>();
+        return new HistoryViewModel(
+            query is not null ? () => query : null!,
+            rescan is not null ? () => rescan : null!,
+            retention is not null ? () => retention : null!,
+            ErrorSink);
+    }
+
+    public RuleManagementViewModel GetRuleManagementViewModel()
+    {
+        var importSvc = TryGet<RulePackImportService>();
+        return new RuleManagementViewModel(
+            importSvc is not null ? () => importSvc : null!,
+            ErrorSink);
+    }
+
+    public LlmSettingsViewModel GetLlmSettingsViewModel()
+    {
+        var configStore = TryGet<ILlmConfigurationStore>();
+        var testSvc = TryGet<ILlmConnectionTestService>();
+        return new LlmSettingsViewModel(
+            configStore ?? new NullLlmConfigStore(),
+            testSvc ?? new NullLlmTestService(),
+            ErrorSink);
+    }
+
+    public CoverageViewModel GetCoverageViewModel()
+    {
+        var query = TryGet<ScanQueryService>();
+        return new CoverageViewModel(
+            ErrorSink,
+            query is not null ? () => query : null!);
+    }
 
     // ------------------------------------------------------------------ IDisposable
 
@@ -433,4 +493,27 @@ file sealed class StubWindowsIdentityProvider : IWindowsIdentityProvider
     {
         return new WindowsIdentityInfo("S-1-5-21-stub", "TestUser");
     }
+}
+
+// ----------------------------------------------------------------------
+// Null LLM stubs
+// ----------------------------------------------------------------------
+
+file sealed class NullLlmConfigStore : ILlmConfigurationStore
+{
+    public Task<LlmConfigurationReference> SaveAsync(LlmEndpointOptions options, CancellationToken ct = default)
+        => Task.FromResult(new LlmConfigurationReference(1, "null-ref", "0000000000000000", DateTimeOffset.UtcNow));
+
+    public Task<LlmEndpointOptions?> LoadAsync(CancellationToken ct = default)
+        => Task.FromResult<LlmEndpointOptions?>(null);
+
+    public Task ClearAsync(CancellationToken ct = default)
+        => Task.CompletedTask;
+}
+
+file sealed class NullLlmTestService : ILlmConnectionTestService
+{
+    public Task<LlmConnectionTestResult> TestConnectionAsync(TestLlmConnectionCommand command, CancellationToken ct = default)
+        => Task.FromResult(LlmConnectionTestResult.Failure(
+            LlmConnectionTestFailureReason.OriginMismatch, null, TimeSpan.Zero, "0000000000000000"));
 }

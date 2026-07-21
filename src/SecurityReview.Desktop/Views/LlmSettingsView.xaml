@@ -1,0 +1,64 @@
+<UserControl x:Class="SecurityReview.Desktop.Views.LlmSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:LlmSettingsViewModel}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Connection test status -->
+            <Border Grid.Row="0" Padding="12" CornerRadius="6"
+                    Background="#E8F0FE" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock FontSize="14" FontWeight="Bold">
+                        <Run Text="测试状态: "/><Run Text="{Binding LastTestStatus}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="12" Foreground="Gray" Margin="0,4,0,0">
+                        <Run Text="端点: "/><Run Text="{Binding LastTestOrigin}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="12" Foreground="Gray">
+                        <Run Text="时间: "/><Run Text="{Binding LastTestTime}"/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Base URI -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,8">
+                <TextBlock Text="基地址 (HTTPS)" FontWeight="SemiBold"/>
+                <TextBox Text="{Binding BaseUri, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Model -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,8">
+                <TextBlock Text="模型" FontWeight="SemiBold"/>
+                <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Actions -->
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Content="加载配置" Command="{Binding LoadCommand}"
+                        Padding="8,4" Margin="0,0,6,0"/>
+                <Button Content="保存配置" Command="{Binding SaveCommand}"
+                        Padding="8,4" Margin="0,0,6,0"/>
+                <Button Content="测试连接" Command="{Binding TestCommand}"
+                        Padding="8,4" Margin="0,0,6,0"/>
+                <Button Content="清除配置" Command="{Binding ClearCommand}"
+                        Padding="8,4"/>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

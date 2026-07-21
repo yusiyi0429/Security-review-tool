@@ -1,0 +1,283 @@
+<UserControl x:Class="SecurityReview.Desktop.Views.ReviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:ReviewViewModel}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Review form: visible when HasSelection -->
+        <GroupBox Header="复核" Margin="0">
+            <GroupBox.Style>
+                <Style TargetType="GroupBox">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasSelection}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </GroupBox.Style>
+            <Grid Margin="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Row 0: Current User + Current Time -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="当前用户"
+                           VerticalAlignment="Center" Margin="0,4,8,4"
+                           Foreground="{StaticResource BrushTextSecondary}"/>
+                <TextBox Grid.Row="0" Grid.Column="1"
+                         Text="{Binding CurrentUser, Mode=OneWay}"
+                         IsReadOnly="True" Margin="0,4,0,4"
+                         Background="{StaticResource BrushSurface1}"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="时间"
+                           VerticalAlignment="Center" Margin="0,4,8,4"
+                           Foreground="{StaticResource BrushTextSecondary}"/>
+                <TextBox Grid.Row="0" Grid.Column="3"
+                         Text="{Binding CurrentTime, Mode=OneWay}"
+                         IsReadOnly="True" Margin="0,4,0,4"
+                         Background="{StaticResource BrushSurface1}"/>
+
+                <!-- Row 1: Review Status ComboBox -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="复核状态"
+                           VerticalAlignment="Center" Margin="0,4,8,4"
+                           Foreground="{StaticResource BrushTextSecondary}"/>
+                <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
+                          SelectedItem="{Binding SelectedStatus}"
+                          ItemsSource="{x:Static vm:FilterLists.ReviewStatuses}"
+                          Margin="0,4,0,4">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="未知"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding}" Value="ConfirmedRisk">
+                                                <Setter Property="Text" Value="确认为风险"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding}" Value="FalsePositive">
+                                                <Setter Property="Text" Value="误报"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding}" Value="ApprovedException">
+                                                <Setter Property="Text" Value="批准例外"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding}" Value="RemediatedAwaitingRescan">
+                                                <Setter Property="Text" Value="已修复(等待重新扫描)"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- Row 2: Reason (multi-line) -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="理由 *"
+                           VerticalAlignment="Top" Margin="0,4,8,4"
+                           Foreground="{StaticResource BrushTextSecondary}"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
+                         Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}"
+                         TextWrapping="Wrap" AcceptsReturn="True"
+                         MinHeight="60" MaxHeight="100"
+                         Margin="0,4,0,4"
+                         VerticalScrollBarVisibility="Auto"/>
+
+                <!-- Row 3: Reason Code -->
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="理由代码"
+                           VerticalAlignment="Center" Margin="0,4,8,4"
+                           Foreground="{StaticResource BrushTextSecondary}"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3"
+                         Text="{Binding ReasonCode, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,4,0,4"/>
+
+                <!-- Row 4: Exception section (visible only when IsExceptionStatus) -->
+                <Border Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="4"
+                        Margin="0,8,0,0" Padding="8"
+                        Background="{StaticResource BrushSurface1}"
+                        CornerRadius="4"
+                        Visibility="{Binding IsExceptionStatus, Converter={StaticResource BooleanToVisibility}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="例外信息"
+                                   FontWeight="SemiBold" Margin="0,0,0,6"
+                                   Foreground="{StaticResource BrushWarn}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="有效期至"
+                                   VerticalAlignment="Center" Margin="0,3,8,3"
+                                   Foreground="{StaticResource BrushTextSecondary}"/>
+                        <DatePicker Grid.Row="1" Grid.Column="1"
+                                    SelectedDate="{Binding ExceptionExpiry}"
+                                    Margin="0,3,0,3"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="资产 ID"
+                                   VerticalAlignment="Center" Margin="0,3,8,3"
+                                   Foreground="{StaticResource BrushTextSecondary}"/>
+                        <TextBox Grid.Row="2" Grid.Column="1"
+                                 Text="{Binding ExceptionAssetId, Mode=OneWay}"
+                                 IsReadOnly="True" Margin="0,3,0,3"
+                                 Background="{StaticResource BrushSurface0}"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="资产版本"
+                                   VerticalAlignment="Center" Margin="0,3,8,3"
+                                   Foreground="{StaticResource BrushTextSecondary}"/>
+                        <TextBox Grid.Row="3" Grid.Column="1"
+                                 Text="{Binding ExceptionAssetVersion, Mode=OneWay}"
+                                 IsReadOnly="True" Margin="0,3,0,3"
+                                 Background="{StaticResource BrushSurface0}"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="文件路径"
+                                   VerticalAlignment="Center" Margin="0,3,8,3"
+                                   Foreground="{StaticResource BrushTextSecondary}"/>
+                        <TextBox Grid.Row="4" Grid.Column="1"
+                                 Text="{Binding ExceptionFilePath, Mode=OneWay}"
+                                 IsReadOnly="True" Margin="0,3,0,3"
+                                 Background="{StaticResource BrushSurface0}"
+                                 FontFamily="Consolas" FontSize="12"/>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="定位器"
+                                   VerticalAlignment="Center" Margin="0,3,8,3"
+                                   Foreground="{StaticResource BrushTextSecondary}"/>
+                        <TextBox Grid.Row="5" Grid.Column="1"
+                                 Text="{Binding ExceptionLocator, Mode=OneWay}"
+                                 IsReadOnly="True" Margin="0,3,0,3"
+                                 Background="{StaticResource BrushSurface0}"
+                                 FontFamily="Consolas" FontSize="12"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="发现值"
+                                   VerticalAlignment="Center" Margin="0,3,8,3"
+                                   Foreground="{StaticResource BrushTextSecondary}"/>
+                        <TextBox Grid.Row="6" Grid.Column="1"
+                                 Text="{Binding ExceptionFindingValue, Mode=OneWay}"
+                                 IsReadOnly="True" Margin="0,3,0,3"
+                                 Background="{StaticResource BrushSurface0}"
+                                 FontFamily="Consolas" FontSize="12"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="规则包哈希"
+                                   VerticalAlignment="Center" Margin="0,3,8,3"
+                                   Foreground="{StaticResource BrushTextSecondary}"/>
+                        <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal">
+                            <TextBox Text="{Binding ExceptionRulePackHash, Mode=OneWay}"
+                                     IsReadOnly="True" Margin="0,3,0,3"
+                                     Background="{StaticResource BrushSurface0}"
+                                     FontFamily="Consolas" FontSize="12"
+                                     Width="140"/>
+                            <TextBlock Text=" 规则 ID"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushTextSecondary}"
+                                       Margin="8,0,4,0"/>
+                            <TextBox Text="{Binding ExceptionRuleId, Mode=OneWay}"
+                                     IsReadOnly="True" Margin="0,3,0,3"
+                                     Background="{StaticResource BrushSurface0}"
+                                     FontFamily="Consolas" FontSize="12"
+                                     Width="120"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Row 5: Submit button -->
+                <Button Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="4"
+                        Content="提交复核" Command="{Binding SubmitReviewCommand}"
+                        Padding="10,5" Margin="0,12,0,0"
+                        HorizontalAlignment="Center"
+                        Background="{StaticResource BrushAccent}"
+                        Foreground="White"
+                        BorderBrush="{StaticResource BrushAccent}"
+                        FontSize="14" FontWeight="SemiBold"
+                        Width="120"/>
+
+                <!-- Row 6: Timeline -->
+                <Border Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="4"
+                        Margin="0,12,0,0" Padding="8"
+                        Background="{StaticResource BrushSurface1}"
+                        CornerRadius="4">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="复核时间线"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrushTextPrimary}"
+                                   Margin="0,0,0,6"/>
+
+                        <ItemsControl Grid.Row="1" ItemsSource="{Binding Timeline}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BrushSurface2}"
+                                            BorderThickness="1" Padding="6,4"
+                                            Margin="0,0,0,3" CornerRadius="3">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding StatusDisplay}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource BrushAccent}"
+                                                       Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding ReasonCode}"
+                                                       Foreground="{StaticResource BrushTextSecondary}"
+                                                       Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding DecidedAtDisplay}"
+                                                       Foreground="{StaticResource BrushTextDisabled}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+            </Grid>
+        </GroupBox>
+
+        <!-- Empty state -->
+        <TextBlock Text="请选择一个发现以进行复核。"
+                   FontSize="14"
+                   Foreground="{StaticResource BrushTextSecondary}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasSelection}" Value="False">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+    </Grid>
+</UserControl>

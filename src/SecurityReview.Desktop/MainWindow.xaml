@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SecurityReview.Desktop"
         xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
+        xmlns:views="clr-namespace:SecurityReview.Desktop.Views"
         mc:Ignorable="d"
         Title="安全审查工具"
         MinWidth="1280" MinHeight="720"
@@ -81,15 +82,28 @@
             </ScrollViewer>
         </Border>
 
-        <!-- Content area (placeholder for future views) -->
+        <!-- Content area with dynamic view switching -->
         <ContentControl Grid.Row="1" Grid.Column="1"
                         Background="{StaticResource BrushSurface0}"
-                        Margin="16">
-            <TextBlock Text="选择左侧导航项开始操作。"
-                       Foreground="{StaticResource BrushTextSecondary}"
-                       FontSize="16"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
+                        Margin="16"
+                        Content="{Binding CurrentView}">
+            <ContentControl.Resources>
+                <DataTemplate DataType="{x:Type vm:NewScanViewModel}">
+                    <views:NewScanView />
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
+                    <views:HistoryView />
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type vm:RuleManagementViewModel}">
+                    <views:RuleManagementView />
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type vm:LlmSettingsViewModel}">
+                    <views:LlmSettingsView />
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type vm:CoverageViewModel}">
+                    <views:CoverageView />
+                </DataTemplate>
+            </ContentControl.Resources>
         </ContentControl>
 
         <!-- Status bar -->

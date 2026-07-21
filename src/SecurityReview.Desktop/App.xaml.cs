@@ -32,7 +32,7 @@ public partial class App : global::System.Windows.Application, IDisposable
         boundary.Install(this);
 
         // Open the main shell with its composed view model.
-        var mainWindow = new MainWindow(_root.MainWindowViewModel);
+        var mainWindow = new MainWindow(_root.MainWindowViewModel, _root);
         mainWindow.Show();
     }
 
