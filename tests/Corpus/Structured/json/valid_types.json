@@ -1,0 +1,11 @@
+{
+  "int_val": 42,
+  "float_val": 3.14,
+  "neg_val": -1,
+  "str_val": "hello",
+  "bool_true": true,
+  "bool_false": false,
+  "null_val": null,
+  "empty_arr": [],
+  "empty_obj": {}
+}

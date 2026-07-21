@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+  <user id="1"><name>Alice</name><token>tok_alice_123</token></user>
+  <user id="2"><name>Bob</name><token>tok_bob_456</token></user>
+</users>

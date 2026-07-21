@@ -1,0 +1,9 @@
+users:
+  - id: 1
+    name: Alice
+    token: tok_alice_123
+  - id: 2
+    name: Bob
+    token: tok_bob_456
+metadata:
+  version: '1.0'

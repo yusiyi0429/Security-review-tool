@@ -1,0 +1,6 @@
+defaults: &defaults
+  timeout: 30
+  retries: 3
+service1:
+  <<: *defaults
+  name: svc1
