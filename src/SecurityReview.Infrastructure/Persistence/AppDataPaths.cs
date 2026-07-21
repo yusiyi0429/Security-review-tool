@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using SecurityReview.Application.Abstractions;
 
 namespace SecurityReview.Infrastructure.Persistence;
 
@@ -10,7 +11,7 @@ namespace SecurityReview.Infrastructure.Persistence;
 /// subdirectory and file paths for config, data, rules, temp, diagnostics,
 /// backups, the SQLite database file, and the keyring file.
 /// </summary>
-public sealed class AppDataPaths
+public sealed class AppDataPaths : IApplicationPaths
 {
     private readonly string _basePath;
 

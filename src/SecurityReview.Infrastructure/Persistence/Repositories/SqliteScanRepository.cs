@@ -95,6 +95,43 @@ public sealed class SqliteScanRepository : IScanRepository
         return scans;
     }
 
+    public async Task<IReadOnlyList<ScanRun>> ListByStatusAsync(
+        IReadOnlyList<ScanStatus> statuses, CancellationToken cancellationToken = default)
+    {
+        if (statuses.Count == 0)
+            return Array.Empty<ScanRun>();
+
+        await using var connection = await _factory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var cmd = connection.CreateCommand();
+
+        // Build parameterized IN clause.
+        var placeholders = new List<string>(statuses.Count);
+        for (int i = 0; i < statuses.Count; i++)
+        {
+            var paramName = $"@status{i}";
+            placeholders.Add(paramName);
+            cmd.Parameters.AddWithValue(paramName, (int)statuses[i]);
+        }
+
+        cmd.CommandText = $"""
+            SELECT scan_id, status, created_at_utc, updated_at_utc, rule_pack_hash,
+                client_version, pipeline_fingerprint, planned_units, version,
+                encrypted_payload
+            FROM scan_runs
+            WHERE status IN ({string.Join(", ", placeholders)})
+            ORDER BY created_at_utc DESC;
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        var scans = new List<ScanRun>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            scans.Add(ReadScanRun(reader));
+        }
+
+        return scans;
+    }
+
     public async Task<bool> TryTransitionAsync(
         ScanId scanId,
         ScanStatus expectedStatus,

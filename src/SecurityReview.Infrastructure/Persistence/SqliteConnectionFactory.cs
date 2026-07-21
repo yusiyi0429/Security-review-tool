@@ -14,6 +14,11 @@ public interface ISqliteConnectionFactory
     /// Opens a new connection and applies the standard pragma set.
     /// </summary>
     ValueTask<SqliteConnection> OpenAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Clears all connection pools so that database files can be deleted.
+    /// </summary>
+    void ClearPools();
 }
 
 public sealed class SqliteConnectionFactory : ISqliteConnectionFactory
@@ -65,4 +70,7 @@ public sealed class SqliteConnectionFactory : ISqliteConnectionFactory
 
         return connection;
     }
+
+    /// <inheritdoc />
+    public void ClearPools() => SqliteConnection.ClearAllPools();
 }
