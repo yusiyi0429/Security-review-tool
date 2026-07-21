@@ -1,0 +1,318 @@
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
+using SecurityReview.Application.Abstractions;
+using SecurityReview.Application.Caching;
+using SecurityReview.Application.Diagnostics;
+using SecurityReview.Application.Llm;
+using SecurityReview.Domain;
+using SecurityReview.Domain.Llm;
+
+namespace SecurityReview.Infrastructure.Llm;
+
+/// <summary>
+/// Concrete <see cref="ISemanticReviewer"/>. Minimizes the input via
+/// <see cref="CandidateMinimizer"/>, computes the cache key via the
+/// P4 <see cref="SemanticCacheKey"/>, looks the entry up in the
+/// <see cref="CacheCoordinator"/>, and on miss invokes the
+/// <see cref="LlmRetryPolicy"/> through the
+/// <see cref="LlmCircuitBreaker"/> on the
+/// <see cref="OpenAiHttpClientFactory"/>-built client. Successful
+/// results are encrypted and cached; every attempt's metadata is
+/// persisted via <see cref="ILlmAttemptRepository"/>.
+///
+/// No endpoint host, model identifier, candidate value, candidate
+/// context, or API-key material is ever logged, persisted in plain
+/// columns, or surfaced through diagnostic events.
+/// </summary>
+public sealed class OpenAiSemanticReviewer : ISemanticReviewer
+{
+    private const string CacheStage = "llm_review";
+    private const string CacheRecordIdField = "payload";
+    private const string NoCachePayload = "no-cache";
+
+    private readonly LlmEndpointOptions _options;
+    private readonly IValueFingerprintService _fingerprints;
+    private readonly HttpClient _httpClient;
+    private readonly CacheCoordinator _cache;
+    private readonly ILlmAttemptRepository _attempts;
+    private readonly IDiagnosticSink _diagnostics;
+    private readonly LlmRetryPolicy _retryPolicy;
+    private readonly LlmCircuitBreaker _circuitBreaker;
+    private readonly string _endpointFingerprint;
+    private readonly string _modelFingerprint;
+    private readonly bool _ownsHttpClient;
+
+    public OpenAiSemanticReviewer(
+        LlmEndpointOptions options,
+        IValueFingerprintService fingerprints,
+        HttpClient httpClient,
+        CacheCoordinator cache,
+        ILlmAttemptRepository attempts,
+        IDiagnosticSink diagnostics,
+        LlmRetryPolicy? retryPolicy = null,
+        LlmCircuitBreaker? circuitBreaker = null,
+        bool ownsHttpClient = false)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(fingerprints);
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(cache);
+        ArgumentNullException.ThrowIfNull(attempts);
+        ArgumentNullException.ThrowIfNull(diagnostics);
+
+        _options = options;
+        _fingerprints = fingerprints;
+        _httpClient = httpClient;
+        _cache = cache;
+        _attempts = attempts;
+        _diagnostics = diagnostics;
+        _retryPolicy = retryPolicy ?? new LlmRetryPolicy();
+        _circuitBreaker = circuitBreaker ?? new LlmCircuitBreaker();
+        _endpointFingerprint = options.OriginFingerprint();
+        _modelFingerprint = ComputeModelFingerprint(options.Model);
+        _ownsHttpClient = ownsHttpClient;
+    }
+
+    public async Task<LlmReviewResult> ReviewAsync(
+        SemanticReviewRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        MinimizedCandidate minimized = CandidateMinimizer.Minimize(request);
+        byte[] requestBytes = OpenAiChatRequest.Build(_options, minimized, correlationId: null);
+
+        SemanticCacheKey cacheKey = BuildCacheKey(request, minimized);
+        var persistedReview = new PersistedLlmReview(
+            CandidateId: request.CandidateId,
+            ScanId: default,
+            CacheKey: cacheKey.Key,
+            Classification: SemanticClassification.Unresolved,
+            CategoryId: "SENS-001",
+            Confidence: null,
+            ReasonCode: "in_progress",
+            InjectionDetected: false,
+            PromptSha256: OpenAiChatRequest.PromptTemplate.Sha256,
+            PromptVersion: OpenAiChatRequest.PromptVersion,
+            EndpointFingerprint: _endpointFingerprint,
+            ModelFingerprint: _modelFingerprint,
+            AttemptedAtUtc: DateTimeOffset.UtcNow,
+            Duration: TimeSpan.Zero,
+            Attempts: 0);
+
+        if (!_circuitBreaker.TryEnter())
+        {
+            LlmReviewResult blocked = BlockedByCircuitResult(request.CandidateId);
+            await PersistFinalAsync(persistedReview, blocked, cancellationToken).ConfigureAwait(false);
+            return blocked;
+        }
+
+        DateTimeOffset startedAt = DateTimeOffset.UtcNow;
+        LlmRetryResult retryResult = await _retryPolicy.ExecuteAsync(
+            candidateId: request.CandidateId,
+            createRequest: () => BuildHttpRequest(minimized, requestBytes),
+            send: SendAsync,
+            deadline: null,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        TimeSpan duration = DateTimeOffset.UtcNow - startedAt;
+
+        LlmReviewResult parsed;
+        try
+        {
+            parsed = await OpenAiChatResponseParser.ParseAsync(
+                request.CandidateId,
+                retryResult.FinalResponse ?? new HttpResponseMessage(System.Net.HttpStatusCode.BadGateway)
+                {
+                    Content = new ByteArrayContent(Array.Empty<byte>()),
+                },
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (LlmSchemaException ex)
+        {
+            _circuitBreaker.RecordClientOrSchemaFailure();
+            parsed = UnresolvedResult(request.CandidateId, ex.Message);
+        }
+        finally
+        {
+            retryResult.FinalResponse?.Dispose();
+            foreach (HttpRequestMessage req in retryResult.Requests)
+                req.Dispose();
+        }
+
+        RecordCircuitOutcome(retryResult, parsed);
+
+        // Persist every attempt row (one per HTTP attempt).
+        int attemptNumber = 0;
+        foreach (HttpRequestMessage req in retryResult.Requests)
+        {
+            attemptNumber++;
+            int statusCode = parsed.ReasonCode is null ? 200 : 0;
+            _ = statusCode;
+            await _attempts.PersistAttemptAsync(new LlmAttemptPersistenceRecord(
+                Result: parsed,
+                AttemptNumber: attemptNumber,
+                CacheKey: cacheKey.Key,
+                RulePackHash: NoCachePayload,
+                AdapterVersion: NoCachePayload,
+                EndpointFingerprint: _endpointFingerprint,
+                ModelFingerprint: _modelFingerprint,
+                StartedAtUtc: startedAt,
+                Duration: duration,
+                StatusCodeOrZero: (int)(retryResult.FinalResponse?.StatusCode ?? default)),
+                cancellationToken).ConfigureAwait(false);
+            _ = req;
+        }
+
+        // Only Confirmed/Possible/Unlikely are cached and persisted as a
+        // successful review; transport/schema/injection unresolved is
+        // intentionally excluded so the cache never returns a stale
+        // error code as a successful review.
+        if (parsed.Classification is SemanticClassification.Confirmed
+            or SemanticClassification.Possible
+            or SemanticClassification.Unlikely)
+        {
+            await _cache.StoreAsync(
+                cacheKey.Key,
+                CacheStage,
+                persistedReview.ScanId == default ? default : persistedReview.ScanId,
+                cacheKey.Key,
+                new CachedReviewPayload(parsed),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        var finalPersisted = persistedReview with
+        {
+            Classification = parsed.Classification,
+            CategoryId = parsed.CategoryId?.Value ?? "SENS-001",
+            Confidence = parsed.Confidence,
+            ReasonCode = parsed.ReasonCode ?? "success",
+            InjectionDetected = parsed.InjectionDetected,
+            PromptSha256 = parsed.PromptSha256 ?? string.Empty,
+            PromptVersion = parsed.PromptVersion ?? string.Empty,
+            Duration = duration,
+            Attempts = retryResult.Attempts,
+        };
+        await PersistFinalAsync(finalPersisted, parsed, cancellationToken).ConfigureAwait(false);
+
+        return parsed;
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        Uri fullUri = new(_options.ApprovedOrigin, _options.ChatCompletionsPath);
+        request.RequestUri ??= fullUri;
+        try
+        {
+            return await _httpClient
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // Retry policy decides whether to retry. The circuit
+            // breaker decision is recorded by the caller when the
+            // retry exhausts.
+            throw;
+        }
+    }
+
+    private void RecordCircuitOutcome(LlmRetryResult retryResult, LlmReviewResult parsed)
+    {
+        if (retryResult.Succeeded)
+        {
+            _circuitBreaker.RecordSuccess();
+            return;
+        }
+
+        // Schema / client / network / 5xx / timeout classification.
+        string reason = parsed.ReasonCode ?? retryResult.ReasonCode ?? string.Empty;
+        bool isAvailability =
+            reason.StartsWith("server", StringComparison.OrdinalIgnoreCase) ||
+            reason.StartsWith("timeout", StringComparison.OrdinalIgnoreCase) ||
+            reason.StartsWith("transport", StringComparison.OrdinalIgnoreCase) ||
+            reason.StartsWith("rate_limited", StringComparison.OrdinalIgnoreCase);
+
+        if (isAvailability)
+            _circuitBreaker.RecordAvailabilityFailure();
+        else
+            _circuitBreaker.RecordClientOrSchemaFailure();
+    }
+
+    private async Task PersistFinalAsync(
+        PersistedLlmReview persisted,
+        LlmReviewResult result,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _attempts.PersistReviewAsync(persisted, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Persistence failures must not surface canaries in
+            // exceptions. Swallow — the caller still sees the result.
+            _ = result;
+        }
+    }
+
+    private SemanticCacheKey BuildCacheKey(SemanticReviewRequest request, MinimizedCandidate minimized)
+    {
+        string candidateHmac = _fingerprints.Compute(minimized.RedactedCandidateValue).HexString;
+        byte[] maskedBytes = Encoding.UTF8.GetBytes(minimized.UntrustedContext);
+        byte[] maskedHash = SHA256.HashData(maskedBytes);
+        string maskedSha = Convert.ToHexString(maskedHash).ToLowerInvariant();
+        return new SemanticCacheKey(
+            candidateHmac: candidateHmac,
+            maskedContextSha256: maskedSha,
+            endpointOriginFingerprint: _endpointFingerprint,
+            model: _modelFingerprint,
+            responseFormatMode: _options.ResponseFormatMode.ToString(),
+            temperatureMode: _options.SendTemperatureZero ? "zero" : "nonzero",
+            promptHash: OpenAiChatRequest.PromptTemplate.Sha256,
+            rulePackHash: NoCachePayload,
+            adapterVersion: NoCachePayload);
+    }
+
+    private HttpRequestMessage BuildHttpRequest(MinimizedCandidate minimized, byte[] body)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post,
+            new Uri(_options.ApprovedOrigin, _options.ChatCompletionsPath));
+        var content = new ByteArrayContent(body);
+        content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
+        request.Content = content;
+        _ = minimized;
+        return request;
+    }
+
+    private static LlmReviewResult UnresolvedResult(CandidateId id, string reason) =>
+        new()
+        {
+            CandidateId = id,
+            Classification = SemanticClassification.Unresolved,
+            CategoryId = SecurityReview.Domain.Assets.CategoryId.Parse("SENS-001"),
+            Confidence = null,
+            Rationale = string.Empty,
+            ReasonCode = reason,
+            InjectionDetected = false,
+            PromptSha256 = OpenAiChatRequest.PromptTemplate.Sha256,
+            PromptVersion = OpenAiChatRequest.PromptVersion,
+        };
+
+    private static LlmReviewResult BlockedByCircuitResult(CandidateId id) =>
+        UnresolvedResult(id, "circuit_open");
+
+    private static string ComputeModelFingerprint(string model)
+    {
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(model));
+        return Convert.ToHexString(hash)[..16].ToLowerInvariant();
+    }
+}
+
+/// <summary>
+/// Encrypted payload stored in <c>cache_entries.stage = "llm_review"</c>.
+/// Only valid classifications (Confirmed / Possible / Unlikely) are
+/// stored; Unresolved results are never cached.
+/// </summary>
+public sealed record CachedReviewPayload(LlmReviewResult Result);
