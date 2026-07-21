@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\SecurityReview.Domain\SecurityReview.Domain.csproj" />
@@ -6,6 +6,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SecurityReview.UnitTests" />
+    <InternalsVisibleTo Include="SecurityReview.ParserCorpusTests" />
     <PackageReference Include="DocumentFormat.OpenXml" />
     <PackageReference Include="PdfPig" />
     <PackageReference Include="YamlDotNet" />

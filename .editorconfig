@@ -24,6 +24,7 @@ indent_size = 4
 # Test methods use snake_case naming by convention; CA1707 does not apply there.
 [tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.xUnit1051.severity = none
 
 # Sorted usings, System first
 dotnet_sort_system_directives_first = true
