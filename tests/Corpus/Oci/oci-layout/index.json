@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.oci.image.index.v1+json",
+  "manifests": [
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "size": 693,
+      "digest": "sha256:fc3f3fc92f09355c45e48ed6a9ae6349e1d7590f4702518aa59ffd1e692cd9e7",
+      "platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "size": 693,
+      "digest": "sha256:fc3f3fc92f09355c45e48ed6a9ae6349e1d7590f4702518aa59ffd1e692cd9e7",
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux"
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "size": 9999,
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "platform": {
+        "architecture": "riscv64",
+        "os": "linux"
+      },
+      "annotations": {
+        "org.opencontainers.image.ref.name": "missing-blob"
+      }
+    }
+  ]
+}

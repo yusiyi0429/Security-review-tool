@@ -1,0 +1,55 @@
+{
+  "architecture": "amd64",
+  "os": "linux",
+  "rootfs": {
+    "type": "layers",
+    "diff_ids": [
+      "sha256:ef93e7d1d2437f2f489d9387d70da867b931f843a3d24dc807135cd56d0d165b",
+      "sha256:adc355ae9e34a25518b470e544177cc40154f2713e8fd118f32f270508078493"
+    ]
+  },
+  "config": {
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=20.0.0"
+    ],
+    "Labels": {
+      "org.opencontainers.image.title": "test-image",
+      "com.example.vendor": "SecurityReview"
+    },
+    "Entrypoint": [
+      "/bin/sh",
+      "-c"
+    ],
+    "Cmd": [
+      "echo",
+      "hello"
+    ],
+    "WorkingDir": "/app",
+    "User": "1000:1000",
+    "ExposedPorts": {
+      "8080/tcp": {}
+    },
+    "Volumes": {
+      "/data": {}
+    }
+  },
+  "history": [
+    {
+      "created": "2025-01-01T00:00:00Z",
+      "created_by": "FROM alpine:3.19"
+    },
+    {
+      "created": "2025-01-01T00:01:00Z",
+      "created_by": "RUN apk add nodejs"
+    },
+    {
+      "created": "2025-01-01T00:02:00Z",
+      "created_by": "COPY . /app"
+    },
+    {
+      "created": "2025-01-01T00:03:00Z",
+      "created_by": "CMD [\"echo\", \"hello\"]"
+    }
+  ]
+}

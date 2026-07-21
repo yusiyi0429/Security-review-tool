@@ -1,0 +1,32 @@
+{
+  "config_digest": "sha256:e6913a54c5f64f5739829072d424dd5c985c0bba8c4541d9928478179863a029",
+  "config_size": 1178,
+  "manifest_digest": "sha256:fc3f3fc92f09355c45e48ed6a9ae6349e1d7590f4702518aa59ffd1e692cd9e7",
+  "manifest_size": 693,
+  "layer1_digest": "sha256:38216a202a81fe5d065a9ed5ad5831727cc6b1c8fdc224c5f3c4f95684761867",
+  "layer1_size": 198,
+  "layer1_diff_id": "sha256:ef93e7d1d2437f2f489d9387d70da867b931f843a3d24dc807135cd56d0d165b",
+  "layer1_files": [
+    "canary.txt",
+    "keep-me.txt",
+    "bin/app"
+  ],
+  "layer2_digest": "sha256:048a1c046f8ca614e970d1878028ec2cbf004bdc90cd2099554c39a521fa796d",
+  "layer2_size": 245,
+  "layer2_diff_id": "sha256:adc355ae9e34a25518b470e544177cc40154f2713e8fd118f32f270508078493",
+  "layer2_files": [
+    ".wh.canary.txt",
+    ".wh..wh..opq",
+    "new-file.txt",
+    "keep-me.txt",
+    "dir/symlink-file",
+    "dir/hardlink-file"
+  ],
+  "oci_layout_version": "1.0.0",
+  "index_size": 1011,
+  "oci_manifest_count": 3,
+  "docker_repo_tags": [
+    "test-image:latest"
+  ],
+  "docker_layers_count": 2
+}
