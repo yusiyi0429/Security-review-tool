@@ -132,9 +132,11 @@ public sealed class ContentChunker
             chunks.Add(NextChunk(segment, segSourceStart, segSourceLength, segMap, isFinal));
 
             offset = end;
-            if (end < fullText.Length && offset > OverlapSourceBytes / 4)
+            // Carry source-overlap characters forward for next chunk's continuity
+            int charOverlap = OverlapSourceBytes; // brief: "4,096 bytes/characters of overlap"
+            if (end < fullText.Length && offset > charOverlap)
             {
-                offset -= OverlapSourceBytes / 4; // char-level overlap
+                offset -= charOverlap;
             }
             previousEnd = offset;
         }
@@ -148,7 +150,8 @@ public sealed class ContentChunker
         if (map.Count <= MaxLocationMapEntries)
             return map;
 
-        // Cap at MaxLocationMapEntries, keeping sorted non-overlapping entries
+        // Cap at MaxLocationMapEntries, keeping sorted non-overlapping entries,
+        // coalescing adjacent linear runs where entry.SourceStart+SourceLength == next.SourceStart.
         var sorted = map.OrderBy(e => e.SourceStart).ToList();
         var result = new List<LocationMapEntry>(MaxLocationMapEntries);
         long previousEnd = -1;
@@ -162,8 +165,22 @@ public sealed class ContentChunker
             if (entry.SourceStart < previousEnd)
                 continue;
 
-            result.Add(entry);
-            previousEnd = entry.SourceStart + entry.SourceLength;
+            if (previousEnd >= 0 && entry.SourceStart == previousEnd
+                && result.Count > 0
+                && result[^1].TextStart + result[^1].TextLength == entry.SourceStart)
+            {
+                // Coalesce adjacent entries: extend the last entry
+                var last = result[^1];
+                long newSrcLen = last.SourceLength + entry.SourceLength;
+                long newTextLen = last.TextLength + entry.TextLength;
+                result[^1] = new LocationMapEntry(last.SourceStart, newSrcLen, last.TextStart, newTextLen);
+                previousEnd = last.SourceStart + newSrcLen;
+            }
+            else
+            {
+                result.Add(entry);
+                previousEnd = entry.SourceStart + entry.SourceLength;
+            }
         }
 
         return result;

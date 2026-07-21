@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -43,52 +44,61 @@ public sealed class TextFormatParser : Core.IFormatParser
         if (length > int.MaxValue)
         {
             yield return new Core.ParserEvent.GapProduced(
-                Domain.Scans.CoverageGap.CreateForTest(Domain.Scans.GapReason.DecodeUnreliable)
-                with
-                { });
+                new Domain.Scans.CoverageGap(
+                    Guid.NewGuid(), context.ScanId, null, context.VirtualPath, ParserId,
+                    "text_parse", Domain.Scans.GapReason.DecodeUnreliable,
+                    "source_too_large", length, 0, DateTimeOffset.UtcNow));
             yield return new Core.ParserEvent.ParseCompleted();
             yield break;
         }
 
-        byte[] buffer = new byte[length];
+        byte[] buffer = ArrayPool<byte>.Shared.Rent((int)length);
         int totalRead = 0;
-        while (totalRead < length)
+        try
         {
-            int read = await stream.ReadAsync(buffer.AsMemory(totalRead, (int)(length - totalRead)),
-                cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
-            totalRead += read;
+            while (totalRead < length)
+            {
+                int read = await stream.ReadAsync(buffer.AsMemory(totalRead, (int)(length - totalRead)),
+                    cancellationToken).ConfigureAwait(false);
+                if (read == 0) break;
+                totalRead += read;
+            }
+
+            // Detect encoding and decode (do this before any yield to keep span alive)
+            var detection = TextEncodingDetector.DetectAndDecode(buffer.AsSpan(0, totalRead));
+
+            // Build location map before yields
+            var locationMap = BuildTextLocationMap(buffer.AsSpan(0, totalRead), detection.Text, detection.EncodingName);
+
+            if (!detection.IsReliable)
+            {
+                yield return new Core.ParserEvent.GapProduced(
+                    new Domain.Scans.CoverageGap(
+                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, ParserId,
+                        "text_decode", Domain.Scans.GapReason.DecodeUnreliable,
+                        detection.FailureReason ?? "unreliable_encoding",
+                        totalRead, totalRead, DateTimeOffset.UtcNow));
+            }
+
+            // Chunk the text
+            var chunker = new ContentChunker(context.JobId, context.VirtualPath, ParserId,
+                ParserContracts.Parsing.ContentKind.Text, detection.EncodingName, totalRead);
+
+            var chunks = chunker.ChunkAll(detection.Text, locationMap, totalRead);
+
+            foreach (var chunk in chunks)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return new Core.ParserEvent.ChunkProduced(chunk);
+            }
+
+            yield return new Core.ParserEvent.ParseCompleted();
         }
-
-        // Detect encoding and decode (do this before any yield to keep span alive)
-        var detection = TextEncodingDetector.DetectAndDecode(buffer.AsSpan(0, totalRead));
-
-        // Build location map before yields
-        var locationMap = BuildTextLocationMap(buffer.AsSpan(0, totalRead), detection.Text, detection.EncodingName);
-
-        if (!detection.IsReliable)
+        finally
         {
-            yield return new Core.ParserEvent.GapProduced(
-                new Domain.Scans.CoverageGap(
-                    Guid.NewGuid(), context.ScanId, null, context.VirtualPath, ParserId,
-                    "text_decode", Domain.Scans.GapReason.DecodeUnreliable,
-                    detection.FailureReason ?? "unreliable_encoding",
-                    totalRead, totalRead, DateTimeOffset.UtcNow));
+            Array.Clear(buffer, 0, totalRead);
+            ArrayPool<byte>.Shared.Return(buffer);
         }
-
-        // Chunk the text
-        var chunker = new ContentChunker(context.JobId, context.VirtualPath, ParserId,
-            ParserContracts.Parsing.ContentKind.Text, detection.EncodingName, totalRead);
-
-        var chunks = chunker.ChunkAll(detection.Text, locationMap, totalRead);
-
-        foreach (var chunk in chunks)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            yield return new Core.ParserEvent.ChunkProduced(chunk);
-        }
-
-        yield return new Core.ParserEvent.ParseCompleted();
     }
 
     private static List<ParserContracts.Parsing.LocationMapEntry> BuildTextLocationMap(

@@ -25,4 +25,8 @@
     <ProjectReference Include="..\..\src\SecurityReview.RulePack\SecurityReview.RulePack.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="../Corpus/**/*" CopyToOutputDirectory="PreserveNewest" LinkBase="Corpus\" />
+  </ItemGroup>
+
 </Project>

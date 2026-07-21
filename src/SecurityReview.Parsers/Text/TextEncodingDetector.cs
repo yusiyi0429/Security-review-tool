@@ -192,40 +192,16 @@ public static class TextEncodingDetector
 
     private static DetectionResult DecodeUnreliableWithBom(ReadOnlySpan<byte> data, int bomLength, string reason)
     {
-        // Best-effort decode without BOM using replacement fallback (but mark unreliable)
-        ReadOnlySpan<byte> withoutBom = data[bomLength..];
-        try
-        {
-            var utf8Relaxed = new UTF8Encoding(false, false);
-            string text = utf8Relaxed.GetString(withoutBom);
-            return DetectionResult.Unreliable(text, data.Length, reason);
-        }
-        catch
-        {
-            // Replace invalid bytes with �
-            string text = Encoding.UTF8.GetString(withoutBom);
-            return DetectionResult.Unreliable(text, data.Length, reason);
-        }
+        // No lossy text: a BOM claims a known encoding but decoding failed.
+        // Return empty text — the caller treats IsReliable==false as untrusted.
+        return DetectionResult.Unreliable(string.Empty, data.Length, reason);
     }
 
     private static DetectionResult DecodeUnreliable(ReadOnlySpan<byte> data)
     {
-        // Best-effort: try UTF-8 with replacement fallback, mark as unreliable.
-        // We do NOT accept replacement-character output as valid — this is a
-        // last-resort fallback that the caller must treat as untrusted.
-        string text;
-        try
-        {
-            // Use relaxed UTF-8 first to get as much valid text as possible,
-            // then fall back to Encoding.UTF8 (with replacement chars) if that fails too.
-            var relaxed = new UTF8Encoding(false, false);
-            text = relaxed.GetString(data);
-        }
-        catch
-        {
-            text = Encoding.UTF8.GetString(data);
-        }
-
-        return DetectionResult.Unreliable(text, data.Length, "no_encoding_detected");
+        // No lossy text: return empty text and the byte count.
+        // The caller treats IsReliable==false as untrusted and must not
+        // pass the (empty) text to detection pipelines.
+        return DetectionResult.Unreliable(string.Empty, data.Length, "no_encoding_detected");
     }
 }
