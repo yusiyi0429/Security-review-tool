@@ -8,6 +8,8 @@ public readonly record struct JobId(Guid Value);
 public readonly record struct CandidateId(Guid Value);
 public readonly record struct FindingGroupId(Guid Value);
 public readonly record struct FindingOccurrenceId(Guid Value);
+public readonly record struct DecisionId(Guid Value);
+public readonly record struct ExceptionGrantId(Guid Value);
 
 [JsonConverter(typeof(RuleIdJsonConverter))]
 public readonly record struct RuleId(string Value);
