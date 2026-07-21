@@ -111,7 +111,7 @@ public sealed class SqliteCacheRepository : ICacheRepository
             """;
 
         object? result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        return result is long l ? l : Convert.ToInt64(result);
+        return result is long l ? l : Convert.ToInt64(result, System.Globalization.CultureInfo.InvariantCulture);
     }
 
     public async Task<IReadOnlyList<CacheEntry>> ListByStageOldestFirstAsync(

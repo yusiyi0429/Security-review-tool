@@ -134,6 +134,8 @@ public sealed class RulePackImportTests
             RulePackJsonContext.Default.IReadOnlyListCategoryDefinition);
         byte[] assetsBytes = SerializeWithContext(document.Assets,
             RulePackJsonContext.Default.IReadOnlyListAssetPolicy);
+        byte[] rulesBytes = SerializeWithContext(document.Rules,
+            RulePackJsonContext.Default.IReadOnlyListRuleDefinition);
         byte[] detectorsBytes = SerializeWithContext(document.Detectors,
             RulePackJsonContext.Default.IReadOnlyListDetectorDefinition);
         byte[] complianceBytes = SerializeWithContext(document.ComplianceRules,
@@ -159,6 +161,7 @@ public sealed class RulePackImportTests
             {
                 ["categories.json"] = categoriesBytes,
                 ["assets.json"] = assetsBytes,
+                ["rules.json"] = rulesBytes,
                 ["detectors.json"] = detectorsBytes,
                 ["compliance.json"] = complianceBytes,
                 ["dictionaries/entities.json"] = entitiesBytes,
@@ -192,6 +195,7 @@ public sealed class RulePackImportTests
         {
             ["categories.json"] = categoriesBytes,
             ["assets.json"] = assetsBytes,
+            ["rules.json"] = rulesBytes,
             ["detectors.json"] = detectorsBytes,
             ["compliance.json"] = complianceBytes,
             ["dictionaries/entities.json"] = entitiesBytes,

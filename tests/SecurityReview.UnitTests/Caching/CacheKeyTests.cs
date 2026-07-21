@@ -1,5 +1,7 @@
 namespace SecurityReview.UnitTests.Caching;
 
+using SecurityReview.Application.Caching;
+
 public sealed class CacheKeyTests
 {
     // ---------------------------------------------------------------

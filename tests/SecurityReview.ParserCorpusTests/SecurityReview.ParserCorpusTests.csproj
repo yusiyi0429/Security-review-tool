@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\SecurityReview.ParserContracts\SecurityReview.ParserContracts.csproj" />
     <ProjectReference Include="..\..\src\SecurityReview.Parsers\SecurityReview.Parsers.csproj" />
     <ProjectReference Include="..\..\src\SecurityReview.RulePack\SecurityReview.RulePack.csproj" />
+    <ProjectReference Include="..\..\src\SecurityReview.Application\SecurityReview.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -25,6 +25,7 @@ namespace SecurityReview.RulePack.Schema;
 [JsonSerializable(typeof(IReadOnlyList<AssetPolicy>))]
 [JsonSerializable(typeof(IReadOnlyList<DetectorDefinition>))]
 [JsonSerializable(typeof(IReadOnlyList<ComplianceRule>))]
+[JsonSerializable(typeof(IReadOnlyList<RuleDefinition>))]
 public sealed partial class RulePackJsonContext : JsonSerializerContext
 {
 }

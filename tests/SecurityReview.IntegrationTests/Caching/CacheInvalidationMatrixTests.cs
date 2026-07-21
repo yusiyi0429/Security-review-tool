@@ -7,6 +7,7 @@ using SecurityReview.Application.Abstractions;
 using SecurityReview.Domain;
 using SecurityReview.Domain.Scans;
 using SecurityReview.Infrastructure.Cryptography;
+using SecurityReview.Infrastructure.Persistence;
 using SecurityReview.Infrastructure.Persistence.Repositories;
 
 namespace SecurityReview.IntegrationTests.Caching;
@@ -77,7 +78,7 @@ public sealed class CacheInvalidationMatrixTests : IAsyncDisposable
         try { Directory.Delete(_tempDir, recursive: true); } catch { /* best-effort */ }
     }
 
-    private record TestResult(string Message);
+    private sealed record TestResult(string Message);
 
     // ---------------------------------------------------------------
     // Matrix: parse cache key component changes

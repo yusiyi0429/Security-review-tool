@@ -8,7 +8,7 @@ using SecurityReview.RulePack.Schema;
 namespace SecurityReview.RulePack.Packaging;
 
 /// <summary>
-/// Writes a rule pack as a deterministic ZIP archive containing exactly 9 files.
+/// Writes a rule pack as a deterministic ZIP archive containing exactly 10 files.
 /// </summary>
 public static class RulePackWriter
 {
@@ -45,13 +45,15 @@ public static class RulePackWriter
         ArgumentNullException.ThrowIfNull(licenses);
 
         // Pre-compute all non-manifest entry bytes
-        var entries = new Dictionary<string, byte[]>(9, StringComparer.Ordinal)
+        var entries = new Dictionary<string, byte[]>(10, StringComparer.Ordinal)
         {
             ["signature.json"] = SignaturePlaceholderBytes.ToArray(),
             ["categories.json"] = SerializeWithContext(document.Categories,
                 RulePackJsonContext.Default.IReadOnlyListCategoryDefinition),
             ["assets.json"] = SerializeWithContext(document.Assets,
                 RulePackJsonContext.Default.IReadOnlyListAssetPolicy),
+            ["rules.json"] = SerializeWithContext(document.Rules,
+                RulePackJsonContext.Default.IReadOnlyListRuleDefinition),
             ["detectors.json"] = SerializeWithContext(document.Detectors,
                 RulePackJsonContext.Default.IReadOnlyListDetectorDefinition),
             ["dictionaries/entities.json"] = JsonSerializer.SerializeToUtf8Bytes(entities, DtoOptions),
