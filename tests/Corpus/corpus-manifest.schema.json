@@ -1,0 +1,183 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://security-review-tool/corpus-manifest.schema.json",
+  "title": "Corpus Manifest",
+  "description": "Machine-readable corpus manifest linking adversarial fixtures to expected parser events, gaps, and coverage.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "cases"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Manifest schema version."
+    },
+    "cases": {
+      "type": "array",
+      "description": "All corpus test cases.",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/CorpusCase"
+      }
+    }
+  },
+  "definitions": {
+    "CorpusCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseId",
+        "fixturePath",
+        "sha256",
+        "format",
+        "expectedParser",
+        "expectedParserVersion",
+        "expectedChunks",
+        "expectedGaps",
+        "maxDurationMs",
+        "maxMemoryMb",
+        "coverage"
+      ],
+      "properties": {
+        "caseId": {
+          "type": "string",
+          "description": "Unique case identifier."
+        },
+        "fixturePath": {
+          "type": "string",
+          "description": "Relative fixture path from the corpus root."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase hex SHA-256 of the fixture file."
+        },
+        "format": {
+          "type": "string",
+          "description": "Declared format identifier."
+        },
+        "expectedParser": {
+          "type": "string",
+          "description": "ParserId of the parser expected to handle this case."
+        },
+        "expectedParserVersion": {
+          "type": "string",
+          "description": "Parser version string."
+        },
+        "expectedChunks": {
+          "type": "array",
+          "description": "Expected chunks.",
+          "items": {
+            "$ref": "#/definitions/ExpectedChunk"
+          }
+        },
+        "expectedGaps": {
+          "type": "array",
+          "description": "Expected coverage gaps.",
+          "items": {
+            "$ref": "#/definitions/ExpectedGap"
+          }
+        },
+        "maxDurationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum allowed processing duration in milliseconds."
+        },
+        "maxMemoryMb": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum allowed worker memory in MB."
+        },
+        "coverage": {
+          "type": "string",
+          "enum": ["Covered", "Partial", "NotCovered"],
+          "description": "Expected coverage status."
+        }
+      }
+    },
+    "ExpectedChunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "sourceStart",
+        "sourceLength",
+        "virtualPath",
+        "formatId",
+        "contentKind"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "HMAC canary: SHA-256 hex digest of chunk text."
+        },
+        "sourceStart": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte offset in the source file."
+        },
+        "sourceLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte length in the source file."
+        },
+        "virtualPath": {
+          "type": "string",
+          "description": "Virtual path within the scan tree."
+        },
+        "formatId": {
+          "type": "string",
+          "description": "Format identifier for this chunk."
+        },
+        "contentKind": {
+          "type": "string",
+          "enum": ["Text", "StructuredData", "Metadata", "Binary"],
+          "description": "Content kind."
+        },
+        "encoding": {
+          "type": ["string", "null"],
+          "description": "Text encoding name."
+        }
+      }
+    },
+    "ExpectedGap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "detailCode"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": [
+            "UnsupportedFormat",
+            "UnsupportedRegion",
+            "AccessDenied",
+            "Encrypted",
+            "DecodeUnreliable",
+            "Corrupt",
+            "ArchiveLimit",
+            "ParserTimeout",
+            "ParserMemory",
+            "ParserCrash",
+            "SandboxUnavailable",
+            "FileUnstable",
+            "UserExcluded",
+            "LlmUnresolved",
+            "Cancelled",
+            "DiskFull",
+            "UnexpectedGitMetadata",
+            "ParserProtocolMismatch"
+          ],
+          "description": "GapReason enum member name."
+        },
+        "detailCode": {
+          "type": "string",
+          "description": "Detail code identifying the specific gap condition."
+        },
+        "virtualPath": {
+          "type": ["string", "null"],
+          "description": "Virtual path where the gap was raised."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,4100 @@
+{
+  "Version": "1.0",
+  "Cases": [
+    {
+      "CaseId": "archives/absolute_path_zip",
+      "FixturePath": "Archives/absolute_path.zip",
+      "Sha256": "4134b3f677e28fbc98345b58b585b3a251d23371d0a5725cc1a83cb9239a6293",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "ArchiveLimit",
+          "DetailCode": "entry_name_absolute",
+          "VirtualPath": "Archives/absolute_path.zip!/entry[1]"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/case_collision_zip",
+      "FixturePath": "Archives/case_collision.zip",
+      "Sha256": "986313ac33e6669b6a04b2cfa22974bbc4c71938e6a9e92a976c99a8762e7e09",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/corrupt_central_dir_zip",
+      "FixturePath": "Archives/corrupt_central_dir.zip",
+      "Sha256": "bdc225f94a6c1927da84d01938b459e5303f0f1e414294a71370327b41b2d4c7",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Corrupt",
+          "DetailCode": "zip_structure_invalid: End of Central Directory record could not be found.",
+          "VirtualPath": "Archives/corrupt_central_dir.zip"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/depth_6_zip",
+      "FixturePath": "Archives/depth_6.zip",
+      "Sha256": "878432bbc0d53418f42f1cf68aa14ddc03d52c176faf66aed601bd56278af188",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/duplicate_name_zip",
+      "FixturePath": "Archives/duplicate_name.zip",
+      "Sha256": "21cafbde0fbd4fd7f1750887c36a217b05b571048dcfda6d4f6ab63fc1381671",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/empty_tar",
+      "FixturePath": "Archives/empty.tar",
+      "Sha256": "84ff92691f909a05b224e1c56abb4864f01b4f8e3c854e4bb4c7baf1d3f6d652",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/empty_zip",
+      "FixturePath": "Archives/empty.zip",
+      "Sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/high_compression_ratio_zip",
+      "FixturePath": "Archives/high_compression_ratio.zip",
+      "Sha256": "011c866f4729441583b66c353e92224b09f9028a5f5c2bd0b81d127e105d4d1b",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/nested_valid_zip",
+      "FixturePath": "Archives/nested_valid.zip",
+      "Sha256": "1297040995bf9e9f057ccafd7ec9a61601aac62e9d2e7980e0dc2817ebd74cbf",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/nested_zip_in_jar_zip",
+      "FixturePath": "Archives/nested_zip_in_jar.zip",
+      "Sha256": "bb79c455ee5c5536ac2a608e0cab8c7aeadaef9568e4de9dcb3ae35c4ec9cbb5",
+      "Format": "jar",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/over_entry_count_zip",
+      "FixturePath": "Archives/over_entry_count.zip",
+      "Sha256": "69b1610bd6004b1a7d9b87a27d700e3285ef369e2b9671306d2f6ec14eef66d3",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/sample.txt_gz",
+      "FixturePath": "Archives/sample.txt.gz",
+      "Sha256": "934b06c96d5e2ca6fdbc82fd6945e55f377747d368565920e6967b9e5762b24f",
+      "Format": "gzip",
+      "ExpectedParser": "gzip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/sample_with_name.txt_gz",
+      "FixturePath": "Archives/sample_with_name.txt.gz",
+      "Sha256": "88b02bdbcddbc3648381a5859fd565a6a1764e227e404440f1c756cbcbb0827d",
+      "Format": "gzip",
+      "ExpectedParser": "gzip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/simple_tar",
+      "FixturePath": "Archives/simple.tar",
+      "Sha256": "6a1a1d0a7d470d000f699d1493e2f32736b981ca04f629697be43e2a101e6ad0",
+      "Format": "tar",
+      "ExpectedParser": "tar",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/sparse_huge_tar_tar",
+      "FixturePath": "Archives/sparse_huge_tar.tar",
+      "Sha256": "dfadd1867106f328cdfcc93572078cf6410c06087949f9aa837fb108ed388272",
+      "Format": "tar",
+      "ExpectedParser": "tar",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/symlink_tar",
+      "FixturePath": "Archives/symlink.tar",
+      "Sha256": "9bf9756fd107d9eecc0354cd757987bdc1b1e659b564ef994338029cdd919306",
+      "Format": "tar",
+      "ExpectedParser": "tar",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "a3388c7448dc725756fbb0200a00264261038104b500ee34c1cc0cdb5415fb07",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Archives/symlink.tar!/link.txt",
+          "FormatId": "tar",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "df248aa1f0b06c852ecf8a16a99623d59cf26270e85bb54f1b551988ae255fa0",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Archives/symlink.tar!/badlink.txt",
+          "FormatId": "tar",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "unsupported_symlink",
+          "VirtualPath": "Archives/symlink.tar!/link.txt"
+        },
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "unsupported_symlink",
+          "VirtualPath": "Archives/symlink.tar!/badlink.txt"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "archives/traversal_zip",
+      "FixturePath": "Archives/traversal.zip",
+      "Sha256": "7204565f8810be6991c7b7a998ed52f1c317dcd68580ac329bfdfdaceafcea85",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "ArchiveLimit",
+          "DetailCode": "entry_name_parent_ref",
+          "VirtualPath": "Archives/traversal.zip!/entry[1]"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "archives/valid_tar_tar",
+      "FixturePath": "Archives/valid_tar.tar",
+      "Sha256": "de74220fbe6a644a315e55647786db08e6982c00ea94804e4edba7214ab1a1ca",
+      "Format": "tar",
+      "ExpectedParser": "tar",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/elf_class_mismatch_bin",
+      "FixturePath": "Binary/elf_class_mismatch.bin",
+      "Sha256": "bb766c5a7cacf379b339d743f939db70b126ab7f792b2b789de8cd8bb42fde9a",
+      "Format": "elf",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:elf",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/elf_invalid_magic_bin",
+      "FixturePath": "Binary/elf_invalid_magic.bin",
+      "Sha256": "14165f4d95c9e1e1c05141fd28c9774ebbc39c3adca7f4ceddf5a810049ac98a",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/elf_with_build_id_bin",
+      "FixturePath": "Binary/elf_with_build_id.bin",
+      "Sha256": "3d897049c2d1ee98fba795932c16c4403fe8a45dfe7d5f0bf05b850df2e2c8a8",
+      "Format": "elf",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:elf",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/high_entropy_random_bin",
+      "FixturePath": "Binary/high_entropy_random.bin",
+      "Sha256": "f9577a3820ee11c2fe4d6e888f565dc28f3c9aaa7ad48982a50bee51cbf456b1",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/minimal_elf32_bin",
+      "FixturePath": "Binary/minimal_elf32.bin",
+      "Sha256": "4c3f1b2d2de2c8ec27136cd1d703ca294df5999b1cb31a9f5f8da731136dc224",
+      "Format": "elf",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:elf",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/minimal_elf64_bin",
+      "FixturePath": "Binary/minimal_elf64.bin",
+      "Sha256": "85307d4378974402b11789b5839b07e98a23f835fd85401bcf1fa4be41827626",
+      "Format": "elf",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:elf",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/minimal_pe32plus_bin",
+      "FixturePath": "Binary/minimal_pe32plus.bin",
+      "Sha256": "b61294c93b0bcbe2a9067e7655f9f2ab2810599bacce577ae6f6ca13c0c78950",
+      "Format": "pe",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:pe",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/pe_invalid_elfanew_bin",
+      "FixturePath": "Binary/pe_invalid_elfanew.bin",
+      "Sha256": "970961f78894aeea80cf4c2dc8b573233f408eae5a3aaa0596d18a04d834882a",
+      "Format": "pe",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:pe",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/pe_overlapping_sections_bin",
+      "FixturePath": "Binary/pe_overlapping_sections.bin",
+      "Sha256": "e4dd330e66136c05c43d9aefd8c789a5bbe32a99cec95c84b630976cd26bec91",
+      "Format": "pe",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:pe",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/pe_too_many_sections_bin",
+      "FixturePath": "Binary/pe_too_many_sections.bin",
+      "Sha256": "94c8d8f51cf0bd66c2706caa0751380b18cdc9b450e580dc55c89346c202f552",
+      "Format": "pe",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:pe",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "binary/pe_zero_sections_bin",
+      "FixturePath": "Binary/pe_zero_sections.bin",
+      "Sha256": "a338f2ffd8bb1b032e1c3cfb56e098a6ca998787cf46b92fa6cf106de0a942b7",
+      "Format": "pe",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:pe",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/constant_pool_overflow_class",
+      "FixturePath": "Jvm/constant_pool_overflow.class",
+      "Sha256": "b094f6eae879a999ea4ae0c8a9ec60e9e7ecd1791d803f80ea25efe5e63ccaa9",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/huge_utf8_entry_class",
+      "FixturePath": "Jvm/huge_utf8_entry.class",
+      "Sha256": "e7622b37b26f28f8834bfad7e1508a9acca558766b6665558727d268e7f736e4",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/invalid_magic_class",
+      "FixturePath": "Jvm/invalid_magic.class",
+      "Sha256": "14165f4d95c9e1e1c05141fd28c9774ebbc39c3adca7f4ceddf5a810049ac98a",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/malformed_utf8_class",
+      "FixturePath": "Jvm/malformed_utf8.class",
+      "Sha256": "c7e007e3110dc236e936fc10675272296989e9818e2a885cbd03f80fac12f0e2",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/module_package_class",
+      "FixturePath": "Jvm/module_package.class",
+      "Sha256": "ca70e0099aec38d9826225d7d8bcf60aa7cc356ca2cfdf840dd4a2f56728c803",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/name_and_type_class",
+      "FixturePath": "Jvm/name_and_type.class",
+      "Sha256": "539ead63f29f2b61800a9ad927ffd6a69831959e0db1c722af823eeb21f7a170",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/nested_jar_jar",
+      "FixturePath": "Jvm/nested_jar.jar",
+      "Sha256": "40336951498edb3e6dd1fdb7b2dbb0468eddfc0c09eea550ce8cbe6aa86fe7fd",
+      "Format": "jar",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/truncated_class",
+      "FixturePath": "Jvm/truncated.class",
+      "Sha256": "cc5cce3d2a03da1b8e40207d15b822d0e28056c2466aaf5e3827bd09013b594e",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/unknown_major_version_class",
+      "FixturePath": "Jvm/unknown_major_version.class",
+      "Sha256": "a25e696b344a00c4201075bc7292a292dbc7d12a422c7f4eb9f1207aa2677b52",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/unknown_tag_class",
+      "FixturePath": "Jvm/unknown_tag.class",
+      "Sha256": "21094f3dae90870444f86f624c476b957efff7b4c60d5b9971666e8fa3ad3866",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/valid_hello_class",
+      "FixturePath": "Jvm/valid_hello.class",
+      "Sha256": "097a94854cb2f365e2696b7524a51026d3014f0aa297866270a2ec1db0805585",
+      "Format": "java_class",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:java_class",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "jvm/valid_lib_jar",
+      "FixturePath": "Jvm/valid_lib.jar",
+      "Sha256": "e99a475f2b6ee8e0c84d9ba532e4a055d630055479c5fe5dc2d31003f64a6f4b",
+      "Format": "jar",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/adjacent_config_model_json",
+      "FixturePath": "Models/adjacent_config_model.json",
+      "Sha256": "0dbb96f87a208144370d7e90151ed6edf484ab16eed8dd6af26612bd33b5ac6f",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "0dbb96f87a208144370d7e90151ed6edf484ab16eed8dd6af26612bd33b5ac6f",
+          "SourceStart": 0,
+          "SourceLength": 79,
+          "VirtualPath": "Models/adjacent_config_model.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "models/adjacent_tokenizer_json",
+      "FixturePath": "Models/adjacent_tokenizer.json",
+      "Sha256": "311cbf98bce93df69a95fb3d39c6aa2cf1e3eedef7e10814b9db74bc827130db",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "311cbf98bce93df69a95fb3d39c6aa2cf1e3eedef7e10814b9db74bc827130db",
+          "SourceStart": 0,
+          "SourceLength": 51,
+          "VirtualPath": "Models/adjacent_tokenizer.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "models/empty_file_model",
+      "FixturePath": "Models/empty_file.model",
+      "Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Format": "empty",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 5000,
+      "MaxMemoryMb": 64,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/gguf_excessive_kv_count_gguf",
+      "FixturePath": "Models/gguf_excessive_kv_count.gguf",
+      "Sha256": "717e4629553dde28cfb41df980200b0c27a27ae4edb9842ac5593426b52afbe3",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Corrupt",
+          "DetailCode": "ExcessiveKvCount: kv_2000000",
+          "VirtualPath": "Models/gguf_excessive_kv_count.gguf"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/gguf_invalid_magic_gguf",
+      "FixturePath": "Models/gguf_invalid_magic.gguf",
+      "Sha256": "5d847290f9871979b9d832ab310f8d1b5c67a9cb017eea0a7ceba661fd9fe96c",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "unknown_model_format: binary_unknown",
+          "VirtualPath": "Models/gguf_invalid_magic.gguf"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/gguf_oversized_string_gguf",
+      "FixturePath": "Models/gguf_oversized_string.gguf",
+      "Sha256": "19b43902b007085bd18e4f2951eb0fc7b73ceadedac35d89e8934a43366b9695",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Corrupt",
+          "DetailCode": "OversizedString: kv_string_len_2097152",
+          "VirtualPath": "Models/gguf_oversized_string.gguf"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/gguf_oversized_tensor_count_gguf",
+      "FixturePath": "Models/gguf_oversized_tensor_count.gguf",
+      "Sha256": "93c2ce83495ff50bb33b810d1ac015ebb8ff3b93ecf0a1a72309badad59015a6",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Corrupt",
+          "DetailCode": "ExcessiveTensorCount: tensors_2000000",
+          "VirtualPath": "Models/gguf_oversized_tensor_count.gguf"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/gguf_v2_minimal_gguf",
+      "FixturePath": "Models/gguf_v2_minimal.gguf",
+      "Sha256": "ecfc508477062b16c99a668eea631a28c4b0f3d98235e8dd71e79b475de83ae9",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "648c448a589a003a1a21b21ca7429d0a2c4ef08b3f27e5319d95396046a31cc2",
+          "SourceStart": 0,
+          "SourceLength": 87,
+          "VirtualPath": "Models/gguf_v2_minimal.gguf/gguf_metadata",
+          "FormatId": "model",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "model_weight_semantics_uncovered",
+          "VirtualPath": "Models/gguf_v2_minimal.gguf"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "models/gguf_v3_minimal_gguf",
+      "FixturePath": "Models/gguf_v3_minimal.gguf",
+      "Sha256": "51aba6d64e69a51c4d35b41e6e5c2e2aca9fb06ca428b746833d1d194017a81b",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "199192d5a1eca4a6a0c9a36b15ef4ac2af91fa2ac6cc23c0a26dd288ad125928",
+          "SourceStart": 0,
+          "SourceLength": 170,
+          "VirtualPath": "Models/gguf_v3_minimal.gguf/gguf_metadata",
+          "FormatId": "model",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "model_weight_semantics_uncovered",
+          "VirtualPath": "Models/gguf_v3_minimal.gguf"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "models/onnx_minimal_bin",
+      "FixturePath": "Models/onnx_minimal.bin",
+      "Sha256": "151db6d9768bcce5ad4ee8c88523fbb313ae8a162145d79bc4848c2dcf9b4134",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "151db6d9768bcce5ad4ee8c88523fbb313ae8a162145d79bc4848c2dcf9b4134",
+          "SourceStart": 0,
+          "SourceLength": 137,
+          "VirtualPath": "Models/onnx_minimal.bin",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "models/onnx_truncated_bin",
+      "FixturePath": "Models/onnx_truncated.bin",
+      "Sha256": "74288b81c63ceea356eb69d8464a38ded26289dca2e24c7a0b9e8b8c0ae1af45",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/onnx_with_tensor_data_bin",
+      "FixturePath": "Models/onnx_with_tensor_data.bin",
+      "Sha256": "9bbedd9be6c31a0e59ee38cda7da135220263054e5667b3c054014603b523ddd",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "9bbedd9be6c31a0e59ee38cda7da135220263054e5667b3c054014603b523ddd",
+          "SourceStart": 0,
+          "SourceLength": 67,
+          "VirtualPath": "Models/onnx_with_tensor_data.bin",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "models/pickle_protocol_2_pkl",
+      "FixturePath": "Models/pickle_protocol_2.pkl",
+      "Sha256": "a54ba85dfab495e63250fef980fcc1c59fc805787c3f32264d81fc8b379c3c65",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Corrupt",
+          "DetailCode": "exception:NotSupportedException",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/pickle_protocol_5_pkl",
+      "FixturePath": "Models/pickle_protocol_5.pkl",
+      "Sha256": "1286f93c9a4ccd9ed7219c1d64b54c73ed19c206eb3e9713b3a55cb71cc3b11e",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "eec33275a89f2b4c4264dcb7c0548a0d83c3c1fbed96364fb33b66e85fc59eb8",
+          "SourceStart": 0,
+          "SourceLength": 33,
+          "VirtualPath": "Models/pickle_protocol_5.pkl/detected_protocols",
+          "FormatId": "model",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "dangerous_object_serialization_not_loaded: PickleProtocol, pickle object serialization \u2014 not deserialized, marked NotCovered",
+          "VirtualPath": "Models/pickle_protocol_5.pkl"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "models/pytorch_archive_pt",
+      "FixturePath": "Models/pytorch_archive.pt",
+      "Sha256": "a343c42017fdb8ca15ab8f79f9b049b5f9cd1c631b1a0415650be1b451e662be",
+      "Format": "zip",
+      "ExpectedParser": "zip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/safetensors_minimal_safetensors",
+      "FixturePath": "Models/safetensors_minimal.safetensors",
+      "Sha256": "12442f6fa549b5dbb045f0a5e3ee8143896bfe763f7b047bc763700750477557",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "85bc02d85c572c6af41a3279a37b1cb2931b70af979b84c16cfee6de0580a965",
+          "SourceStart": 0,
+          "SourceLength": 168,
+          "VirtualPath": "Models/safetensors_minimal.safetensors/safetensors_header",
+          "FormatId": "model",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "model_weight_semantics_uncovered",
+          "VirtualPath": "Models/safetensors_minimal.safetensors"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "models/safetensors_oversized_header_safetensors",
+      "FixturePath": "Models/safetensors_oversized_header.safetensors",
+      "Sha256": "5f8d891bfe568fdbccab5391f0292b1b89068d1c83a10ac1a6048e149b2af01b",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "unknown_model_format: possible_safetensors",
+          "VirtualPath": "Models/safetensors_oversized_header.safetensors"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/safetensors_truncated_safetensors",
+      "FixturePath": "Models/safetensors_truncated.safetensors",
+      "Sha256": "1a826b05857623b47f417d4729afce32c472dcd9091e39212e0bcad2615754a2",
+      "Format": "binary",
+      "ExpectedParser": "model",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "unknown_model_format: possible_safetensors",
+          "VirtualPath": "Models/safetensors_truncated.safetensors"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "models/safetensors_with_canary_weights_safetensors",
+      "FixturePath": "Models/safetensors_with_canary_weights.safetensors",
+      "Sha256": "4336176870fab154b4fbae73f2d59c932ccff3daeb5f262758bb8aad84e02022",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "4336176870fab154b4fbae73f2d59c932ccff3daeb5f262758bb8aad84e02022",
+          "SourceStart": 0,
+          "SourceLength": 105,
+          "VirtualPath": "Models/safetensors_with_canary_weights.safetensors",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "oci/docker-save/test-image_tar",
+      "FixturePath": "Oci/docker-save/test-image.tar",
+      "Sha256": "1831eaba388837c423cf7a43ae907c17ef298e511e30f9755ec88811c5ef9ddf",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "oci/oci-golden_json",
+      "FixturePath": "Oci/oci-golden.json",
+      "Sha256": "b9a600e2c41ef4d9c22030daf46e5ebf82a344d27ed61b90857202e0fddb7578",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "b9a600e2c41ef4d9c22030daf46e5ebf82a344d27ed61b90857202e0fddb7578",
+          "SourceStart": 0,
+          "SourceLength": 1054,
+          "VirtualPath": "Oci/oci-golden.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "oci/oci-layout/blobs/sha256/048a1c046f8ca614e970d1878028ec2cbf004bdc90cd2099554c39a521fa796d",
+      "FixturePath": "Oci/oci-layout/blobs/sha256/048a1c046f8ca614e970d1878028ec2cbf004bdc90cd2099554c39a521fa796d",
+      "Sha256": "048a1c046f8ca614e970d1878028ec2cbf004bdc90cd2099554c39a521fa796d",
+      "Format": "gzip",
+      "ExpectedParser": "gzip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "oci/oci-layout/blobs/sha256/17d501d4d157fdbd5df5a4c8216029fac258649df3382bf10616de8f0d559b58",
+      "FixturePath": "Oci/oci-layout/blobs/sha256/17d501d4d157fdbd5df5a4c8216029fac258649df3382bf10616de8f0d559b58",
+      "Sha256": "17d501d4d157fdbd5df5a4c8216029fac258649df3382bf10616de8f0d559b58",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "17d501d4d157fdbd5df5a4c8216029fac258649df3382bf10616de8f0d559b58",
+          "SourceStart": 0,
+          "SourceLength": 474,
+          "VirtualPath": "Oci/oci-layout/blobs/sha256/17d501d4d157fdbd5df5a4c8216029fac258649df3382bf10616de8f0d559b58",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "oci/oci-layout/blobs/sha256/38216a202a81fe5d065a9ed5ad5831727cc6b1c8fdc224c5f3c4f95684761867",
+      "FixturePath": "Oci/oci-layout/blobs/sha256/38216a202a81fe5d065a9ed5ad5831727cc6b1c8fdc224c5f3c4f95684761867",
+      "Sha256": "38216a202a81fe5d065a9ed5ad5831727cc6b1c8fdc224c5f3c4f95684761867",
+      "Format": "gzip",
+      "ExpectedParser": "gzip",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "oci/oci-layout/blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "FixturePath": "Oci/oci-layout/blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "Sha256": "f1e85bccaa5f62dbe3e89842fedb31d4375d56a5d6737a09aa244db98fca998a",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "f1e85bccaa5f62dbe3e89842fedb31d4375d56a5d6737a09aa244db98fca998a",
+          "SourceStart": 0,
+          "SourceLength": 36,
+          "VirtualPath": "Oci/oci-layout/blobs/sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "oci/oci-layout/blobs/sha256/e6913a54c5f64f5739829072d424dd5c985c0bba8c4541d9928478179863a029",
+      "FixturePath": "Oci/oci-layout/blobs/sha256/e6913a54c5f64f5739829072d424dd5c985c0bba8c4541d9928478179863a029",
+      "Sha256": "e6913a54c5f64f5739829072d424dd5c985c0bba8c4541d9928478179863a029",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "e6913a54c5f64f5739829072d424dd5c985c0bba8c4541d9928478179863a029",
+          "SourceStart": 0,
+          "SourceLength": 1178,
+          "VirtualPath": "Oci/oci-layout/blobs/sha256/e6913a54c5f64f5739829072d424dd5c985c0bba8c4541d9928478179863a029",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "oci/oci-layout/blobs/sha256/fc3f3fc92f09355c45e48ed6a9ae6349e1d7590f4702518aa59ffd1e692cd9e7",
+      "FixturePath": "Oci/oci-layout/blobs/sha256/fc3f3fc92f09355c45e48ed6a9ae6349e1d7590f4702518aa59ffd1e692cd9e7",
+      "Sha256": "fc3f3fc92f09355c45e48ed6a9ae6349e1d7590f4702518aa59ffd1e692cd9e7",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "fc3f3fc92f09355c45e48ed6a9ae6349e1d7590f4702518aa59ffd1e692cd9e7",
+          "SourceStart": 0,
+          "SourceLength": 693,
+          "VirtualPath": "Oci/oci-layout/blobs/sha256/fc3f3fc92f09355c45e48ed6a9ae6349e1d7590f4702518aa59ffd1e692cd9e7",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "oci/oci-layout/corrupt-index_json",
+      "FixturePath": "Oci/oci-layout/corrupt-index.json",
+      "Sha256": "69b063ef8d0b5dcf01b50d8f2509af7c3e3e47f571ad664e2a65fd42ce85a205",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "69b063ef8d0b5dcf01b50d8f2509af7c3e3e47f571ad664e2a65fd42ce85a205",
+          "SourceStart": 0,
+          "SourceLength": 374,
+          "VirtualPath": "Oci/oci-layout/corrupt-index.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "oci/oci-layout/index_json",
+      "FixturePath": "Oci/oci-layout/index.json",
+      "Sha256": "8e35646a0537783ee49115dc0ee0fbdaf477639828b2a81c347e4e1d988559cb",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "8e35646a0537783ee49115dc0ee0fbdaf477639828b2a81c347e4e1d988559cb",
+          "SourceStart": 0,
+          "SourceLength": 1011,
+          "VirtualPath": "Oci/oci-layout/index.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "office/corrupt_docx",
+      "FixturePath": "Office/corrupt.docx",
+      "Sha256": "86114ad14f0aa8177b57da151692ecd9f16d83b26799bd5b3cef1f2a3a8ed567",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Corrupt",
+          "DetailCode": "invalid_content_types",
+          "VirtualPath": "Office/corrupt.docx"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "office/encrypted_docx",
+      "FixturePath": "Office/encrypted.docx",
+      "Sha256": "f446bcc64f0345c9e4330da09b5ae6a294e132c65836a4aea6d69cbd97a73ff8",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Encrypted",
+          "DetailCode": "encrypted_package",
+          "VirtualPath": "Office/encrypted.docx"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "office/external_rel_docx",
+      "FixturePath": "Office/external_rel.docx",
+      "Sha256": "e8f2100082fe10d24557bcc7ef3d9fe855804f98d637f50d0d4ccebdd33a67d5",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "e06c60e85c60aba4b6505fad46ecb3acd0da944ffa880a919f31ed42e4d2f924",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/external_rel.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "be5f7dc8164a61bb60beb945f1012b5d37063b6a1101da44fd45f5cc1b9817fd",
+          "SourceStart": 0,
+          "SourceLength": 26,
+          "VirtualPath": "Office/external_rel.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "office/legacy_doc",
+      "FixturePath": "Office/legacy.doc",
+      "Sha256": "969a2f07eb6dc914b79805a10ac3c87d1fc0fcd108cc37df27e5f5dabf1cce33",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "office/legacy_ppt",
+      "FixturePath": "Office/legacy.ppt",
+      "Sha256": "969a2f07eb6dc914b79805a10ac3c87d1fc0fcd108cc37df27e5f5dabf1cce33",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "office/legacy_xls",
+      "FixturePath": "Office/legacy.xls",
+      "Sha256": "969a2f07eb6dc914b79805a10ac3c87d1fc0fcd108cc37df27e5f5dabf1cce33",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "office/sample_docm",
+      "FixturePath": "Office/sample.docm",
+      "Sha256": "7ba649e083e6a8d7fd20baf359f83506173b53f2c299a0de9ecdbd044eee8027",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "4b16557816a046e6b329719221553dee6d041f9e016f947fb6c061ecea3447f8",
+          "SourceStart": 0,
+          "SourceLength": 861,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "be664981c3141cddfc59362beb287ebf20d0773660e2dd6faac5968a5930a081",
+          "SourceStart": 0,
+          "SourceLength": 1132,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "82ed5d57803eac524cea2a210e858b2f0cfaca45fbc6314b0b6e048d97425619",
+          "SourceStart": 0,
+          "SourceLength": 278,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "dd1ab3cfb73868de314ce2c9a51779d8f1c2e2029490362811b1c37157d13c77",
+          "SourceStart": 0,
+          "SourceLength": 33,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "3a2ae5332d782ffd5bd449f631ef9357571f8e9a8c3b3ca6228af52b3d93d082",
+          "SourceStart": 0,
+          "SourceLength": 33,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "d39e27a1e2d0ad701a00b57ea4307c3fc1f712de62b1e5213a0440dbcc4ec0e1",
+          "SourceStart": 0,
+          "SourceLength": 25,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "434f7fa2ab3f4bbdadf25016448a3bb36bc9e0bff2f4782154eee1b31dfde142",
+          "SourceStart": 0,
+          "SourceLength": 24,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "0afd0d24531d609beab0db22004ed8cb03264e42388695ea005a7211a147a1cc",
+          "SourceStart": 597,
+          "SourceLength": 42,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "ascii"
+        },
+        {
+          "Label": "6ff63f1f8fa5ff645ac0f1836eea241fe634bbae5714a52f5e24291c029ca683",
+          "SourceStart": 722,
+          "SourceLength": 72,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "utf-16le"
+        },
+        {
+          "Label": "95c5a2ff0480fd03a8195bcebbdc0f8861806fb87b55d4a2e5c8a4b1c9f1d40e",
+          "SourceStart": 798,
+          "SourceLength": 14,
+          "VirtualPath": "Office/sample.docm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "utf-16le"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "macro_semantics_not_analyzed",
+          "VirtualPath": "Office/sample.docm"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "office/sample_docx",
+      "FixturePath": "Office/sample.docx",
+      "Sha256": "462ddd78c1abc64b57f62ca3acf87966c9d4733e552e2575c961c16935fd1408",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "4b16557816a046e6b329719221553dee6d041f9e016f947fb6c061ecea3447f8",
+          "SourceStart": 0,
+          "SourceLength": 861,
+          "VirtualPath": "Office/sample.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "be664981c3141cddfc59362beb287ebf20d0773660e2dd6faac5968a5930a081",
+          "SourceStart": 0,
+          "SourceLength": 1132,
+          "VirtualPath": "Office/sample.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "82ed5d57803eac524cea2a210e858b2f0cfaca45fbc6314b0b6e048d97425619",
+          "SourceStart": 0,
+          "SourceLength": 278,
+          "VirtualPath": "Office/sample.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "dd1ab3cfb73868de314ce2c9a51779d8f1c2e2029490362811b1c37157d13c77",
+          "SourceStart": 0,
+          "SourceLength": 33,
+          "VirtualPath": "Office/sample.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "3a2ae5332d782ffd5bd449f631ef9357571f8e9a8c3b3ca6228af52b3d93d082",
+          "SourceStart": 0,
+          "SourceLength": 33,
+          "VirtualPath": "Office/sample.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "d39e27a1e2d0ad701a00b57ea4307c3fc1f712de62b1e5213a0440dbcc4ec0e1",
+          "SourceStart": 0,
+          "SourceLength": 25,
+          "VirtualPath": "Office/sample.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "434f7fa2ab3f4bbdadf25016448a3bb36bc9e0bff2f4782154eee1b31dfde142",
+          "SourceStart": 0,
+          "SourceLength": 24,
+          "VirtualPath": "Office/sample.docx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "office/sample_pptm",
+      "FixturePath": "Office/sample.pptm",
+      "Sha256": "137739bd5c16ffb5343bc0e4ae3d93d8987bbc91da3c67615b90f5223ae7e360",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Corrupt",
+          "DetailCode": "openxml_parse_failed: OpenXmlPackageException: Package could not be opened for stream. See inner exception for details and be aware that there are behavior differences in stream support between .NET Framework and Core.",
+          "VirtualPath": "Office/sample.pptm"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "office/sample_pptx",
+      "FixturePath": "Office/sample.pptx",
+      "Sha256": "b01d26a26594db0f84815d1b6a699e1f5d504801d27efe14206a9fddb421b2b7",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "8b7afcf017e7371ce3caeccf3cb6700a22d874b9b023c2a3b468f81966f6d43b",
+          "SourceStart": 0,
+          "SourceLength": 850,
+          "VirtualPath": "Office/sample.pptx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "77fbd43c41b96be9a40d41a267cd83108a274ee5860675dfb543828472d76867",
+          "SourceStart": 0,
+          "SourceLength": 1133,
+          "VirtualPath": "Office/sample.pptx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "74a07e70dac710144992439f002167833683ef34494d7995c7d42cdff6e7474e",
+          "SourceStart": 0,
+          "SourceLength": 104,
+          "VirtualPath": "Office/sample.pptx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "10bb1f95a926e99b8178db9e85912271a747cd6bc9790f2e44f445b20e17ef24",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.pptx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "19a4cd629571f3990ac108432aa22b51a05afd6c7932057ec0e20d99254fb0f2",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.pptx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "e555d2e527719de568a329d5207d7372e59030d65cb23a38e679d7c818021cfd",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.pptx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "fe403de9770087499130f1b1a0ea96f9ef12a9ff40b93e564f64b6f203cbe7bc",
+          "SourceStart": 0,
+          "SourceLength": 26,
+          "VirtualPath": "Office/sample.pptx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "office/sample_xlsm",
+      "FixturePath": "Office/sample.xlsm",
+      "Sha256": "437b97be654430a915754e418a1d42e6c613fa941ec8fe6df7c56a793ff7919d",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "b4628684449decd00640f1975b6b480605c66fcee3ad03b45b240d3b7c3e66ed",
+          "SourceStart": 0,
+          "SourceLength": 779,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "209fca6b00afe72a5029754b94be5953d8f16d96f67130325566b9366ad4ccc5",
+          "SourceStart": 0,
+          "SourceLength": 205,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "6d0de3532f1307b8d67ddb2208773b7431b6e933fefd72cc371d6da6fa308121",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "356deff578fd5e85a8328b53e1e564f19d0df564178d36125919a9862084fc21",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "caca650374e87c250acb005c3f1173ef77c6038897f18687f5766fe58cbf7037",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "5ec0cd72e2abf3d81a6da342eb5df8cb9ec054300fef3d4f488d6735f5b5a033",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "98facf57b838b7cadf33ce3dda9538f68971ee74aa54beb6c24b8ab4f5cfe526",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "54d37a74e9b0b8a7ad3a060f6cda1e30538d2b9070d789a3ef9b6580a321bf4c",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "acdbdb09910690258c06e5fc39dd7f28806a40737aae5f312fbc8068543efcc0",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "c88c0ddc3f9041b37b2bbee14a6d6b08ebec933000308335d1fe867c8755208b",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "9c8748ad0deec5b278aab403d89b4dd7f4d25e7b63fbf78a8608a9be3f2de55d",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "816762473f8ef87741d359b66af58954a3f209057204d48caa62fe0f82f1b070",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "b5ea78436ddf2b2df3fca77efadaed62c519ded39c64d38ba528616d9b68aad8",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "4ac5ff462682c830398de37cacc920ae0b317da4e1f43c5be9292ab951d27214",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "cbb9150f2e00ec866c71a62a8e7a66df5bcb9571abe99ebd27f7e38206954896",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "809ae9dcc62cb24a7c6c0197633750cb4985251984c58242c0b083650106b0c1",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "c34619c924c1d531e93b76ac442fa113d862e657ba9b0f2c2d6a60178c6265df",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "6efe66a23694e2151ee29cd68acaddda76cd10ab4c14acd37691f50c97af7218",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "555edc3fc4300fa1cd3fd20ca9fa0176708d06a82214b2c52f15e0d81816ef18",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "813831f8036d7203e1f49186809a9cef2c9c3dd7f009b6ff92042b096b3f72c5",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "82a754185bd949400f662d1fa7a003eaa56f6308ca132a06d88ecfc8ec3f5325",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "37bb0ea68ea2f8287861a36b616c78345107267103bc1cd50f29cfa859a41506",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "0afd0d24531d609beab0db22004ed8cb03264e42388695ea005a7211a147a1cc",
+          "SourceStart": 597,
+          "SourceLength": 42,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "ascii"
+        },
+        {
+          "Label": "6ff63f1f8fa5ff645ac0f1836eea241fe634bbae5714a52f5e24291c029ca683",
+          "SourceStart": 722,
+          "SourceLength": 72,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "utf-16le"
+        },
+        {
+          "Label": "95c5a2ff0480fd03a8195bcebbdc0f8861806fb87b55d4a2e5c8a4b1c9f1d40e",
+          "SourceStart": 798,
+          "SourceLength": 14,
+          "VirtualPath": "Office/sample.xlsm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "utf-16le"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "macro_semantics_not_analyzed",
+          "VirtualPath": "Office/sample.xlsm"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "office/sample_xlsx",
+      "FixturePath": "Office/sample.xlsx",
+      "Sha256": "bffd2323dd2d5d6b1c43e39d1b3443f3a16531eef394f90e4f83c85c88714673",
+      "Format": "openxml",
+      "ExpectedParser": "openxml",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "b4628684449decd00640f1975b6b480605c66fcee3ad03b45b240d3b7c3e66ed",
+          "SourceStart": 0,
+          "SourceLength": 779,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "209fca6b00afe72a5029754b94be5953d8f16d96f67130325566b9366ad4ccc5",
+          "SourceStart": 0,
+          "SourceLength": 205,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "6d0de3532f1307b8d67ddb2208773b7431b6e933fefd72cc371d6da6fa308121",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "356deff578fd5e85a8328b53e1e564f19d0df564178d36125919a9862084fc21",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "caca650374e87c250acb005c3f1173ef77c6038897f18687f5766fe58cbf7037",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "5ec0cd72e2abf3d81a6da342eb5df8cb9ec054300fef3d4f488d6735f5b5a033",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "98facf57b838b7cadf33ce3dda9538f68971ee74aa54beb6c24b8ab4f5cfe526",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "54d37a74e9b0b8a7ad3a060f6cda1e30538d2b9070d789a3ef9b6580a321bf4c",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "acdbdb09910690258c06e5fc39dd7f28806a40737aae5f312fbc8068543efcc0",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "c88c0ddc3f9041b37b2bbee14a6d6b08ebec933000308335d1fe867c8755208b",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "9c8748ad0deec5b278aab403d89b4dd7f4d25e7b63fbf78a8608a9be3f2de55d",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "816762473f8ef87741d359b66af58954a3f209057204d48caa62fe0f82f1b070",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "b5ea78436ddf2b2df3fca77efadaed62c519ded39c64d38ba528616d9b68aad8",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "4ac5ff462682c830398de37cacc920ae0b317da4e1f43c5be9292ab951d27214",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "cbb9150f2e00ec866c71a62a8e7a66df5bcb9571abe99ebd27f7e38206954896",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "809ae9dcc62cb24a7c6c0197633750cb4985251984c58242c0b083650106b0c1",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "c34619c924c1d531e93b76ac442fa113d862e657ba9b0f2c2d6a60178c6265df",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "6efe66a23694e2151ee29cd68acaddda76cd10ab4c14acd37691f50c97af7218",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "555edc3fc4300fa1cd3fd20ca9fa0176708d06a82214b2c52f15e0d81816ef18",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "813831f8036d7203e1f49186809a9cef2c9c3dd7f009b6ff92042b096b3f72c5",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "82a754185bd949400f662d1fa7a003eaa56f6308ca132a06d88ecfc8ec3f5325",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "37bb0ea68ea2f8287861a36b616c78345107267103bc1cd50f29cfa859a41506",
+          "SourceStart": 0,
+          "SourceLength": 0,
+          "VirtualPath": "Office/sample.xlsx",
+          "FormatId": "openxml",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "pdf/annotations_forms_pdf",
+      "FixturePath": "Pdf/annotations_forms.pdf",
+      "Sha256": "02410741bdd99ce4ad4ed138f248fc122380c8835eeb5dba09fdf99f3851528b",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "e78d294b4d5669a5956ddfe3fd1ee11af04650c65d8a5d4458b9878c930e8a3c",
+          "SourceStart": 0,
+          "SourceLength": 1355,
+          "VirtualPath": "Pdf/annotations_forms.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "9dd49326e40b1aad68e3cfc3e19422515345bac6493fcce1e77b425c20907798",
+          "SourceStart": 0,
+          "SourceLength": 1355,
+          "VirtualPath": "Pdf/annotations_forms.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "StructuredData",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "764349de5ad0322bc44eb8a11ba736478da5521534b5fe6f3f0bc5af8ea057d6",
+          "SourceStart": 0,
+          "SourceLength": 1355,
+          "VirtualPath": "Pdf/annotations_forms.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "StructuredData",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "bbd0473b0da2e716bf8568d92a376a4907d67a778b3a90921a9d17dfc4e371bf",
+          "SourceStart": 0,
+          "SourceLength": 1355,
+          "VirtualPath": "Pdf/annotations_forms.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "StructuredData",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "168268903b16a6b0486f75b96f6b9be04ab7d54b5c10129c158ed8c3c1caf157",
+          "SourceStart": 0,
+          "SourceLength": 1355,
+          "VirtualPath": "Pdf/annotations_forms.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "pdf/encrypted_pdf",
+      "FixturePath": "Pdf/encrypted.pdf",
+      "Sha256": "44271149c4eaa177331c67ba16da186c33332ae99a49f1d56431df7e648fd2df",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "Encrypted",
+          "DetailCode": "Encrypted",
+          "VirtualPath": "Pdf/encrypted.pdf"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "pdf/huge_stream_pdf",
+      "FixturePath": "Pdf/huge_stream.pdf",
+      "Sha256": "074b0e7b08f0e2e22369bf94bc94953ad6357a269c46a8b00fabe6e73d3b6544",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "b94f6f125c79e3a5ffaa826f584c10d52ada669e6762051b826b55776d05aed2",
+          "SourceStart": 0,
+          "SourceLength": 748,
+          "VirtualPath": "Pdf/huge_stream.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "168268903b16a6b0486f75b96f6b9be04ab7d54b5c10129c158ed8c3c1caf157",
+          "SourceStart": 0,
+          "SourceLength": 748,
+          "VirtualPath": "Pdf/huge_stream.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "pdf/image_only_pdf",
+      "FixturePath": "Pdf/image_only.pdf",
+      "Sha256": "39c17d6a745cfea9dee477e91e0c0aad05ab843f4e9e4f8df019fa85f48b63f0",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "f73718a675402bb3b5afda51431cc5503d26c002b276615883d9dcc13386bc1a",
+          "SourceStart": 0,
+          "SourceLength": 880,
+          "VirtualPath": "Pdf/image_only.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "pdf_image_text_requires_ocr",
+          "VirtualPath": "Pdf/image_only.pdf#page=1"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "pdf/malformed_xref_pdf",
+      "FixturePath": "Pdf/malformed_xref.pdf",
+      "Sha256": "b2b4a81512db47283f45d705e1c3e1fbbdb04ef4220dfcaf632873f59899f0fb",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "c27a0b6e405ed173e748e3ff3699f35a7d4db92a76926145e5e8a7252b31a2b5",
+          "SourceStart": 0,
+          "SourceLength": 691,
+          "VirtualPath": "Pdf/malformed_xref.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "168268903b16a6b0486f75b96f6b9be04ab7d54b5c10129c158ed8c3c1caf157",
+          "SourceStart": 0,
+          "SourceLength": 691,
+          "VirtualPath": "Pdf/malformed_xref.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "pdf/mixed_pdf",
+      "FixturePath": "Pdf/mixed.pdf",
+      "Sha256": "fe510a680fe8c50bcddb413520eb3f16e7e8906b6a135b7854e1d5b549742a53",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "b68586b72e3a55a5171a3a67afd355a21041659d44ee5dbee8bda3998585b1eb",
+          "SourceStart": 0,
+          "SourceLength": 1052,
+          "VirtualPath": "Pdf/mixed.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "60ccfeaa42e0cbdfd46e2ec5984e6dafdc3a80ebf50499d4b2c362debf629074",
+          "SourceStart": 0,
+          "SourceLength": 1052,
+          "VirtualPath": "Pdf/mixed.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "mixed_text_images",
+          "VirtualPath": "Pdf/mixed.pdf#page=1"
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Partial"
+    },
+    {
+      "CaseId": "pdf/recursive_page_tree_pdf",
+      "FixturePath": "Pdf/recursive_page_tree.pdf",
+      "Sha256": "7a67c35f5d033fb14cb8a1a1730698fc6e9003da74bac3d367511e4e30473371",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "105e136c8dc7765764831aea493ebfdc1af2fd818f9fee8ef510f424e230ed7c",
+          "SourceStart": 0,
+          "SourceLength": 739,
+          "VirtualPath": "Pdf/recursive_page_tree.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "168268903b16a6b0486f75b96f6b9be04ab7d54b5c10129c158ed8c3c1caf157",
+          "SourceStart": 0,
+          "SourceLength": 739,
+          "VirtualPath": "Pdf/recursive_page_tree.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "pdf/sample_pdf",
+      "FixturePath": "Pdf/sample.pdf",
+      "Sha256": "4dce8789044a36c1de621779563516d85d98b636e336db75e00370e78905c881",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "23d4b8d1f94cd3590c11036777fe34c2afaae9f8f9ebff6be519d4a1e9de1908",
+          "SourceStart": 0,
+          "SourceLength": 2089,
+          "VirtualPath": "Pdf/sample.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "fce61f7f97cefec192ff5c756ad79e2ea99d9a3872214b2103a4e4716cc3d999",
+          "SourceStart": 0,
+          "SourceLength": 2089,
+          "VirtualPath": "Pdf/sample.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "9dd49326e40b1aad68e3cfc3e19422515345bac6493fcce1e77b425c20907798",
+          "SourceStart": 0,
+          "SourceLength": 2089,
+          "VirtualPath": "Pdf/sample.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "StructuredData",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "764349de5ad0322bc44eb8a11ba736478da5521534b5fe6f3f0bc5af8ea057d6",
+          "SourceStart": 0,
+          "SourceLength": 2089,
+          "VirtualPath": "Pdf/sample.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "StructuredData",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "8d4208224576ce0038743c2da86ab4d8e7a56459ae2d6a54769adde98585d3a6",
+          "SourceStart": 0,
+          "SourceLength": 2089,
+          "VirtualPath": "Pdf/sample.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "StructuredData",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "168268903b16a6b0486f75b96f6b9be04ab7d54b5c10129c158ed8c3c1caf157",
+          "SourceStart": 0,
+          "SourceLength": 2089,
+          "VirtualPath": "Pdf/sample.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "pdf/truncated_pdf",
+      "FixturePath": "Pdf/truncated.pdf",
+      "Sha256": "1b0458cd49ce538453ee420a12b2a64511d824467580211197560ad4b65d424a",
+      "Format": "pdf",
+      "ExpectedParser": "pdf",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "d276525b02f4c665d2faeb4d87e15cb4ea877f1a8daf334c487e2e5b9bf9d796",
+          "SourceStart": 0,
+          "SourceLength": 676,
+          "VirtualPath": "Pdf/truncated.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "168268903b16a6b0486f75b96f6b9be04ab7d54b5c10129c158ed8c3c1caf157",
+          "SourceStart": 0,
+          "SourceLength": 676,
+          "VirtualPath": "Pdf/truncated.pdf",
+          "FormatId": "pdf",
+          "ContentKind": "Metadata",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/adversarial_ambiguous_csv",
+      "FixturePath": "Structured/csv/adversarial_ambiguous.csv",
+      "Sha256": "df52f7ce4eaa18ece947bd77629c132fc15dd6cec4a4a5789fe81754181a7314",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "df52f7ce4eaa18ece947bd77629c132fc15dd6cec4a4a5789fe81754181a7314",
+          "SourceStart": 0,
+          "SourceLength": 24,
+          "VirtualPath": "Structured/csv/adversarial_ambiguous.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/adversarial_empty_csv",
+      "FixturePath": "Structured/csv/adversarial_empty.csv",
+      "Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Format": "empty",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 5000,
+      "MaxMemoryMb": 64,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "structured/csv/adversarial_header_only_csv",
+      "FixturePath": "Structured/csv/adversarial_header_only.csv",
+      "Sha256": "64344d5730d58093db7da42d6cd5753a3b70a94c7d5a7cd4a0c373822a3dfee6",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "64344d5730d58093db7da42d6cd5753a3b70a94c7d5a7cd4a0c373822a3dfee6",
+          "SourceStart": 0,
+          "SourceLength": 14,
+          "VirtualPath": "Structured/csv/adversarial_header_only.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/adversarial_large_field_csv",
+      "FixturePath": "Structured/csv/adversarial_large_field.csv",
+      "Sha256": "96b00a3330ee305cd2c70fa3298c95cd013117431f37bdcbd5eb10f2706e3736",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "96b00a3330ee305cd2c70fa3298c95cd013117431f37bdcbd5eb10f2706e3736",
+          "SourceStart": 0,
+          "SourceLength": 102411,
+          "VirtualPath": "Structured/csv/adversarial_large_field.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/adversarial_many_columns_csv",
+      "FixturePath": "Structured/csv/adversarial_many_columns.csv",
+      "Sha256": "6eccbeefaaf4cffaa10ea48236bfe8d25c41b7df359ad27032a41fb746a26d76",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "6eccbeefaaf4cffaa10ea48236bfe8d25c41b7df359ad27032a41fb746a26d76",
+          "SourceStart": 0,
+          "SourceLength": 2580,
+          "VirtualPath": "Structured/csv/adversarial_many_columns.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/adversarial_nul_csv",
+      "FixturePath": "Structured/csv/adversarial_nul.csv",
+      "Sha256": "0687c3dcd22430205375ff00105ce9560527318961a37769fd50c633a654f8b9",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "0687c3dcd22430205375ff00105ce9560527318961a37769fd50c633a654f8b9",
+          "SourceStart": 0,
+          "SourceLength": 18,
+          "VirtualPath": "Structured/csv/adversarial_nul.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/adversarial_single_column_csv",
+      "FixturePath": "Structured/csv/adversarial_single_column.csv",
+      "Sha256": "398691f9ae1cc7dd7f4b7807369311a057ce75d7ef55442350ab7fe46d69edbb",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "398691f9ae1cc7dd7f4b7807369311a057ce75d7ef55442350ab7fe46d69edbb",
+          "SourceStart": 0,
+          "SourceLength": 12,
+          "VirtualPath": "Structured/csv/adversarial_single_column.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/adversarial_unclosed_quote_csv",
+      "FixturePath": "Structured/csv/adversarial_unclosed_quote.csv",
+      "Sha256": "cb50ff4d27414f937a40ae38dbca6fd8752682d69b3125911124a7c1dd931c4b",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "cb50ff4d27414f937a40ae38dbca6fd8752682d69b3125911124a7c1dd931c4b",
+          "SourceStart": 0,
+          "SourceLength": 35,
+          "VirtualPath": "Structured/csv/adversarial_unclosed_quote.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/valid_comma_csv",
+      "FixturePath": "Structured/csv/valid_comma.csv",
+      "Sha256": "24628d33b7ae06347f590f51a75a8b7998657cf0b1a1b4d307ef0b29b106d6c1",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "24628d33b7ae06347f590f51a75a8b7998657cf0b1a1b4d307ef0b29b106d6c1",
+          "SourceStart": 0,
+          "SourceLength": 80,
+          "VirtualPath": "Structured/csv/valid_comma.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/valid_crlf_csv",
+      "FixturePath": "Structured/csv/valid_crlf.csv",
+      "Sha256": "7e166392253dcb39ac8b69574b22cb53c1a6795fdc33ecda0c52d0933a7283f9",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "7e166392253dcb39ac8b69574b22cb53c1a6795fdc33ecda0c52d0933a7283f9",
+          "SourceStart": 0,
+          "SourceLength": 25,
+          "VirtualPath": "Structured/csv/valid_crlf.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/valid_no_header_csv",
+      "FixturePath": "Structured/csv/valid_no_header.csv",
+      "Sha256": "945c7afb286c8a98aa43b16388f9719aa105b8314f0ff797649dea10f59b9cc9",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "945c7afb286c8a98aa43b16388f9719aa105b8314f0ff797649dea10f59b9cc9",
+          "SourceStart": 0,
+          "SourceLength": 45,
+          "VirtualPath": "Structured/csv/valid_no_header.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/valid_pipe_csv",
+      "FixturePath": "Structured/csv/valid_pipe.csv",
+      "Sha256": "e95dac2d41921a3d1459c70fe0aff80804efbe5226cfc271c869f7e9a67f8f1c",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "e95dac2d41921a3d1459c70fe0aff80804efbe5226cfc271c869f7e9a67f8f1c",
+          "SourceStart": 0,
+          "SourceLength": 54,
+          "VirtualPath": "Structured/csv/valid_pipe.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/valid_quoted_csv",
+      "FixturePath": "Structured/csv/valid_quoted.csv",
+      "Sha256": "31652abba64cc9fca67182a12741172724818966ae50a1fbffe999e0c45e87e3",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "31652abba64cc9fca67182a12741172724818966ae50a1fbffe999e0c45e87e3",
+          "SourceStart": 0,
+          "SourceLength": 65,
+          "VirtualPath": "Structured/csv/valid_quoted.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/valid_quoted_newlines_csv",
+      "FixturePath": "Structured/csv/valid_quoted_newlines.csv",
+      "Sha256": "bb85d1fa578796fa436a27ca3bac991f587f72703197b0432f8d99fa367b934f",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "bb85d1fa578796fa436a27ca3bac991f587f72703197b0432f8d99fa367b934f",
+          "SourceStart": 0,
+          "SourceLength": 46,
+          "VirtualPath": "Structured/csv/valid_quoted_newlines.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/valid_semicolon_csv",
+      "FixturePath": "Structured/csv/valid_semicolon.csv",
+      "Sha256": "5a053008cbf176dc0e573b15de619b72f4cbcf8e9b920f9b78bf9f0719402473",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "5a053008cbf176dc0e573b15de619b72f4cbcf8e9b920f9b78bf9f0719402473",
+          "SourceStart": 0,
+          "SourceLength": 54,
+          "VirtualPath": "Structured/csv/valid_semicolon.csv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/csv/valid_tab_tsv",
+      "FixturePath": "Structured/csv/valid_tab.tsv",
+      "Sha256": "fe8344a183bcf38b3babd3b16e3a518c6a0e37d54abc17123d88d99acaa0b0e4",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "fe8344a183bcf38b3babd3b16e3a518c6a0e37d54abc17123d88d99acaa0b0e4",
+          "SourceStart": 0,
+          "SourceLength": 54,
+          "VirtualPath": "Structured/csv/valid_tab.tsv",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_comment_json",
+      "FixturePath": "Structured/json/adversarial_comment.json",
+      "Sha256": "fc8b0661d4ec2283ad4c9c0a8cf67712e234bf7c5d2facdb203671e4a8e983fb",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "fc8b0661d4ec2283ad4c9c0a8cf67712e234bf7c5d2facdb203671e4a8e983fb",
+          "SourceStart": 0,
+          "SourceLength": 13,
+          "VirtualPath": "Structured/json/adversarial_comment.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_depth_130_json",
+      "FixturePath": "Structured/json/adversarial_depth_130.json",
+      "Sha256": "cab8af96ef558595bbd37e4716388757e90a68976fed64b38fc05abb36e3dd1c",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "cab8af96ef558595bbd37e4716388757e90a68976fed64b38fc05abb36e3dd1c",
+          "SourceStart": 0,
+          "SourceLength": 1568,
+          "VirtualPath": "Structured/json/adversarial_depth_130.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_duplicate_keys_json",
+      "FixturePath": "Structured/json/adversarial_duplicate_keys.json",
+      "Sha256": "dc9db791a13b738bd69b163533346c8118d49883a4d36bf50482d29e3516ff8f",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "dc9db791a13b738bd69b163533346c8118d49883a4d36bf50482d29e3516ff8f",
+          "SourceStart": 0,
+          "SourceLength": 19,
+          "VirtualPath": "Structured/json/adversarial_duplicate_keys.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_empty_json",
+      "FixturePath": "Structured/json/adversarial_empty.json",
+      "Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Format": "empty",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 5000,
+      "MaxMemoryMb": 64,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_invalid_literal_json",
+      "FixturePath": "Structured/json/adversarial_invalid_literal.json",
+      "Sha256": "bb6b7e3ec80f6a74ca3e8b8171687c0d0247b8498eba4e7a9809792eb24b44ce",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "bb6b7e3ec80f6a74ca3e8b8171687c0d0247b8498eba4e7a9809792eb24b44ce",
+          "SourceStart": 0,
+          "SourceLength": 9,
+          "VirtualPath": "Structured/json/adversarial_invalid_literal.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_invalid_token_json",
+      "FixturePath": "Structured/json/adversarial_invalid_token.json",
+      "Sha256": "e9dbc878b0d619a818a7b0a6932e49abac899fdc72bf5a964a472a4ed5a61317",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "e9dbc878b0d619a818a7b0a6932e49abac899fdc72bf5a964a472a4ed5a61317",
+          "SourceStart": 0,
+          "SourceLength": 7,
+          "VirtualPath": "Structured/json/adversarial_invalid_token.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_large_string_json",
+      "FixturePath": "Structured/json/adversarial_large_string.json",
+      "Sha256": "f68f1d0a2865e95696af96e3f5fb73b92796a9cc779f4716297906a1d41aaecb",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "a8da49a2a5c521e8635d93000c5fba9e9a49b79c924435be531012f515ffb509",
+          "SourceStart": 0,
+          "SourceLength": 131082,
+          "VirtualPath": "Structured/json/adversarial_large_string.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "f071ba7e50157a9ad1714e3fba94970eb9c246a5a8c4169ca749626d66c590ca",
+          "SourceStart": 122880,
+          "SourceLength": 8202,
+          "VirtualPath": "Structured/json/adversarial_large_string.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_nul_json",
+      "FixturePath": "Structured/json/adversarial_nul.json",
+      "Sha256": "2ab5af03b28f84b5982bc3dcc861ad43ab27d0b03971fc3ead66ed2f1ffdd19f",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "2ab5af03b28f84b5982bc3dcc861ad43ab27d0b03971fc3ead66ed2f1ffdd19f",
+          "SourceStart": 0,
+          "SourceLength": 16,
+          "VirtualPath": "Structured/json/adversarial_nul.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_single_value_json",
+      "FixturePath": "Structured/json/adversarial_single_value.json",
+      "Sha256": "3fe01def54b1c6cd795b2ebfcbab64150f6a507bce043040c662c682eebfed1e",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "3fe01def54b1c6cd795b2ebfcbab64150f6a507bce043040c662c682eebfed1e",
+          "SourceStart": 0,
+          "SourceLength": 15,
+          "VirtualPath": "Structured/json/adversarial_single_value.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_trailing_comma_array_json",
+      "FixturePath": "Structured/json/adversarial_trailing_comma_array.json",
+      "Sha256": "d328d02e9d0c554525523925a250e2d16eae1f649e8656d270d714c2107100e4",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "d328d02e9d0c554525523925a250e2d16eae1f649e8656d270d714c2107100e4",
+          "SourceStart": 0,
+          "SourceLength": 6,
+          "VirtualPath": "Structured/json/adversarial_trailing_comma_array.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_trailing_comma_json",
+      "FixturePath": "Structured/json/adversarial_trailing_comma.json",
+      "Sha256": "aa99a5ce3eb0dd8355f0bfb15376ea1d862ad75d0d278af1f8c280ca8c02c640",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "aa99a5ce3eb0dd8355f0bfb15376ea1d862ad75d0d278af1f8c280ca8c02c640",
+          "SourceStart": 0,
+          "SourceLength": 8,
+          "VirtualPath": "Structured/json/adversarial_trailing_comma.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/adversarial_unclosed_string_json",
+      "FixturePath": "Structured/json/adversarial_unclosed_string.json",
+      "Sha256": "6afc283a5d8fa74106d3d5d73d581abdccf7f4857d0167c6cdff78c782cea599",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "6afc283a5d8fa74106d3d5d73d581abdccf7f4857d0167c6cdff78c782cea599",
+          "SourceStart": 0,
+          "SourceLength": 17,
+          "VirtualPath": "Structured/json/adversarial_unclosed_string.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/valid_array_json",
+      "FixturePath": "Structured/json/valid_array.json",
+      "Sha256": "a77e6a35db0e79ea99070f0e62b5de7afb2426a8cd63fa97beb49166c028fc7a",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "a77e6a35db0e79ea99070f0e62b5de7afb2426a8cd63fa97beb49166c028fc7a",
+          "SourceStart": 0,
+          "SourceLength": 45,
+          "VirtualPath": "Structured/json/valid_array.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/valid_depth_50_json",
+      "FixturePath": "Structured/json/valid_depth_50.json",
+      "Sha256": "dffe5599aa14c2d2264e7273ebb12b390ce5cd0c98e172b7be91ed16a48f8f32",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "dffe5599aa14c2d2264e7273ebb12b390ce5cd0c98e172b7be91ed16a48f8f32",
+          "SourceStart": 0,
+          "SourceLength": 5876,
+          "VirtualPath": "Structured/json/valid_depth_50.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/valid_escaped_json",
+      "FixturePath": "Structured/json/valid_escaped.json",
+      "Sha256": "458fd99f7426967808403c8f33161eb7cf7a5bb408132e4607b2b9d630dc45f3",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "458fd99f7426967808403c8f33161eb7cf7a5bb408132e4607b2b9d630dc45f3",
+          "SourceStart": 0,
+          "SourceLength": 76,
+          "VirtualPath": "Structured/json/valid_escaped.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/valid_nested_json",
+      "FixturePath": "Structured/json/valid_nested.json",
+      "Sha256": "7128fec8f6b94e9817dcf3b1b1337c4d977904c776c85f071d9c587a47b024fe",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "7128fec8f6b94e9817dcf3b1b1337c4d977904c776c85f071d9c587a47b024fe",
+          "SourceStart": 0,
+          "SourceLength": 221,
+          "VirtualPath": "Structured/json/valid_nested.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/valid_simple_json",
+      "FixturePath": "Structured/json/valid_simple.json",
+      "Sha256": "f95c83ee3223382ad77441e8bce963294acb5c6dcbdeb511a0e9a1c7c3d6ddb1",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "f95c83ee3223382ad77441e8bce963294acb5c6dcbdeb511a0e9a1c7c3d6ddb1",
+          "SourceStart": 0,
+          "SourceLength": 69,
+          "VirtualPath": "Structured/json/valid_simple.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/valid_types_json",
+      "FixturePath": "Structured/json/valid_types.json",
+      "Sha256": "e752b42676ce66042e6b8350c7b089693f8a52e23701ce3412338ad007f38cdb",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "e752b42676ce66042e6b8350c7b089693f8a52e23701ce3412338ad007f38cdb",
+          "SourceStart": 0,
+          "SourceLength": 181,
+          "VirtualPath": "Structured/json/valid_types.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/json/valid_unicode_json",
+      "FixturePath": "Structured/json/valid_unicode.json",
+      "Sha256": "e4388b260e1430f1459fbf822fa9cfeee04864c747207aa17e206e1d90eb80e8",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "e4388b260e1430f1459fbf822fa9cfeee04864c747207aa17e206e1d90eb80e8",
+          "SourceStart": 0,
+          "SourceLength": 51,
+          "VirtualPath": "Structured/json/valid_unicode.json",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/adversarial_dtd_xml",
+      "FixturePath": "Structured/xml/adversarial_dtd.xml",
+      "Sha256": "11a939cdcb8dcb532849729534b72b298750ef4d4cdf3445e944656a35f65058",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "11a939cdcb8dcb532849729534b72b298750ef4d4cdf3445e944656a35f65058",
+          "SourceStart": 0,
+          "SourceLength": 55,
+          "VirtualPath": "Structured/xml/adversarial_dtd.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/adversarial_empty_xml",
+      "FixturePath": "Structured/xml/adversarial_empty.xml",
+      "Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Format": "empty",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 5000,
+      "MaxMemoryMb": 64,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "structured/xml/adversarial_entity_ref_xml",
+      "FixturePath": "Structured/xml/adversarial_entity_ref.xml",
+      "Sha256": "fcdc3e972aaae7ebd61acda9544aa8da364bbffb7e525b9dba18a5b77ada683a",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "fcdc3e972aaae7ebd61acda9544aa8da364bbffb7e525b9dba18a5b77ada683a",
+          "SourceStart": 0,
+          "SourceLength": 22,
+          "VirtualPath": "Structured/xml/adversarial_entity_ref.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/adversarial_malformed_xml",
+      "FixturePath": "Structured/xml/adversarial_malformed.xml",
+      "Sha256": "48f6bfdfe453c13ec45e09a8703ee7194886fa7926a087fe9b9bf48c0ae62ba9",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "48f6bfdfe453c13ec45e09a8703ee7194886fa7926a087fe9b9bf48c0ae62ba9",
+          "SourceStart": 0,
+          "SourceLength": 32,
+          "VirtualPath": "Structured/xml/adversarial_malformed.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/adversarial_not_xml_xml",
+      "FixturePath": "Structured/xml/adversarial_not_xml.xml",
+      "Sha256": "032bb9cdddc0ced70a84bf9c802972460e9b5ff61e01ea1fd3d1a1b50bef94a1",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "032bb9cdddc0ced70a84bf9c802972460e9b5ff61e01ea1fd3d1a1b50bef94a1",
+          "SourceStart": 0,
+          "SourceLength": 22,
+          "VirtualPath": "Structured/xml/adversarial_not_xml.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/adversarial_unclosed_xml",
+      "FixturePath": "Structured/xml/adversarial_unclosed.xml",
+      "Sha256": "53b7053b64a6526ec013c0b4363eabfc66f8319bd27c70b72ff25032ce882fc9",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "53b7053b64a6526ec013c0b4363eabfc66f8319bd27c70b72ff25032ce882fc9",
+          "SourceStart": 0,
+          "SourceLength": 38,
+          "VirtualPath": "Structured/xml/adversarial_unclosed.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/adversarial_xxe_xml",
+      "FixturePath": "Structured/xml/adversarial_xxe.xml",
+      "Sha256": "6938cb90c106dbadc1fae28a3e79de23a3bfd49ef90fddbcfe1f5705ce7b7ea1",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "6938cb90c106dbadc1fae28a3e79de23a3bfd49ef90fddbcfe1f5705ce7b7ea1",
+          "SourceStart": 0,
+          "SourceLength": 78,
+          "VirtualPath": "Structured/xml/adversarial_xxe.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/valid_attributes_xml",
+      "FixturePath": "Structured/xml/valid_attributes.xml",
+      "Sha256": "08b38a16d27f995b0b6d93394ec748d99574a93710c6aed9a4beeb54a9b80f2d",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "08b38a16d27f995b0b6d93394ec748d99574a93710c6aed9a4beeb54a9b80f2d",
+          "SourceStart": 0,
+          "SourceLength": 82,
+          "VirtualPath": "Structured/xml/valid_attributes.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/valid_comments_pi_xml",
+      "FixturePath": "Structured/xml/valid_comments_pi.xml",
+      "Sha256": "756368bf773b2b50144befbc4028b9f5bcd30084b37083e9546cc533c5a93343",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "756368bf773b2b50144befbc4028b9f5bcd30084b37083e9546cc533c5a93343",
+          "SourceStart": 0,
+          "SourceLength": 72,
+          "VirtualPath": "Structured/xml/valid_comments_pi.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/valid_depth_60_xml",
+      "FixturePath": "Structured/xml/valid_depth_60.xml",
+      "Sha256": "d97d5db66b812b1c27251361315bf50d37e15221524cee3b7efd81e0e13ebea3",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "d97d5db66b812b1c27251361315bf50d37e15221524cee3b7efd81e0e13ebea3",
+          "SourceStart": 0,
+          "SourceLength": 657,
+          "VirtualPath": "Structured/xml/valid_depth_60.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/valid_nested_xml",
+      "FixturePath": "Structured/xml/valid_nested.xml",
+      "Sha256": "5d6b4e9e668a309248b900221bed53092594348b2ce35bd2eb8e59f888017b4e",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "5d6b4e9e668a309248b900221bed53092594348b2ce35bd2eb8e59f888017b4e",
+          "SourceStart": 0,
+          "SourceLength": 189,
+          "VirtualPath": "Structured/xml/valid_nested.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/xml/valid_simple_xml",
+      "FixturePath": "Structured/xml/valid_simple.xml",
+      "Sha256": "f407d286340a1f1af15671be9459dd043b4b67e6fcc662982a60408da248fa3b",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "f407d286340a1f1af15671be9459dd043b4b67e6fcc662982a60408da248fa3b",
+          "SourceStart": 0,
+          "SourceLength": 86,
+          "VirtualPath": "Structured/xml/valid_simple.xml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/adversarial_binary_yaml",
+      "FixturePath": "Structured/yaml/adversarial_binary.yaml",
+      "Sha256": "dc2961161f5719883f41716e08ed1f17338de5d0254e7a6dfc72709d643212a9",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "dc2961161f5719883f41716e08ed1f17338de5d0254e7a6dfc72709d643212a9",
+          "SourceStart": 0,
+          "SourceLength": 17,
+          "VirtualPath": "Structured/yaml/adversarial_binary.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/adversarial_custom_tag_yaml",
+      "FixturePath": "Structured/yaml/adversarial_custom_tag.yaml",
+      "Sha256": "2b52ca0f4a92de5e68fb509e4c2e7cfb0d7d1cdbde5fec1ab1eccbf94ba87dd0",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "2b52ca0f4a92de5e68fb509e4c2e7cfb0d7d1cdbde5fec1ab1eccbf94ba87dd0",
+          "SourceStart": 0,
+          "SourceLength": 29,
+          "VirtualPath": "Structured/yaml/adversarial_custom_tag.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/adversarial_deep_yaml",
+      "FixturePath": "Structured/yaml/adversarial_deep.yaml",
+      "Sha256": "16ffbc7c8f92152c746bb50e04e2b5563701fabb56b2de10f8ff1a5839768bfb",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "16ffbc7c8f92152c746bb50e04e2b5563701fabb56b2de10f8ff1a5839768bfb",
+          "SourceStart": 0,
+          "SourceLength": 18218,
+          "VirtualPath": "Structured/yaml/adversarial_deep.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/adversarial_empty_yaml",
+      "FixturePath": "Structured/yaml/adversarial_empty.yaml",
+      "Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Format": "empty",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 5000,
+      "MaxMemoryMb": 64,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "structured/yaml/adversarial_large_yaml",
+      "FixturePath": "Structured/yaml/adversarial_large.yaml",
+      "Sha256": "03fb45050f9890a2a2f15c7333bf67b4b67c151e4514b0a1dc8352dfb339af7f",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "03fb45050f9890a2a2f15c7333bf67b4b67c151e4514b0a1dc8352dfb339af7f",
+          "SourceStart": 0,
+          "SourceLength": 21793,
+          "VirtualPath": "Structured/yaml/adversarial_large.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/adversarial_tags_yaml",
+      "FixturePath": "Structured/yaml/adversarial_tags.yaml",
+      "Sha256": "854fd6ce1eec01012310f501791e65d42ef318c4f7876a845e3b08fb4ea69f51",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "854fd6ce1eec01012310f501791e65d42ef318c4f7876a845e3b08fb4ea69f51",
+          "SourceStart": 0,
+          "SourceLength": 52,
+          "VirtualPath": "Structured/yaml/adversarial_tags.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/valid_anchors_yaml",
+      "FixturePath": "Structured/yaml/valid_anchors.yaml",
+      "Sha256": "f2912284decee2e4b77d0ec4eb9b51b90a328e52f0a5b65b2d8cafe5a937afc9",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "f2912284decee2e4b77d0ec4eb9b51b90a328e52f0a5b65b2d8cafe5a937afc9",
+          "SourceStart": 0,
+          "SourceLength": 86,
+          "VirtualPath": "Structured/yaml/valid_anchors.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/valid_flow_yaml",
+      "FixturePath": "Structured/yaml/valid_flow.yaml",
+      "Sha256": "765bfdac2b5cf1248761a5cdb6b99a915b43f2e613df35296dafc8d4480ada35",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "765bfdac2b5cf1248761a5cdb6b99a915b43f2e613df35296dafc8d4480ada35",
+          "SourceStart": 0,
+          "SourceLength": 32,
+          "VirtualPath": "Structured/yaml/valid_flow.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/valid_multiline_yaml",
+      "FixturePath": "Structured/yaml/valid_multiline.yaml",
+      "Sha256": "e03ec9b7cfe07ab90c0a483967e79d4b0f5e37ccee3ec94b619759a189968efb",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "e03ec9b7cfe07ab90c0a483967e79d4b0f5e37ccee3ec94b619759a189968efb",
+          "SourceStart": 0,
+          "SourceLength": 50,
+          "VirtualPath": "Structured/yaml/valid_multiline.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/valid_nested_yaml",
+      "FixturePath": "Structured/yaml/valid_nested.yaml",
+      "Sha256": "180c1276bd6aa3e668fd801e418ad3f53374ab012da078d6233c68b09e01595a",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "180c1276bd6aa3e668fd801e418ad3f53374ab012da078d6233c68b09e01595a",
+          "SourceStart": 0,
+          "SourceLength": 132,
+          "VirtualPath": "Structured/yaml/valid_nested.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/valid_sequence_yaml",
+      "FixturePath": "Structured/yaml/valid_sequence.yaml",
+      "Sha256": "0a57e85b98b9fcb4e3f7977fca0b7994b0820dcf9c0f0b7fef8ac85c420bd8c7",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "0a57e85b98b9fcb4e3f7977fca0b7994b0820dcf9c0f0b7fef8ac85c420bd8c7",
+          "SourceStart": 0,
+          "SourceLength": 21,
+          "VirtualPath": "Structured/yaml/valid_sequence.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "structured/yaml/valid_simple_yaml",
+      "FixturePath": "Structured/yaml/valid_simple.yaml",
+      "Sha256": "13c83aa0e8e5bb88935801395efc5d44fa8190e4cac14d0c9de6c9a2bb3826d3",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "13c83aa0e8e5bb88935801395efc5d44fa8190e4cac14d0c9de6c9a2bb3826d3",
+          "SourceStart": 0,
+          "SourceLength": 45,
+          "VirtualPath": "Structured/yaml/valid_simple.yaml",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "text/binary_window_strings_bin",
+      "FixturePath": "Text/binary_window_strings.bin",
+      "Sha256": "4b59989972c17abdb260532c537d0cea371187219b96b3ab2ade0af241123d08",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "text/gb18030_chinese_txt",
+      "FixturePath": "Text/gb18030_chinese.txt",
+      "Sha256": "111349a6d6fe4258cbe7aaf02a14379440487483623e1515f5d232ddb98d45d1",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "text/high_entropy_binary_bin",
+      "FixturePath": "Text/high_entropy_binary.bin",
+      "Sha256": "144f7a6dc2ec4059c0f87bc6045e9253cd868953ab05f1790bf811b302b9631e",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "text/long_line_txt",
+      "FixturePath": "Text/long_line.txt",
+      "Sha256": "fb5897b828051a0b2f61309e7cd61115fffd7c3a0859b266995f63ddb4e49250",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "02c9a68f567b8ec215d893cde67ae2da41ba3c9b838d0ba4d3d04ab3cdc58da6",
+          "SourceStart": 0,
+          "SourceLength": 135168,
+          "VirtualPath": "Text/long_line.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "02c9a68f567b8ec215d893cde67ae2da41ba3c9b838d0ba4d3d04ab3cdc58da6",
+          "SourceStart": 122880,
+          "SourceLength": 135168,
+          "VirtualPath": "Text/long_line.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "02c9a68f567b8ec215d893cde67ae2da41ba3c9b838d0ba4d3d04ab3cdc58da6",
+          "SourceStart": 249856,
+          "SourceLength": 135168,
+          "VirtualPath": "Text/long_line.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "02c9a68f567b8ec215d893cde67ae2da41ba3c9b838d0ba4d3d04ab3cdc58da6",
+          "SourceStart": 376832,
+          "SourceLength": 135168,
+          "VirtualPath": "Text/long_line.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        },
+        {
+          "Label": "9966cd254f54f2216f313d9896c382b9e6724cdbcaed786f644eb3f219a3cf18",
+          "SourceStart": 503808,
+          "SourceLength": 96294,
+          "VirtualPath": "Text/long_line.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "text/malformed_utf8_bin",
+      "FixturePath": "Text/malformed_utf8.bin",
+      "Sha256": "44a86dc725dd440d8f7761718650bf47ad3bd0229a69b9c0f34f38f3eeba7983",
+      "Format": "binary",
+      "ExpectedParser": "none",
+      "ExpectedParserVersion": "0.0",
+      "ExpectedChunks": [],
+      "ExpectedGaps": [
+        {
+          "Reason": "UnsupportedFormat",
+          "DetailCode": "no_parser:binary",
+          "VirtualPath": null
+        }
+      ],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "NotCovered"
+    },
+    {
+      "CaseId": "text/utf16be_bom_chinese_txt",
+      "FixturePath": "Text/utf16be_bom_chinese.txt",
+      "Sha256": "63827b36c138367e2ba93a977ee39fe02f0d40b8502ccf309efcb44144603f21",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "d0fd063d662dae972ab454c8f349122b3c75670925b04f7759d5ff234ef33d3c",
+          "SourceStart": 0,
+          "SourceLength": 106,
+          "VirtualPath": "Text/utf16be_bom_chinese.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-16be-bom"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "text/utf16le_bom_chinese_txt",
+      "FixturePath": "Text/utf16le_bom_chinese.txt",
+      "Sha256": "3e33483af888a0fcbc17675e621220cf66eda5995397736329f390c5858c6046",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "d0fd063d662dae972ab454c8f349122b3c75670925b04f7759d5ff234ef33d3c",
+          "SourceStart": 0,
+          "SourceLength": 106,
+          "VirtualPath": "Text/utf16le_bom_chinese.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-16le-bom"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "text/utf8_bom_chinese_txt",
+      "FixturePath": "Text/utf8_bom_chinese.txt",
+      "Sha256": "f7ca7c7e6a2dd0bda606bb41b8de0a12ab02b1c7855b1a4ba5972b8c860856b3",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "d0fd063d662dae972ab454c8f349122b3c75670925b04f7759d5ff234ef33d3c",
+          "SourceStart": 0,
+          "SourceLength": 153,
+          "VirtualPath": "Text/utf8_bom_chinese.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8-bom"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    },
+    {
+      "CaseId": "text/utf8_chinese_txt",
+      "FixturePath": "Text/utf8_chinese.txt",
+      "Sha256": "d0fd063d662dae972ab454c8f349122b3c75670925b04f7759d5ff234ef33d3c",
+      "Format": "text",
+      "ExpectedParser": "text",
+      "ExpectedParserVersion": "1.0.0",
+      "ExpectedChunks": [
+        {
+          "Label": "d0fd063d662dae972ab454c8f349122b3c75670925b04f7759d5ff234ef33d3c",
+          "SourceStart": 0,
+          "SourceLength": 150,
+          "VirtualPath": "Text/utf8_chinese.txt",
+          "FormatId": "text",
+          "ContentKind": "Text",
+          "Encoding": "utf-8"
+        }
+      ],
+      "ExpectedGaps": [],
+      "MaxDurationMs": 30000,
+      "MaxMemoryMb": 512,
+      "Coverage": "Covered"
+    }
+  ]
+}

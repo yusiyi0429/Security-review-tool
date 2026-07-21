@@ -154,153 +154,153 @@ public sealed class ModelFormatParser : IFormatParser
         switch (formatId)
         {
             case "safetensors":
-            {
-                var result = SafeTensorsHeaderParser.Parse(span);
-                if (result.IsValid)
                 {
-                    var sb = new StringBuilder();
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"header_length: {result.HeaderLength}");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"total_file_length: {result.TotalFileLength}");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"tensor_count: {result.Tensors.Count}");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"tensors:");
-                    foreach (var t in result.Tensors)
-                        sb.AppendLine(CultureInfo.InvariantCulture,
-                            $"  {t.Name}: dtype={t.Dtype} shape=[{string.Join(",", t.Shape)}] offsets=[{t.DataOffsetStart},{t.DataOffsetEnd}]");
-                    if (result.Metadata.Count > 0)
+                    var result = SafeTensorsHeaderParser.Parse(span);
+                    if (result.IsValid)
                     {
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"metadata:");
-                        foreach (var kvp in result.Metadata)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"  {kvp.Key}: {kvp.Value}");
+                        var sb = new StringBuilder();
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"header_length: {result.HeaderLength}");
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"total_file_length: {result.TotalFileLength}");
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"tensor_count: {result.Tensors.Count}");
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"tensors:");
+                        foreach (var t in result.Tensors)
+                            sb.AppendLine(CultureInfo.InvariantCulture,
+                                $"  {t.Name}: dtype={t.Dtype} shape=[{string.Join(",", t.Shape)}] offsets=[{t.DataOffsetStart},{t.DataOffsetEnd}]");
+                        if (result.Metadata.Count > 0)
+                        {
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"metadata:");
+                            foreach (var kvp in result.Metadata)
+                                sb.AppendLine(CultureInfo.InvariantCulture, $"  {kvp.Key}: {kvp.Value}");
+                        }
+
+                        events.Add(MakeChunk(context, "safetensors_header", sb.ToString(), 0, (int)result.TotalFileLength));
+
+                        // Emit gap for weight data
+                        events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                            Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "safetensors",
+                            "model_weights", GapReason.UnsupportedRegion,
+                            "model_weight_semantics_uncovered",
+                            result.TotalFileLength - 8 - result.HeaderLength, null,
+                            DateTimeOffset.UtcNow)));
+                    }
+                    else
+                    {
+                        events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                            Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "safetensors",
+                            "model_parse", GapReason.Corrupt,
+                            FormattableString.Invariant($"{result.FailureReason}: {result.FailureDetail}"),
+                            data.Length, null, DateTimeOffset.UtcNow)));
                     }
 
-                    events.Add(MakeChunk(context, "safetensors_header", sb.ToString(), 0, (int)result.TotalFileLength));
-
-                    // Emit gap for weight data
-                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "safetensors",
-                        "model_weights", GapReason.UnsupportedRegion,
-                        "model_weight_semantics_uncovered",
-                        result.TotalFileLength - 8 - result.HeaderLength, null,
-                        DateTimeOffset.UtcNow)));
+                    break;
                 }
-                else
-                {
-                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "safetensors",
-                        "model_parse", GapReason.Corrupt,
-                        FormattableString.Invariant($"{result.FailureReason}: {result.FailureDetail}"),
-                        data.Length, null, DateTimeOffset.UtcNow)));
-                }
-
-                break;
-            }
             case "gguf":
-            {
-                var result = GgufMetadataParser.Parse(span);
-                if (result.IsValid)
                 {
-                    var sb = new StringBuilder();
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"version: {result.Version}");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"kv_count: {result.Entries.Count}");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"metadata:");
-                    foreach (var e in result.Entries)
+                    var result = GgufMetadataParser.Parse(span);
+                    if (result.IsValid)
                     {
-                        string val = e.StringValue ?? e.IntValue?.ToString(CultureInfo.InvariantCulture)
-                            ?? e.FloatValue?.ToString(CultureInfo.InvariantCulture) ?? "(null)";
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"  {e.Key}: {val}");
+                        var sb = new StringBuilder();
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"version: {result.Version}");
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"kv_count: {result.Entries.Count}");
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"metadata:");
+                        foreach (var e in result.Entries)
+                        {
+                            string val = e.StringValue ?? e.IntValue?.ToString(CultureInfo.InvariantCulture)
+                                ?? e.FloatValue?.ToString(CultureInfo.InvariantCulture) ?? "(null)";
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"  {e.Key}: {val}");
+                        }
+
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"tensor_count: {result.Tensors.Count}");
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"tensors:");
+                        foreach (var t in result.Tensors)
+                            sb.AppendLine(CultureInfo.InvariantCulture,
+                                $"  {t.Name}: dtype={t.Dtype} ndims={t.NDims} shape=[{string.Join(",", t.Shape)}] offset={t.Offset}");
+
+                        events.Add(MakeChunk(context, "gguf_metadata", sb.ToString(), 0, sb.Length));
+
+                        events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                            Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "gguf",
+                            "model_weights", GapReason.UnsupportedRegion,
+                            "model_weight_semantics_uncovered",
+                            data.Length, null, DateTimeOffset.UtcNow)));
+                    }
+                    else
+                    {
+                        events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                            Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "gguf",
+                            "model_parse", GapReason.Corrupt,
+                            FormattableString.Invariant($"{result.FailureReason}: {result.FailureDetail}"),
+                            data.Length, null, DateTimeOffset.UtcNow)));
                     }
 
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"tensor_count: {result.Tensors.Count}");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"tensors:");
-                    foreach (var t in result.Tensors)
-                        sb.AppendLine(CultureInfo.InvariantCulture,
-                            $"  {t.Name}: dtype={t.Dtype} ndims={t.NDims} shape=[{string.Join(",", t.Shape)}] offset={t.Offset}");
-
-                    events.Add(MakeChunk(context, "gguf_metadata", sb.ToString(), 0, sb.Length));
-
-                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "gguf",
-                        "model_weights", GapReason.UnsupportedRegion,
-                        "model_weight_semantics_uncovered",
-                        data.Length, null, DateTimeOffset.UtcNow)));
+                    break;
                 }
-                else
-                {
-                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "gguf",
-                        "model_parse", GapReason.Corrupt,
-                        FormattableString.Invariant($"{result.FailureReason}: {result.FailureDetail}"),
-                        data.Length, null, DateTimeOffset.UtcNow)));
-                }
-
-                break;
-            }
             case "onnx":
-            {
-                var result = OnnxMetadataWireParser.Parse(span);
-                if (result.IsValid)
                 {
-                    var sb = new StringBuilder();
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"ir_version: {result.IrVersion}");
-                    if (result.ProducerName != null)
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"producer: {result.ProducerName}");
-                    if (result.ProducerVersion != null)
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"producer_version: {result.ProducerVersion}");
-                    if (result.Domain != null)
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"domain: {result.Domain}");
-                    if (result.DocString != null)
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"doc_string: {result.DocString}");
-                    if (result.GraphNames.Count > 0)
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"graph_names: [{string.Join(",", result.GraphNames)}]");
-                    if (result.NodeNames.Count > 0)
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"node_names: [{string.Join(",", result.NodeNames)}]");
-                    if (result.InputNames.Count > 0)
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"input_names: [{string.Join(",", result.InputNames)}]");
-                    if (result.OutputNames.Count > 0)
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"output_names: [{string.Join(",", result.OutputNames)}]");
-                    if (result.MetadataProps.Count > 0)
+                    var result = OnnxMetadataWireParser.Parse(span);
+                    if (result.IsValid)
                     {
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"metadata_props:");
-                        foreach (var kvp in result.MetadataProps)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"  {kvp.Key}: {kvp.Value}");
+                        var sb = new StringBuilder();
+                        sb.AppendLine(CultureInfo.InvariantCulture, $"ir_version: {result.IrVersion}");
+                        if (result.ProducerName != null)
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"producer: {result.ProducerName}");
+                        if (result.ProducerVersion != null)
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"producer_version: {result.ProducerVersion}");
+                        if (result.Domain != null)
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"domain: {result.Domain}");
+                        if (result.DocString != null)
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"doc_string: {result.DocString}");
+                        if (result.GraphNames.Count > 0)
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"graph_names: [{string.Join(",", result.GraphNames)}]");
+                        if (result.NodeNames.Count > 0)
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"node_names: [{string.Join(",", result.NodeNames)}]");
+                        if (result.InputNames.Count > 0)
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"input_names: [{string.Join(",", result.InputNames)}]");
+                        if (result.OutputNames.Count > 0)
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"output_names: [{string.Join(",", result.OutputNames)}]");
+                        if (result.MetadataProps.Count > 0)
+                        {
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"metadata_props:");
+                            foreach (var kvp in result.MetadataProps)
+                                sb.AppendLine(CultureInfo.InvariantCulture, $"  {kvp.Key}: {kvp.Value}");
+                        }
+
+                        if (result.OpsetImports.Count > 0)
+                        {
+                            sb.AppendLine(CultureInfo.InvariantCulture, $"opset_imports:");
+                            foreach (var (d, v) in result.OpsetImports)
+                                sb.AppendLine(CultureInfo.InvariantCulture, $"  domain={d} version={v}");
+                        }
+
+                        events.Add(MakeChunk(context, "onnx_metadata", sb.ToString(), 0, sb.Length));
+
+                        events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                            Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "onnx",
+                            "model_weights", GapReason.UnsupportedRegion,
+                            "model_weight_semantics_uncovered",
+                            data.Length - result.BytesConsumed, null,
+                            DateTimeOffset.UtcNow)));
+                    }
+                    else
+                    {
+                        events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                            Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "onnx",
+                            "model_parse", GapReason.Corrupt,
+                            FormattableString.Invariant($"{result.FailureReason}: {result.FailureDetail}"),
+                            data.Length, null, DateTimeOffset.UtcNow)));
                     }
 
-                    if (result.OpsetImports.Count > 0)
-                    {
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"opset_imports:");
-                        foreach (var (d, v) in result.OpsetImports)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"  domain={d} version={v}");
-                    }
-
-                    events.Add(MakeChunk(context, "onnx_metadata", sb.ToString(), 0, sb.Length));
-
-                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "onnx",
-                        "model_weights", GapReason.UnsupportedRegion,
-                        "model_weight_semantics_uncovered",
-                        data.Length - result.BytesConsumed, null,
-                        DateTimeOffset.UtcNow)));
+                    break;
                 }
-                else
-                {
-                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "onnx",
-                        "model_parse", GapReason.Corrupt,
-                        FormattableString.Invariant($"{result.FailureReason}: {result.FailureDetail}"),
-                        data.Length, null, DateTimeOffset.UtcNow)));
-                }
-
-                break;
-            }
             default:
-            {
-                events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                    Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "model",
-                    "model_parse", GapReason.UnsupportedFormat,
-                    FormattableString.Invariant($"unknown_model_format: {ModelFormatSniffer.DescribeFormat(span)}"),
-                    data.Length, null, DateTimeOffset.UtcNow)));
-                break;
-            }
+                {
+                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "model",
+                        "model_parse", GapReason.UnsupportedFormat,
+                        FormattableString.Invariant($"unknown_model_format: {ModelFormatSniffer.DescribeFormat(span)}"),
+                        data.Length, null, DateTimeOffset.UtcNow)));
+                    break;
+                }
         }
 
         events.Add(new ParserEvent.ParseCompleted());
