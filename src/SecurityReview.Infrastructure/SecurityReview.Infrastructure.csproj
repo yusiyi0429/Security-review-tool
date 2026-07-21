@@ -13,6 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Llm\Prompts\semantic-review-v1.txt" />
+    <EmbeddedResource Include="Llm\semantic-review-response-v1.schema.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="SecurityReview.WindowsSecurityTests" />
     <InternalsVisibleTo Include="SecurityReview.IntegrationTests" />
   </ItemGroup>

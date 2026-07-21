@@ -31,4 +31,10 @@
     <ProjectReference Include="..\..\tools\SecurityReview.RulePackBuilder\SecurityReview.RulePackBuilder.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\Corpus\Adversarial\llm-injection-cases.json" Link="Corpus\Adversarial\llm-injection-cases.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

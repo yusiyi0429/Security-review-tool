@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://securityreview/schemas/semantic-review-response-v1.json",
+  "title": "SemanticReviewResponseV1",
+  "description": "Closed JSON-schema contract for the semantic-review LLM response. The parser uses this to drive a closed allowlist and rejects every deviation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidate_id",
+    "classification",
+    "category_id",
+    "confidence",
+    "rationale",
+    "injection_detected"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "classification": {
+      "type": "string",
+      "enum": ["confirmed", "possible", "unlikely", "unresolved"]
+    },
+    "category_id": {
+      "type": "string",
+      "enum": [
+        "SENS-001",
+        "SENS-002",
+        "SENS-003",
+        "SENS-004",
+        "SENS-005",
+        "SENS-006",
+        "SENS-007",
+        "SENS-008"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 500
+    },
+    "injection_detected": {
+      "type": "boolean"
+    }
+  }
+}
