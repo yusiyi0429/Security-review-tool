@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://security-review-tool.invalid/schemas/release-manifest-v1.schema.json",
+  "title": "Release manifest, schema version 1",
+  "description": "Describes the contents of a portable SecurityReviewTool release ZIP. The files array is sorted by path (ordinal, forward-slash). SHA-256 hashes are lowercase hex. The manifest itself is excluded from the file listing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "product",
+    "version",
+    "runtime_version",
+    "sdk_version",
+    "target_rid",
+    "created_utc",
+    "signer_mode",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "description": "Manifest schema version; must be exactly 1.",
+      "const": 1
+    },
+    "product": {
+      "description": "Product name.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "version": {
+      "description": "Release version (SemVer).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "runtime_version": {
+      "description": ".NET runtime version used for the build.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "sdk_version": {
+      "description": ".NET SDK version used for the build.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "target_rid": {
+      "description": "Target runtime identifier, e.g. win-x64.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "created_utc": {
+      "description": "ISO 8601 UTC timestamp of manifest creation.",
+      "type": "string",
+      "format": "date-time",
+      "minLength": 20,
+      "maxLength": 64
+    },
+    "signer_mode": {
+      "description": "Code-signing mode for the release.",
+      "type": "string",
+      "enum": [
+        "authenticode",
+        "unsigned_pilot"
+      ]
+    },
+    "files": {
+      "description": "Files in the release package, sorted by path (ordinal, forward-slash). The release-manifest.json entry itself is absent.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "size", "sha256"],
+        "properties": {
+          "path": {
+            "description": "Relative path within the package using forward-slash separators. Must not contain '..' segments, absolute paths, or backslashes.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^(?!\\s*[/\\\\])(?![\\s\\S]*\\.\\.[/\\\\])(?![\\s\\S]*\\\\).+$"
+          },
+          "size": {
+            "description": "File size in bytes.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "description": "SHA-256 hash of the file content, lowercase hex.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
