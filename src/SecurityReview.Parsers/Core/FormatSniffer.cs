@@ -101,21 +101,28 @@ public static class FormatSniffer
             if (tail.Length >= 5 && ContainsAscii(tail, "%%EOF"))
                 evidence.Add("pdf_eof_trailer");
         }
-        // 3. GZIP
+        // 3. TAR (ustar magic at offset 257 in 512-byte header)
+        else if (head.Length >= 262 && IsTarHeader(head))
+        {
+            evidence.Add("magic_TAR");
+            formatId = "tar";
+            confidence = HighConfidence;
+        }
+        // 4. GZIP
         else if (head.Length >= 2 && head[0] == 0x1F && head[1] == 0x8B)
         {
             evidence.Add("magic_GZIP");
             formatId = "gzip";
             confidence = HighConfidence;
         }
-        // 4. BZIP2
+        // 5. BZIP2
         else if (head.Length >= 3 && head[0] == 0x42 && head[1] == 0x5A && head[2] == 0x68)
         {
             evidence.Add("magic_BZ2");
             formatId = "bzip2";
             confidence = HighConfidence;
         }
-        // 5. XZ
+        // 6. XZ
         else if (head.Length >= 6 && head[0] == 0xFD && head[1] == 0x37 && head[2] == 0x7A &&
                  head[3] == 0x58 && head[4] == 0x5A && head[5] == 0x00)
         {
@@ -123,7 +130,7 @@ public static class FormatSniffer
             formatId = "xz";
             confidence = HighConfidence;
         }
-        // 6. 7-Zip
+        // 7. 7-Zip
         else if (head.Length >= 6 && head[0] == 0x37 && head[1] == 0x7A && head[2] == 0xBC &&
                  head[3] == 0xAF && head[4] == 0x27 && head[5] == 0x1C)
         {
@@ -131,7 +138,7 @@ public static class FormatSniffer
             formatId = "7z";
             confidence = HighConfidence;
         }
-        // 7. RAR (v4)
+        // 8. RAR (v4)
         else if (head.Length >= 7 && head[0] == 0x52 && head[1] == 0x61 && head[2] == 0x72 &&
                  head[3] == 0x21 && head[4] == 0x1A && head[5] == 0x07 && head[6] == 0x00)
         {
@@ -139,7 +146,7 @@ public static class FormatSniffer
             formatId = "rar";
             confidence = HighConfidence;
         }
-        // 8. RAR5
+        // 9. RAR5
         else if (head.Length >= 8 && head[0] == 0x52 && head[1] == 0x61 && head[2] == 0x72 &&
                  head[3] == 0x21 && head[4] == 0x1A && head[5] == 0x07 && head[6] == 0x01 && head[7] == 0x00)
         {
@@ -147,28 +154,28 @@ public static class FormatSniffer
             formatId = "rar";
             confidence = HighConfidence;
         }
-        // 9. ELF
+        // 10. ELF
         else if (head.Length >= 4 && head[0] == 0x7F && head[1] == 0x45 && head[2] == 0x4C && head[3] == 0x46)
         {
             evidence.Add("magic_ELF");
             formatId = "elf";
             confidence = HighConfidence;
         }
-        // 10. PE (MZ)
+        // 11. PE (MZ)
         else if (head.Length >= 2 && head[0] == 0x4D && head[1] == 0x5A)
         {
             evidence.Add("magic_MZ");
             formatId = "pe";
             confidence = HighConfidence;
         }
-        // 11. Java class
+        // 12. Java class
         else if (head.Length >= 4 && head[0] == 0xCA && head[1] == 0xFE && head[2] == 0xBA && head[3] == 0xBE)
         {
             evidence.Add("magic_JAVA_CLASS");
             formatId = "java_class";
             confidence = HighConfidence;
         }
-        // 12. PNG
+        // 13. PNG
         else if (head.Length >= 8 && head[0] == 0x89 && head[1] == 0x50 && head[2] == 0x4E &&
                  head[3] == 0x47 && head[4] == 0x0D && head[5] == 0x0A && head[6] == 0x1A && head[7] == 0x0A)
         {
@@ -176,14 +183,14 @@ public static class FormatSniffer
             formatId = "png";
             confidence = HighConfidence;
         }
-        // 13. JPEG
+        // 14. JPEG
         else if (head.Length >= 3 && head[0] == 0xFF && head[1] == 0xD8 && head[2] == 0xFF)
         {
             evidence.Add("magic_JPEG");
             formatId = "jpeg";
             confidence = HighConfidence;
         }
-        // 14. GIF
+        // 15. GIF
         else if (head.Length >= 6 &&
                  ((head[0] == 0x47 && head[1] == 0x49 && head[2] == 0x46 && head[3] == 0x38 && head[4] == 0x37 && head[5] == 0x61) ||
                   (head[0] == 0x47 && head[1] == 0x49 && head[2] == 0x46 && head[3] == 0x38 && head[4] == 0x39 && head[5] == 0x61)))
@@ -192,14 +199,14 @@ public static class FormatSniffer
             formatId = "gif";
             confidence = HighConfidence;
         }
-        // 15. BMP
+        // 16. BMP
         else if (head.Length >= 2 && head[0] == 0x42 && head[1] == 0x4D)
         {
             evidence.Add("magic_BMP");
             formatId = "bmp";
             confidence = HighConfidence;
         }
-        // 16. TIFF
+        // 17. TIFF
         else if (head.Length >= 4 &&
                  ((head[0] == 0x49 && head[1] == 0x49 && head[2] == 0x2A && head[3] == 0x00) ||
                   (head[0] == 0x4D && head[1] == 0x4D && head[2] == 0x00 && head[3] == 0x2A)))
@@ -208,7 +215,7 @@ public static class FormatSniffer
             formatId = "tiff";
             confidence = HighConfidence;
         }
-        // 17. WAV
+        // 18. WAV
         else if (head.Length >= 12 && head[0] == 0x52 && head[1] == 0x49 && head[2] == 0x46 && head[3] == 0x46 &&
                  head[8] == 0x57 && head[9] == 0x41 && head[10] == 0x56 && head[11] == 0x45)
         {
@@ -216,14 +223,14 @@ public static class FormatSniffer
             formatId = "wav";
             confidence = HighConfidence;
         }
-        // 18. MP4 / ISO base media
+        // 19. MP4 / ISO base media
         else if (head.Length >= 12 && head[4] == 0x66 && head[5] == 0x74 && head[6] == 0x79 && head[7] == 0x70)
         {
             evidence.Add("magic_MP4");
             formatId = "mp4";
             confidence = HighConfidence;
         }
-        // 19. UTF-8 / UTF-16 BOM → text
+        // 20. UTF-8 / UTF-16 BOM → text
         else if (head.Length >= 3 && head[0] == 0xEF && head[1] == 0xBB && head[2] == 0xBF)
         {
             evidence.Add("bom_utf8");
@@ -242,7 +249,7 @@ public static class FormatSniffer
             formatId = "text";
             confidence = HighConfidence;
         }
-        // 20. Heuristic: text vs binary
+        // 21. Heuristic: text vs binary
         else
         {
             (formatId, confidence, evidence) = ClassifyTextOrBinary(head, declaredLength);
@@ -355,6 +362,20 @@ public static class FormatSniffer
         return true;
     }
 
+    private static bool IsTarHeader(ReadOnlySpan<byte> head)
+    {
+        // TAR header: 512-byte block with ustar magic at offset 257.
+        // Check for "ustar\0" or "ustar \0" at offset 257 within first 512 bytes.
+        if (head.Length < 262) return false;
+
+        ReadOnlySpan<byte> block = head[..Math.Min(head.Length, 512)];
+        if (block.Length < 262) return false;
+
+        // Check magic: "ustar" at offset 257
+        return block[257] == 'u' && block[258] == 's' && block[259] == 't' &&
+               block[260] == 'a' && block[261] == 'r';
+    }
+
     private static bool ContainsAscii(ReadOnlySpan<byte> data, string needle)
     {
         if (needle.Length > data.Length) return false;
@@ -411,6 +432,7 @@ public static class FormatSniffer
             "java_class" => normalized != ".class",
             "openxml" => normalized is not (".docx" or ".xlsx" or ".pptx"),
             "jar" => normalized != ".jar",
+            "tar" => normalized != ".tar",
             _ => false,
         };
     }

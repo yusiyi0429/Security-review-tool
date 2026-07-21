@@ -18,7 +18,22 @@ public abstract record ParserEvent
     /// A nested/embedded artifact was discovered and should be parsed
     /// recursively (e.g. a ZIP entry, OLE stream, or JSON sub-document).
     /// </summary>
-    public sealed record ChildDiscovered(string VirtualPath, FormatProbe Probe) : ParserEvent;
+    /// <summary>
+    /// A nested/embedded artifact was discovered and should be parsed
+    /// recursively (e.g. a ZIP entry, OLE stream, or JSON sub-document).
+    /// </summary>
+    /// <param name="VirtualPath">Virtual routing path (e.g. <c>"outer.zip!/inner.txt"</c>).</param>
+    /// <param name="Probe">Format probe of the child stream head/tail.</param>
+    /// <param name="StreamFactory">
+    /// Factory that opens a fresh seekable <see cref="Stream"/> over the child
+    /// content. The factory is valid only while the parent parse job is alive;
+    /// calling it after the parent <see cref="ParserInput"/> has been disposed
+    /// is undefined. <c>null</c> when the child is metadata-only (e.g. symlinks).
+    /// </param>
+    public sealed record ChildDiscovered(
+        string VirtualPath,
+        FormatProbe Probe,
+        Func<CancellationToken, Task<Stream>>? StreamFactory = null) : ParserEvent;
 
     /// <summary>
     /// A coverage gap was encountered — a region of the source that could not
