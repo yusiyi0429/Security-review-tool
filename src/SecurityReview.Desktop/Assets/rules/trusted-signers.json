@@ -1,0 +1,10 @@
+{
+  "release_hash": "",
+  "signers": [
+    {
+      "signer_key_id": "rules-team-prod-01",
+      "public_key_base64": "",
+      "public_key_pem": ""
+    }
+  ]
+}
