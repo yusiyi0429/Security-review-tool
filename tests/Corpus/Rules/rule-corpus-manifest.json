@@ -1,0 +1,230 @@
+{
+  "version": "1.0",
+  "rulePackSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "cases": [
+    {
+      "caseId": "dictionary/api_key_positive",
+      "fixturePath": "fixtures/api_key_positive.txt",
+      "sha256": "2614f549ef72f50e568d0c1578f81391ed05b3fbde498e37015f4c83e584335d",
+      "format": "text",
+      "assetTypeIds": ["ASSET-001"],
+      "generator": "synthetic handwritten fixture v1.0",
+      "seed": "api-key-positive-001",
+      "expectedFindings": [
+        {
+          "ruleId": "RULE-ENT-API-KEY",
+          "detectorId": "DET-DICT-ENTITIES",
+          "categoryId": "SENS-001",
+          "severity": "Critical",
+          "confidence": "High",
+          "valuePattern": "sk-test-api-key",
+          "location": {
+            "locatorType": "TextLocator",
+            "line": 6,
+            "column": 13,
+            "byteStart": 145,
+            "byteLength": 23
+          },
+          "provenance": [
+            {
+              "detectorId": "DET-DICT-ENTITIES",
+              "ruleId": "RULE-ENT-API-KEY"
+            }
+          ]
+        },
+        {
+          "ruleId": "RULE-ENT-API-KEY",
+          "detectorId": "DET-DICT-ENTITIES",
+          "categoryId": "SENS-001",
+          "severity": "Critical",
+          "confidence": "High",
+          "valuePattern": "demo-secret-pattern",
+          "location": {
+            "locatorType": "TextLocator",
+            "line": 9,
+            "column": 11,
+            "byteStart": 216,
+            "byteLength": 26
+          },
+          "provenance": [
+            {
+              "detectorId": "DET-DICT-ENTITIES",
+              "ruleId": "RULE-ENT-API-KEY"
+            }
+          ]
+        }
+      ],
+      "expectedAbsenceRuleIds": [
+        "RULE-NET-PRIVATE-IP",
+        "RULE-NET-PUBLIC-IP"
+      ],
+      "minOccurrenceCount": 2,
+      "maxOccurrenceCount": 2,
+      "maxDurationMs": 10000,
+      "maxMemoryMb": 256,
+      "disposition": "approved-example"
+    },
+    {
+      "caseId": "network/private_ip_positive",
+      "fixturePath": "fixtures/private_ip_positive.txt",
+      "sha256": "d9de884d80cf55d011314cfaac7664cb736984b58339b2a41d2890c13b658695",
+      "format": "text",
+      "assetTypeIds": ["ASSET-001"],
+      "generator": "synthetic handwritten fixture v1.0",
+      "seed": "private-ip-positive-001",
+      "expectedFindings": [
+        {
+          "ruleId": "RULE-NET-PRIVATE-IP",
+          "detectorId": "DET-NET-ADDR",
+          "categoryId": "SENS-002",
+          "severity": "Medium",
+          "confidence": "Low",
+          "valuePattern": "10.0.0.1",
+          "location": {
+            "locatorType": "TextLocator",
+            "line": 6,
+            "column": 18,
+            "byteStart": 140,
+            "byteLength": 8
+          },
+          "provenance": [
+            {
+              "detectorId": "DET-NET-ADDR",
+              "ruleId": "RULE-NET-PRIVATE-IP"
+            }
+          ]
+        },
+        {
+          "ruleId": "RULE-NET-PRIVATE-IP",
+          "detectorId": "DET-NET-ADDR",
+          "categoryId": "SENS-002",
+          "severity": "Medium",
+          "confidence": "Low",
+          "valuePattern": "192.168.1.100",
+          "location": {
+            "locatorType": "TextLocator",
+            "line": 7,
+            "column": 18,
+            "byteStart": 181,
+            "byteLength": 13
+          },
+          "provenance": [
+            {
+              "detectorId": "DET-NET-ADDR",
+              "ruleId": "RULE-NET-PRIVATE-IP"
+            }
+          ]
+        }
+      ],
+      "expectedAbsenceRuleIds": [
+        "RULE-ENT-API-KEY"
+      ],
+      "minOccurrenceCount": 2,
+      "maxOccurrenceCount": 4,
+      "maxDurationMs": 10000,
+      "maxMemoryMb": 256,
+      "disposition": "approved-example"
+    },
+    {
+      "caseId": "dictionary/near_miss_placeholder",
+      "fixturePath": "fixtures/near_miss_placeholder.txt",
+      "sha256": "193bc36bfb6057bb1f9a658c73ea4417c6b7091e627ea51006180d849d1f3d79",
+      "format": "text",
+      "assetTypeIds": ["ASSET-001"],
+      "generator": "synthetic handwritten fixture v1.0",
+      "seed": "near-miss-placeholder-001",
+      "expectedFindings": [],
+      "expectedAbsenceRuleIds": [
+        "RULE-ENT-API-KEY",
+        "RULE-NET-PRIVATE-IP",
+        "RULE-NET-PUBLIC-IP"
+      ],
+      "minOccurrenceCount": 0,
+      "maxOccurrenceCount": 0,
+      "maxDurationMs": 10000,
+      "maxMemoryMb": 256,
+      "disposition": "near-miss"
+    },
+    {
+      "caseId": "text/negative_clean",
+      "fixturePath": "fixtures/negative_clean.txt",
+      "sha256": "20cfcc29f42d6ba82fa302961b13ae4ee02f815683e7b2ca7890454e254df80f",
+      "format": "text",
+      "assetTypeIds": ["ASSET-001"],
+      "generator": "synthetic handwritten fixture v1.0",
+      "seed": "negative-clean-001",
+      "expectedFindings": [],
+      "expectedAbsenceRuleIds": [
+        "RULE-ENT-API-KEY",
+        "RULE-NET-PRIVATE-IP",
+        "RULE-NET-PUBLIC-IP"
+      ],
+      "minOccurrenceCount": 0,
+      "maxOccurrenceCount": 0,
+      "maxDurationMs": 10000,
+      "maxMemoryMb": 256,
+      "disposition": "negative"
+    },
+    {
+      "caseId": "cross_chunk/sensitive",
+      "fixturePath": "fixtures/cross_chunk_sensitive.txt",
+      "sha256": "ea95ed997f3b052dc1dddd032ce60a9e240840c531f6054f1ae6437f40f47f66",
+      "format": "text",
+      "assetTypeIds": ["ASSET-001"],
+      "generator": "synthetic handwritten fixture v1.0",
+      "seed": "cross-chunk-sensitive-001",
+      "expectedFindings": [
+        {
+          "ruleId": "RULE-NET-PRIVATE-IP",
+          "detectorId": "DET-NET-ADDR",
+          "categoryId": "SENS-002",
+          "severity": "Medium",
+          "confidence": "Low",
+          "valuePattern": "10.20.30.40",
+          "location": {
+            "locatorType": "TextLocator",
+            "line": 12,
+            "column": 15,
+            "byteStart": 326,
+            "byteLength": 11
+          },
+          "provenance": [
+            {
+              "detectorId": "DET-NET-ADDR",
+              "ruleId": "RULE-NET-PRIVATE-IP"
+            }
+          ]
+        },
+        {
+          "ruleId": "RULE-ENT-API-KEY",
+          "detectorId": "DET-DICT-ENTITIES",
+          "categoryId": "SENS-001",
+          "severity": "Critical",
+          "confidence": "High",
+          "valuePattern": "sk-cross-chunk-key",
+          "location": {
+            "locatorType": "TextLocator",
+            "line": 119,
+            "column": 12,
+            "byteStart": 1624,
+            "byteLength": 29
+          },
+          "provenance": [
+            {
+              "detectorId": "DET-DICT-ENTITIES",
+              "ruleId": "RULE-ENT-API-KEY"
+            }
+          ]
+        }
+      ],
+      "expectedAbsenceRuleIds": [
+        "RULE-NET-PUBLIC-IP"
+      ],
+      "minOccurrenceCount": 2,
+      "maxOccurrenceCount": 4,
+      "maxDurationMs": 10000,
+      "maxMemoryMb": 256,
+      "disposition": "cross-chunk"
+    }
+  ]
+}

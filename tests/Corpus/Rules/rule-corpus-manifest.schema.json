@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://security-review-tool/rule-corpus-manifest.schema.json",
+  "title": "Rule Corpus Manifest",
+  "description": "Machine-readable manifest linking synthetic rule-corpus fixtures to expected detector findings, locations, and provenance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "rulePackSha256", "cases"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Manifest schema version."
+    },
+    "rulePackSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of the rule pack ZIP this manifest was recorded against."
+    },
+    "cases": {
+      "type": "array",
+      "description": "All rule corpus test cases.",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/RuleCorpusCase"
+      }
+    }
+  },
+  "definitions": {
+    "RuleCorpusCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseId",
+        "fixturePath",
+        "sha256",
+        "format",
+        "assetTypeIds",
+        "generator",
+        "seed",
+        "expectedFindings",
+        "expectedAbsenceRuleIds",
+        "minOccurrenceCount",
+        "maxOccurrenceCount",
+        "maxDurationMs",
+        "maxMemoryMb",
+        "disposition"
+      ],
+      "properties": {
+        "caseId": {
+          "type": "string",
+          "description": "Unique case identifier (e.g. 'dictionary/api_key_positive')."
+        },
+        "fixturePath": {
+          "type": "string",
+          "description": "Relative fixture path from the corpus root."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase hex SHA-256 of the fixture file."
+        },
+        "format": {
+          "type": "string",
+          "description": "Declared format identifier for the fixture (e.g. 'text', 'json', 'yaml')."
+        },
+        "assetTypeIds": {
+          "type": "array",
+          "description": "Asset types this case is expected to match against.",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^ASSET-(00[1-9]|01[0-1])$"
+          }
+        },
+        "generator": {
+          "type": "string",
+          "description": "Synthetic input generator description (e.g. 'python-secrets-generator v1.0')."
+        },
+        "seed": {
+          "type": "string",
+          "description": "Seed value for deterministic synthetic generation."
+        },
+        "expectedFindings": {
+          "type": "array",
+          "description": "Expected detection findings with exact location and provenance expectations.",
+          "items": {
+            "$ref": "#/definitions/ExpectedFinding"
+          }
+        },
+        "expectedAbsenceRuleIds": {
+          "type": "array",
+          "description": "Rule IDs that must NOT produce any finding in this case.",
+          "items": {
+            "type": "string",
+            "pattern": "^RULE-[A-Z0-9-]{3,64}$"
+          }
+        },
+        "minOccurrenceCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum total expected candidate occurrences across all findings."
+        },
+        "maxOccurrenceCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum total expected candidate occurrences across all findings."
+        },
+        "maxDurationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum allowed processing duration in milliseconds."
+        },
+        "maxMemoryMb": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum allowed worker memory in MB."
+        },
+        "disposition": {
+          "type": "string",
+          "enum": ["approved-example", "near-miss", "negative", "cross-chunk"],
+          "description": "Disposition of the case: approved-example (known positive), near-miss (should NOT match), negative (no findings expected), cross-chunk (spans chunks)."
+        }
+      }
+    },
+    "ExpectedFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleId",
+        "detectorId",
+        "categoryId",
+        "severity",
+        "confidence",
+        "location"
+      ],
+      "properties": {
+        "ruleId": {
+          "type": "string",
+          "pattern": "^RULE-[A-Z0-9-]{3,64}$",
+          "description": "Expected RuleId."
+        },
+        "detectorId": {
+          "type": "string",
+          "pattern": "^DET-[A-Z0-9-]{3,64}$",
+          "description": "Expected DetectorId."
+        },
+        "categoryId": {
+          "type": "string",
+          "pattern": "^SENS-00[1-8]$",
+          "description": "Expected CategoryId."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["Critical", "High", "Medium", "Low", "Info"],
+          "description": "Expected severity."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["High", "Medium", "Low"],
+          "description": "Expected detection confidence."
+        },
+        "valuePattern": {
+          "type": "string",
+          "description": "Substring or regex pattern expected in the candidate value."
+        },
+        "location": {
+          "$ref": "#/definitions/ExpectedLocation",
+          "description": "Expected source location for positive cases."
+        },
+        "provenance": {
+          "type": "array",
+          "description": "Expected provenance entries (detectorId + ruleId pairs).",
+          "items": {
+            "$ref": "#/definitions/ExpectedProvenance"
+          }
+        }
+      }
+    },
+    "ExpectedLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locatorType"],
+      "properties": {
+        "locatorType": {
+          "type": "string",
+          "enum": ["TextLocator", "JsonLocator", "CellLocator", "BinaryLocator", "PdfLocator", "OciLocator"],
+          "description": "Type of source locator."
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Line number (1-based) for TextLocator."
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Column number (1-based) for TextLocator."
+        },
+        "byteStart": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte start offset for TextLocator/JsonLocator."
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Byte length for TextLocator/JsonLocator."
+        }
+      }
+    },
+    "ExpectedProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detectorId", "ruleId"],
+      "properties": {
+        "detectorId": {
+          "type": "string",
+          "pattern": "^DET-[A-Z0-9-]{3,64}$",
+          "description": "DetectorId in the provenance chain."
+        },
+        "ruleId": {
+          "type": "string",
+          "pattern": "^RULE-[A-Z0-9-]{3,64}$",
+          "description": "RuleId in the provenance chain."
+        }
+      }
+    }
+  }
+}

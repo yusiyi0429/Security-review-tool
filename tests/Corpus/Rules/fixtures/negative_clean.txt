@@ -1,0 +1,18 @@
+# Clean Configuration File
+# This file contains only benign configuration values with no sensitive data.
+# It should produce zero findings from any detector.
+
+application:
+  name: "my-service"
+  version: "1.0.0"
+  environment: "development"
+
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+
+features:
+  enable_cache: true
+  max_connections: 100
+  timeout_seconds: 30

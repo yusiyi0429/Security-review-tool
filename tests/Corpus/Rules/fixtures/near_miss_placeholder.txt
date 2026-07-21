@@ -1,0 +1,12 @@
+# Placeholder Configuration
+# This file contains patterns that LOOK like secrets but are approved
+# placeholders. The detector should NOT flag these as actual findings.
+
+# This looks like an API key but is a well-known placeholder
+api_key = "PLACEHOLDER_REPLACE_WITH_REAL_KEY"
+
+# This looks like a password but is a demo value  
+password = "changeme_demo_only"
+
+# Standard example
+token = "example-token-not-real"

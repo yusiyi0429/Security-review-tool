@@ -1,0 +1,12 @@
+# Synthetic API Key Configuration
+# This file contains synthetic patterns designed to trigger dictionary-based
+# restricted entity detection. No real secrets are included.
+
+# Test API key entry
+api_key = "sk-test-api-key-12345"
+
+# Another pattern
+secret = "demo-secret-pattern-67890"
+
+# Configuration entry
+endpoint = "https://api.example.com/v1/health"

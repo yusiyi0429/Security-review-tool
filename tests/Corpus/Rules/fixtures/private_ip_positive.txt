@@ -1,0 +1,13 @@
+# Network Configuration Sample
+# Contains synthetic internal network addresses for detection testing.
+# No real infrastructure addresses are included.
+
+# Internal application servers
+app_server_1 = "10.0.0.1"
+app_server_2 = "192.168.1.100"
+
+# Database connection string
+db_host = "db.internal.example.com:5432"
+
+# Monitoring endpoint
+monitor_url = "http://monitor.example.internal:9090/metrics"
