@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://security-review.local/schemas/detectors-v1.schema.json",
+  "title": "Detector definitions, schema version 1",
+  "description": "Defines detector configurations. Max 10,000 detectors, max 1,000 parameters per detector. ConfigId must be non-empty. DetectorId format: DET-[A-Z0-9-]{3,64}.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "detectors"],
+  "properties": {
+    "schema_version": {
+      "description": "Schema version; must be exactly 1.",
+      "const": 1
+    },
+    "detectors": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "config_id", "parameters", "max_matches_per_chunk"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^DET-[A-Z0-9-]{3,64}$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "KnownFormat", "Checksum", "StructuredField", "NetworkAddress",
+              "Dictionary", "EntropyWithContext", "LicenseFingerprint",
+              "ContentFingerprint", "SemanticCandidate"
+            ]
+          },
+          "config_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "parameters": {
+            "type": "object",
+            "maxProperties": 1000,
+            "additionalProperties": { "type": "string" }
+          },
+          "max_matches_per_chunk": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

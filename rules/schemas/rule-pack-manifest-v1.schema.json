@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://security-review.local/schemas/rule-pack-manifest-v1.schema.json",
+  "title": "Rule pack manifest, schema version 1",
+  "description": "Top-level rule pack document containing categories, asset policies, rules, detectors, and compliance rules. Max 100,000 rules, max 10,000 detectors. No duplicate IDs (ordinal comparison). All string lengths are bounded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "categories", "assets", "rules", "detectors", "compliance_rules"],
+  "properties": {
+    "schema_version": {
+      "description": "Schema version; must be exactly 1.",
+      "const": 1
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category_id", "name", "description", "enabled"],
+        "properties": {
+          "category_id": {
+            "type": "string",
+            "pattern": "^SENS-(00[1-8])$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "enabled": {
+            "const": true
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["asset_type_id", "name", "description", "focus_weights", "compliance_rules"],
+        "properties": {
+          "asset_type_id": {
+            "type": "string",
+            "pattern": "^ASSET-(00[1-9]|01[0-1])$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "focus_weights": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "SENS-001": { "type": "number", "minimum": 0 },
+              "SENS-002": { "type": "number", "minimum": 0 },
+              "SENS-003": { "type": "number", "minimum": 0 },
+              "SENS-004": { "type": "number", "minimum": 0 },
+              "SENS-005": { "type": "number", "minimum": 0 },
+              "SENS-006": { "type": "number", "minimum": 0 },
+              "SENS-007": { "type": "number", "minimum": 0 },
+              "SENS-008": { "type": "number", "minimum": 0 }
+            }
+          },
+          "compliance_rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "asset_type_id", "name", "description", "evidence_field", "required_status"],
+              "properties": {
+                "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+                "asset_type_id": { "type": "string", "pattern": "^ASSET-(00[1-9]|01[0-1])$" },
+                "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+                "description": { "type": "string", "minLength": 1, "maxLength": 2048 },
+                "evidence_field": { "type": "string", "minLength": 1, "maxLength": 256 },
+                "required_status": {
+                  "type": "string",
+                  "enum": ["verified", "declared_without_reference", "not_applicable", "unverifiable"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "category_id", "finding_kind", "severity", "confidence", "detector_id", "detector_config_id", "applies_to_assets", "requires_semantic_review", "enabled"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^RULE-[A-Z0-9-]{3,64}$"
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^SENS-(00[1-8])$"
+          },
+          "finding_kind": {
+            "type": "string",
+            "enum": ["SensitiveContent", "AssetCompliance"]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["Critical", "High", "Medium", "Low", "Info"]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["High", "Medium", "Low"]
+          },
+          "detector_id": {
+            "type": "string",
+            "pattern": "^DET-[A-Z0-9-]{3,64}$"
+          },
+          "detector_config_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "applies_to_assets": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^ASSET-(00[1-9]|01[0-1])$"
+            }
+          },
+          "requires_semantic_review": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "detectors": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "detectors-v1.schema.json#/properties/detectors/items"
+      }
+    },
+    "compliance_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "asset_type_id", "name", "description", "evidence_field", "required_status"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "asset_type_id": { "type": "string", "pattern": "^ASSET-(00[1-9]|01[0-1])$" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "description": { "type": "string", "minLength": 1, "maxLength": 2048 },
+          "evidence_field": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "required_status": {
+            "type": "string",
+            "enum": ["verified", "declared_without_reference", "not_applicable", "unverifiable"]
+          }
+        }
+      }
+    }
+  }
+}

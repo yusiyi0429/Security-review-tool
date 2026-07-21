@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://security-review.local/schemas/categories-v1.schema.json",
+  "title": "Sensitive content categories, schema version 1",
+  "description": "Defines the eight mandatory sensitive content categories (SENS-001 through SENS-008). Every category must be Enabled; asset policies add focus weights but never disable categories.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "categories"],
+  "properties": {
+    "schema_version": {
+      "description": "Schema version; must be exactly 1.",
+      "const": 1
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category_id", "name", "description", "enabled"],
+        "properties": {
+          "category_id": {
+            "description": "Registered category identifier, SENS-001 through SENS-008.",
+            "type": "string",
+            "pattern": "^SENS-(00[1-8])$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "enabled": {
+            "description": "Must be true for all eight categories.",
+            "const": true
+          }
+        }
+      }
+    }
+  }
+}

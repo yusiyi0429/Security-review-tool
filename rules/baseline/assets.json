@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "assets": [
+    {
+      "asset_type_id": "ASSET-001",
+      "name": "提示词",
+      "description": "Prompt assets. Full baseline categories apply; strengthened restricted entity, personal information, infrastructure, and prompt injection detection.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.5, "SENS-003": 1.5, "SENS-004": 1.5,
+        "SENS-005": 1.0, "SENS-006": 1.0, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": []
+    },
+    {
+      "asset_type_id": "ASSET-002",
+      "name": "工作流",
+      "description": "Workflow assets. Full baseline categories apply; recursive scanning of prompts, node configs, tool parameters, embedded resources.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.0, "SENS-003": 1.0, "SENS-004": 1.0,
+        "SENS-005": 1.0, "SENS-006": 1.0, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": []
+    },
+    {
+      "asset_type_id": "ASSET-003",
+      "name": "数据集",
+      "description": "Dataset assets. Full baseline categories apply; additional checks for data provenance, production logs, sessions, raw input, evaluation information.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.0, "SENS-003": 1.5, "SENS-004": 1.0,
+        "SENS-005": 2.0, "SENS-006": 1.0, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": []
+    },
+    {
+      "asset_type_id": "ASSET-004",
+      "name": "Skills",
+      "description": "Skill assets. Full baseline categories apply; scan skill instructions, referenced files, scripts, configs, resources.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.0, "SENS-003": 1.0, "SENS-004": 1.0,
+        "SENS-005": 1.0, "SENS-006": 1.0, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": []
+    },
+    {
+      "asset_type_id": "ASSET-005",
+      "name": "交付指导书",
+      "description": "Delivery guide assets. Full baseline categories apply; cover document properties, annotations, hidden content, attachments.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.0, "SENS-003": 1.0, "SENS-004": 1.5,
+        "SENS-005": 1.0, "SENS-006": 1.0, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": []
+    },
+    {
+      "asset_type_id": "ASSET-006",
+      "name": "场景化方案",
+      "description": "Scenario solution assets. Full baseline categories apply; strengthened detection of customer, bank, internal scenario, and security control details.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.5, "SENS-003": 1.5, "SENS-004": 2.0,
+        "SENS-005": 1.0, "SENS-006": 1.5, "SENS-007": 2.0, "SENS-008": 1.0
+      },
+      "compliance_rules": []
+    },
+    {
+      "asset_type_id": "ASSET-007",
+      "name": "知识库/经验库",
+      "description": "Knowledge base / experience base assets. Full baseline categories apply. Manifest must verify transformation evidence; missing evidence produces Unverifiable compliance finding. Evidence field: knowledge_base_transformed.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.0, "SENS-003": 1.0, "SENS-004": 1.0,
+        "SENS-005": 1.0, "SENS-006": 1.0, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": [
+        {
+          "id": "COMPLIANCE-KB-TRANSFORM",
+          "asset_type_id": "ASSET-007",
+          "name": "知识库转换验证",
+          "description": "Knowledge base must be transformed via LLM. When knowledge_base_transformed evidence is missing or Unverifiable, produce an AssetCompliance finding. Never infer weights from missing evidence.",
+          "evidence_field": "knowledge_base_transformed",
+          "required_status": "verified"
+        }
+      ]
+    },
+    {
+      "asset_type_id": "ASSET-008",
+      "name": "模型",
+      "description": "Model assets. Full baseline categories apply. Manifest/security metadata must verify base-model and fine-tune evidence; missing evidence produces Unverifiable compliance finding. Evidence field: model_finetuned.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.0, "SENS-003": 1.0, "SENS-004": 1.0,
+        "SENS-005": 1.0, "SENS-006": 1.0, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": [
+        {
+          "id": "COMPLIANCE-MODEL-FINETUNE",
+          "asset_type_id": "ASSET-008",
+          "name": "模型微调验证",
+          "description": "Only fine-tuned models may be released. When model_finetuned evidence is missing or Unverifiable, produce an AssetCompliance finding. Never infer weights from missing evidence.",
+          "evidence_field": "model_finetuned",
+          "required_status": "verified"
+        }
+      ]
+    },
+    {
+      "asset_type_id": "ASSET-009",
+      "name": "工程工具",
+      "description": "Engineering tool assets. Full baseline categories apply; scan source code, binary strings, configs, generated templates, prompts (AI Coding tools + prompts).",
+      "focus_weights": {
+        "SENS-001": 1.5, "SENS-002": 1.5, "SENS-003": 1.0, "SENS-004": 1.0,
+        "SENS-005": 1.0, "SENS-006": 1.5, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": []
+    },
+    {
+      "asset_type_id": "ASSET-010",
+      "name": "本体",
+      "description": "Ontology assets. Full baseline categories apply; scan terms, entities, relations, aliases, restricted entity mappings.",
+      "focus_weights": {
+        "SENS-001": 1.0, "SENS-002": 1.0, "SENS-003": 1.5, "SENS-004": 1.5,
+        "SENS-005": 1.0, "SENS-006": 1.0, "SENS-007": 1.0, "SENS-008": 1.0
+      },
+      "compliance_rules": []
+    },
+    {
+      "asset_type_id": "ASSET-011",
+      "name": "镜像文件 (Docker/OCI)",
+      "description": "Docker/OCI container image assets. Full baseline categories apply; scan config, environment variables, history commands, all file layers. Strengthened restricted entity detection. Use labels like RESTRICTED_ENTITY_ALPHA for repository fixtures.",
+      "focus_weights": {
+        "SENS-001": 2.0, "SENS-002": 2.0, "SENS-003": 1.5, "SENS-004": 2.0,
+        "SENS-005": 1.5, "SENS-006": 2.0, "SENS-007": 1.5, "SENS-008": 1.5
+      },
+      "compliance_rules": []
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "compliance_rules": [
+    {
+      "id": "COMPLIANCE-KB-TRANSFORM",
+      "asset_type_id": "ASSET-007",
+      "name": "知识库转换验证",
+      "description": "Knowledge base must be transformed via LLM. When knowledge_base_transformed evidence is missing or Unverifiable, produce an AssetCompliance finding. Never infer weights from missing evidence.",
+      "evidence_field": "knowledge_base_transformed",
+      "required_status": "verified"
+    },
+    {
+      "id": "COMPLIANCE-MODEL-FINETUNE",
+      "asset_type_id": "ASSET-008",
+      "name": "模型微调验证",
+      "description": "Only fine-tuned models may be released. When model_finetuned evidence is missing or Unverifiable, produce an AssetCompliance finding. Never infer weights from missing evidence.",
+      "evidence_field": "model_finetuned",
+      "required_status": "verified"
+    }
+  ]
+}

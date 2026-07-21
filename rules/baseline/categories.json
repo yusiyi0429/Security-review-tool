@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "categories": [
+    {
+      "category_id": "SENS-001",
+      "name": "密钥和认证信息",
+      "description": "API Key、Access Token、Refresh Token、密码、Cookie、私钥、证书私钥、签名密钥、OAuth Secret、数据库口令、供应商认证参数",
+      "enabled": true
+    },
+    {
+      "category_id": "SENS-002",
+      "name": "银行内网和基础设施信息",
+      "description": "内网IP、内部域名、API URL、端口、服务发现名称、数据库地址、消息队列、缓存、对象存储、VPC、子网、云账号、集群名称",
+      "enabled": true
+    },
+    {
+      "category_id": "SENS-003",
+      "name": "真实或疑似真实个人信息",
+      "description": "姓名、手机号、身份证号、地址、客户号、设备号、IP、定位、联系人、聊天记录、用户画像",
+      "enabled": true
+    },
+    {
+      "category_id": "SENS-004",
+      "name": "账户与金融数据",
+      "description": "银行名称、银行客户名称、银行特性名称、银行卡号、账号、余额、交易金额、收款人、付款卡、交易流水、积分、资产、贷款、账单、风险等级",
+      "enabled": true
+    },
+    {
+      "category_id": "SENS-005",
+      "name": "生产日志和会话数据",
+      "description": "用户原始输入、模型对话历史、工具调用参数、Trace、请求体、响应体、调试Dump、特有的评测指标名称",
+      "enabled": true
+    },
+    {
+      "category_id": "SENS-006",
+      "name": "安全凭据关联信息",
+      "description": "认证元数据ID、服务密钥标识、签名参数、密钥版本、权限角色、服务账号",
+      "enabled": true
+    },
+    {
+      "category_id": "SENS-007",
+      "name": "风险与安全控制细节",
+      "description": "风控阈值、黑白名单、限额规则",
+      "enabled": true
+    },
+    {
+      "category_id": "SENS-008",
+      "name": "受第三方保密或许可限制的内容",
+      "description": "供应商私有文档、受限模型配置、商业授权代码、未获授权图标和数据集",
+      "enabled": true
+    }
+  ]
+}

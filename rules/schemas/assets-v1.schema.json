@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://security-review.local/schemas/assets-v1.schema.json",
+  "title": "Asset policy definitions, schema version 1",
+  "description": "Defines the eleven registered asset policies (ASSET-001 through ASSET-011). Each asset inherits all eight baseline categories and may add focus weights and compliance rules without suppressing any category.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "assets"],
+  "properties": {
+    "schema_version": {
+      "description": "Schema version; must be exactly 1.",
+      "const": 1
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["asset_type_id", "name", "description", "focus_weights", "compliance_rules"],
+        "properties": {
+          "asset_type_id": {
+            "description": "Registered asset type identifier, ASSET-001 through ASSET-011.",
+            "type": "string",
+            "pattern": "^ASSET-(00[1-9]|01[0-1])$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "focus_weights": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "SENS-001": { "type": "number", "minimum": 0 },
+              "SENS-002": { "type": "number", "minimum": 0 },
+              "SENS-003": { "type": "number", "minimum": 0 },
+              "SENS-004": { "type": "number", "minimum": 0 },
+              "SENS-005": { "type": "number", "minimum": 0 },
+              "SENS-006": { "type": "number", "minimum": 0 },
+              "SENS-007": { "type": "number", "minimum": 0 },
+              "SENS-008": { "type": "number", "minimum": 0 }
+            }
+          },
+          "compliance_rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "asset_type_id", "name", "description", "evidence_field", "required_status"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "asset_type_id": {
+                  "type": "string",
+                  "pattern": "^ASSET-(00[1-9]|01[0-1])$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                },
+                "evidence_field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "required_status": {
+                  "type": "string",
+                  "enum": ["verified", "declared_without_reference", "not_applicable", "unverifiable"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

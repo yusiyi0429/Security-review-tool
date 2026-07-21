@@ -1,5 +1,6 @@
 namespace SecurityReview.Domain.Assets;
 
+[System.Text.Json.Serialization.JsonConverter(typeof(SecurityReview.Domain.CategoryIdJsonConverter))]
 public readonly record struct CategoryId
 {
     private static readonly HashSet<string> Allowed =
