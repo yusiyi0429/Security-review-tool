@@ -105,7 +105,7 @@ pwsh ./build/test.ps1 -Lane Performance -RequirePerformanceHost
 ## Gate 8: Clean-VM Validation
 
 - [ ] **8.1** Windows 11 24H2 VM: full clean-VM script passes.
-- [ ] **8.2** Windows 10 Enterprise LTSC 2021 VM: full clean-VM script passes.
+- [ ] **8.2** Windows 11 x64 (supported builds only) VM: full clean-VM script passes.
 - [ ] **8.3** Long/spaced/Chinese extraction path tested on at least one VM.
 - [ ] **8.4** Defender and SmartScreen ON during validation.
 - [ ] **8.5** No admin prompt, service, or scheduled task.
@@ -162,7 +162,7 @@ These conditions block the release unless an approved exception is documented:
 | Performance P50/P95 exceed baseline | Product Owner approval with documented rationale |
 | Semantic recall < 95% (but not catastrophic) | REQ-level scope change |
 | False-positive rate > defined threshold | Product Owner acceptance |
-| Windows 10 LTSC behavior differs from Windows 11 | Security Owner assessment of fail-closed behavior |
+| Windows 11 x64 (supported builds only) behavior differs from baseline | Security Owner assessment of fail-closed behavior |
 | Documentation gap found by pilot | Resolution before sign-off |
 
 ## Release Sign-Off

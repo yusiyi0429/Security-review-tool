@@ -96,7 +96,7 @@ $profileName = "Company.SecurityReviewTool.Parser.V1"
 $profile = Get-AppxPackage -Name "*" 2>$null  # AppContainer is not an AppX package
 ```
 
-> **Note:** As of Windows 11 and Windows 10 LTSC 2021, there is no
+> **Note:** As of Windows 11 x64 (supported builds only), there is no
 > single-command PowerShell cmdlet to delete an arbitrary AppContainer
 > profile. The OS **asynchronously reclaims** unused profiles. If the above
 > steps are completed (application directory deleted, LocalAppData cleared),

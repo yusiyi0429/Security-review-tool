@@ -101,12 +101,12 @@
 | OS | Build | Result | Evidence Path |
 |----|-------|--------|---------------|
 | Windows 11 24H2 x64 | `[MEASURE]` | `[PASS/FAIL]` | `artifacts/clean-vm/win11-24h2/clean-vm-evidence.json` |
-| Windows 10 Enterprise LTSC 2021 x64 | `[MEASURE]` | `[PASS/FAIL]` | `artifacts/clean-vm/win10-ltsc-2021/clean-vm-evidence.json` |
+| Windows 11 x64 (supported builds only) | `[MEASURE]` | `[PASS/FAIL]` | `artifacts/clean-vm/win11-supported/clean-vm-evidence.json` |
 | *(additional fleet builds)* | `[MEASURE]` | `[PASS/FAIL]` | `[path]` |
 
 ### Clean-VM Checklist (per OS)
 
-| Check | Win11 24H2 | Win10 LTSC 2021 |
+| Check | Win11 24H2 | Win11 Supported |
 |-------|-----------|-----------------|
 | ZIP SHA-256 verified | `[✓/✗]` | `[✓/✗]` |
 | Extraction to long/spaced/Chinese path | `[✓/✗]` | `[✓/✗]` |
@@ -277,7 +277,7 @@ and are accepted for v1.0.0:
 7. **XLSX row limit**: 1,048,575 data rows (split across sheets).
 8. **Model metadata only**: no tensor-scanning for secrets.
 9. **Single-user only**: no concurrent scans; no local RBAC.
-10. **Windows x64 only**: Windows 11 24H2 and Windows 10 Enterprise/IoT LTSC 2021.
+10. **Windows x64 only**: Windows 11 24H2 and Windows 11 x64 (supported builds only).
 
 ---
 

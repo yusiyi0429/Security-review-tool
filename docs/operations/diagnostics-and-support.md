@@ -76,7 +76,7 @@ error message. There is no "continue anyway" path.
 | `baseline_inactive` | The baseline rule pack is missing or corrupted. | Re-extract the original ZIP; do not modify `Assets/rules/`. |
 | `app_data_not_writable` | Cannot write to `%LOCALAPPDATA%\SecurityReviewTool\`. | Check disk space and permissions. |
 | `database_unhealthy` | The history database cannot be opened or decrypted. | Delete `data/history.db` (this clears history). |
-| `sandbox_unavailable` | Worker sandbox cannot be created on this OS. | Verify the OS is Windows 11 or Windows 10 LTSC 2021. |
+| `sandbox_unavailable` | Worker sandbox cannot be created on this OS. | Verify the OS is Windows 11 x64 (supported builds only). |
 | `trusted_signers_invalid` | `trusted-signers.json` is missing or malformed. | Re-extract the original ZIP. |
 
 ## Collecting Diagnostics for Support
@@ -122,12 +122,12 @@ allowlist should be escalated to the development team.
 
 ## Common Issues
 
-### "Parser sandbox unavailable" on Windows 10
+### "Parser sandbox unavailable"
 
-Windows 10 build must be Enterprise or IoT LTSC 2021 (21H2) or later. Windows
-10 Pro/Home and earlier LTSC editions are not in the .NET 10 support matrix
-and may not support AppContainer with the required isolation properties. If
-the preflight check fails, the OS is not supported for this release.
+The tool requires Windows 11 x64 (supported builds only). Other Windows
+editions are not in the .NET 10 support matrix and may not support
+AppContainer with the required isolation properties. If the preflight check
+fails, the OS is not supported for this release.
 
 ### Windows Defender or SmartScreen warning
 

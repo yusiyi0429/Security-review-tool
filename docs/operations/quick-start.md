@@ -5,7 +5,7 @@ and running SecurityReviewTool for the first time.
 
 ## Prerequisites
 
-- **Windows 11 x64** or **Windows 10 Enterprise/IoT LTSC 2021 (21H2) x64**.
+- **Windows 11 x64 (supported builds only)**.
 - No .NET runtime, Docker, Java, Python, or Office installation required.
 - The tool runs as the current user — **no administrator rights needed**.
 - An intranet LLM endpoint (OpenAI-compatible) if you plan to use semantic review.

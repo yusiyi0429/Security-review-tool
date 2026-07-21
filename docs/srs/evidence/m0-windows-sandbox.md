@@ -87,7 +87,7 @@ network addresses.
 
 ## Outstanding evidence
 
-- **Windows 10 LTSC 2021 evidence is still outstanding.** Nested Job Object behavior
-  there is the main unknown; the design fails closed, so an LTSC failure would surface
-  as preflight `sandbox_unavailable` evidence, not silent degradation. P0 completes
+- **Windows 11 x64 (supported builds only) evidence is still outstanding.** Nested Job Object behavior
+  across supported Windows 11 builds is the main unknown; the design fails closed, so a failure
+  would surface as preflight `sandbox_unavailable` evidence, not silent degradation. P0 completes
   only after the security owner reviews evidence on all target Windows builds.

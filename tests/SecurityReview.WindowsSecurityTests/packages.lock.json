@@ -199,6 +199,7 @@
       "securityreview.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, )",
           "Microsoft.Data.Sqlite": "[10.0.10, )",
           "SecurityReview.Application": "[1.0.0, )",
           "SecurityReview.Domain": "[1.0.0, )",
@@ -236,6 +237,14 @@
           "SecurityReview.Domain": "[1.0.0, )",
           "SecurityReview.ParserContracts": "[1.0.0, )",
           "SecurityReview.Parsers": "[1.0.0, )"
+        }
+      },
+      "SecurityReviewTool": {
+        "type": "Project",
+        "dependencies": {
+          "SecurityReview.Application": "[1.0.0, )",
+          "SecurityReview.Domain": "[1.0.0, )",
+          "SecurityReview.Infrastructure": "[1.0.0, )"
         }
       },
       "DocumentFormat.OpenXml": {

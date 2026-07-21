@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\SecurityReview.RulePack\SecurityReview.RulePack.csproj" />
     <ProjectReference Include="..\..\src\SecurityReview.Infrastructure\SecurityReview.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\SecurityReview.Worker\SecurityReview.Worker.csproj" />
+    <ProjectReference Include="..\..\src\SecurityReview.Desktop\SecurityReview.Desktop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

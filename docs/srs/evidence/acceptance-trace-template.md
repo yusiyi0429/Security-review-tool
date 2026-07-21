@@ -297,7 +297,7 @@ The Security Review Tool is designed as a **Windows-native** application. Its se
 | Platform | Scenarios Run | Expected Passes | Notes |
 | --- | --- | --- | --- |
 | **Windows 11 x64** | All 35 | 35 | Full gate |
-| **Windows 10 Enterprise/IoT LTSC** | All 35 | 35 (subject to .NET 10 support matrix) | Requires supported edition |
+| **Windows 11 x64 (supported builds only)** | All 35 | 35 | — |
 | **Linux (WSL2/dev)** | 25 cross-platform | 25 | Windows-only scenarios auto-skip |
 | **macOS** | 25 cross-platform | 25 | Windows-only scenarios auto-skip |
 
