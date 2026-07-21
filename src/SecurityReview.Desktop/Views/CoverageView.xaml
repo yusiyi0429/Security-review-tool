@@ -1,0 +1,159 @@
+<UserControl x:Class="SecurityReview.Desktop.Views.CoverageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:CoverageViewModel}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header: Coverage Conclusion -->
+        <Border Grid.Row="0" Padding="12" CornerRadius="6" Margin="0,0,0,12">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#E8F0FE"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsComplete}" Value="True">
+                            <Setter Property="Background" Value="#D4EDDA"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel>
+                <TextBlock FontSize="18" FontWeight="Bold">
+                    <Run Text="覆盖结论 · "/>
+                    <Run Text="{Binding ScanStatusDisplay}"/>
+                </TextBlock>
+                <TextBlock Text="{Binding ConclusionHeader}" FontSize="16"
+                           Margin="0,6,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding TotalGaps, StringFormat='覆盖缺口: {0}'}"
+                           FontSize="13" Foreground="Gray" Margin="0,4,0,0"/>
+                <TextBlock Text="{Binding TotalFiles, StringFormat='文件总数: {0}'}"
+                           FontSize="13" Foreground="Gray" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Tab-like grouping: Gaps / Files -->
+        <TabControl Grid.Row="1" Margin="0,0,0,8">
+            <TabItem Header="覆盖缺口">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal"
+                                HorizontalAlignment="Center" Margin="0,0,0,8">
+                        <Button Content="上一页" Command="{Binding PreviousGapPageCommand}"
+                                IsEnabled="{Binding HasPreviousGapPage}"
+                                Padding="6,3" Margin="0,0,6,0"/>
+                        <TextBlock VerticalAlignment="Center" Margin="4,0">
+                            <Run Text="第 "/>
+                            <Run Text="{Binding CurrentGapPage}"/>
+                            <Run Text=" 页 · 共 "/>
+                            <Run Text="{Binding TotalGapPages}"/>
+                            <Run Text=" 页"/>
+                        </TextBlock>
+                        <Button Content="下一页" Command="{Binding NextGapPageCommand}"
+                                IsEnabled="{Binding HasNextGapPage}"
+                                Padding="6,3" Margin="6,0,0,0"/>
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Gaps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="LightGray" BorderThickness="1"
+                                            Padding="10,6" Margin="0,0,0,4" CornerRadius="4">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                                <TextBlock FontWeight="SemiBold"
+                                                           Text="{Binding ReasonDisplay}"/>
+                                                <TextBlock Text=" · " Foreground="Gray"/>
+                                                <TextBlock Text="{Binding StageDisplay}"
+                                                           Foreground="Gray"/>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Row="1"
+                                                       Text="{Binding DetailCode}"
+                                                       FontFamily="Consolas" FontSize="11"
+                                                       Foreground="DarkGray"
+                                                       Margin="0,2,0,0"/>
+
+                                            <TextBlock Grid.Row="2"
+                                                       Text="{Binding HelpText}"
+                                                       FontSize="11" Foreground="Gray"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,4,0,0"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="文件列表">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal"
+                                HorizontalAlignment="Center" Margin="0,0,0,8">
+                        <Button Content="上一页" Command="{Binding PreviousFilePageCommand}"
+                                IsEnabled="{Binding HasPreviousFilePage}"
+                                Padding="6,3" Margin="0,0,6,0"/>
+                        <TextBlock VerticalAlignment="Center" Margin="4,0">
+                            <Run Text="第 "/>
+                            <Run Text="{Binding CurrentFilePage}"/>
+                            <Run Text=" 页 · 共 "/>
+                            <Run Text="{Binding TotalFilePages}"/>
+                            <Run Text=" 页"/>
+                        </TextBlock>
+                        <Button Content="下一页" Command="{Binding NextFilePageCommand}"
+                                IsEnabled="{Binding HasNextFilePage}"
+                                Padding="6,3" Margin="6,0,0,0"/>
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Files}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="LightGray" BorderThickness="1"
+                                            Padding="8,4" Margin="0,0,0,3" CornerRadius="3">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding RedactedPath}"
+                                                       FontFamily="Consolas" FontSize="12"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock FontSize="11" Foreground="Gray"
+                                                       TextTrimming="CharacterEllipsis">
+                                                <Run Text="状态: "/>
+                                                <Run Text="{Binding ReasonDisplay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>
