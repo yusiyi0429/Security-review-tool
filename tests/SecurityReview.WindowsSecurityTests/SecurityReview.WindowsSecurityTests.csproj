@@ -28,4 +28,8 @@
     <ProjectReference Include="..\..\src\SecurityReview.Worker\SecurityReview.Worker.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="../Corpus/**/*" CopyToOutputDirectory="PreserveNewest" LinkBase="Corpus\" />
+  </ItemGroup>
+
 </Project>
