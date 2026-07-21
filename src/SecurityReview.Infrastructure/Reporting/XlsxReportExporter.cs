@@ -4,6 +4,7 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using SecurityReview.Application.Diagnostics;
 using SecurityReview.Application.Reporting;
 using SecurityReview.Domain;
 
@@ -17,6 +18,13 @@ namespace SecurityReview.Infrastructure.Reporting;
 /// </summary>
 public sealed class XlsxReportExporter : IXlsxReportExporter
 {
+    private readonly IDiagnosticSink _diagnostics;
+
+    public XlsxReportExporter(IDiagnosticSink? diagnostics = null)
+    {
+        _diagnostics = diagnostics ?? new NullDiagnosticSink();
+    }
+
     public async Task<ReportExportResult> ExportAsync(
         ExportXlsxCommand command,
         IReportDataReader reader,
@@ -67,6 +75,17 @@ public sealed class XlsxReportExporter : IXlsxReportExporter
             $".{GenerateRandomHex(128)}.tmp");
 
         int escapedCellCount = 0;
+
+        _diagnostics.Publish(new DiagnosticEvent(
+            DiagnosticCode.ExportStarted, DateTimeOffset.UtcNow,
+            command.ScanId, null,
+            new DiagnosticFields
+            {
+                Stage = "report.export",
+                ReasonCode = "started",
+                Module = "Infrastructure.Reporting",
+                Method = "ExportAsync",
+            }));
 
         try
         {
@@ -140,6 +159,17 @@ public sealed class XlsxReportExporter : IXlsxReportExporter
             // --- 8. Audit record ---
             long nowUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             AuditExport(command.ScanId, sha256, nowUnix, rowCounts);
+
+            _diagnostics.Publish(new DiagnosticEvent(
+                DiagnosticCode.ExportCompleted, DateTimeOffset.UtcNow,
+                command.ScanId, null,
+                new DiagnosticFields
+                {
+                    Stage = "report.export",
+                    ReasonCode = "exported",
+                    Module = "Infrastructure.Reporting",
+                    Method = "ExportAsync",
+                }));
 
             return new ReportExportResult(
                 command.ScanId, "exported", sha256, nowUnix, rowCounts);

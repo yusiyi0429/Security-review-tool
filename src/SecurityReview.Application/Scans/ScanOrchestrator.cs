@@ -98,6 +98,17 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         ScanOutcome? outcome = null;
         Exception? failure = null;
 
+        _diagnosticSink.Publish(new DiagnosticEvent(
+            DiagnosticCode.ScanStarted, _clock(),
+            scanId, null,
+            new DiagnosticFields
+            {
+                Stage = "scan.pipeline",
+                ReasonCode = "start",
+                Module = "Application.Scans",
+                Method = "RunAsync",
+            }));
+
         try
         {
             outcome = await RunPipelineAsync(scanId, snapshot, progress, cancellationToken)
@@ -105,6 +116,17 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         }
         catch (OperationCanceledException)
         {
+            _diagnosticSink.Publish(new DiagnosticEvent(
+                DiagnosticCode.ScanCancelled, _clock(),
+                scanId, "scan_cancelled",
+                new DiagnosticFields
+                {
+                    Stage = "scan.pipeline",
+                    ReasonCode = "cancelled",
+                    Module = "Application.Scans",
+                    Method = "RunAsync",
+                }));
+
             progress.Add(ScanProgress.Empty with { Stage = ScanStage.Cancelled });
             outcome = new ScanOutcome(scanId, ScanStatus.Cancelled,
                 FindingCount: 0,
@@ -114,6 +136,17 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         }
         catch (Exception)
         {
+            _diagnosticSink.Publish(new DiagnosticEvent(
+                DiagnosticCode.ScanFailed, _clock(),
+                scanId, "scan_failed",
+                new DiagnosticFields
+                {
+                    Stage = "scan.pipeline",
+                    ReasonCode = "exception",
+                    Module = "Application.Scans",
+                    Method = "RunAsync",
+                }));
+
             progress.Add(ScanProgress.Empty with { Stage = ScanStage.Failed });
             outcome = new ScanOutcome(scanId, ScanStatus.Failed,
                 FindingCount: 0,
@@ -130,10 +163,16 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
         if (failure is not null)
         {
-            // Surface a stable diagnostic event without leaking the original exception.
             _diagnosticSink.Publish(new DiagnosticEvent(
-                DiagnosticCode.LlmConnectionTestFailed, _clock(),
-                scanId, "scan_failed", new DiagnosticFields()));
+                DiagnosticCode.ScanFailed, _clock(),
+                scanId, "scan_failed",
+                new DiagnosticFields
+                {
+                    Stage = "scan.pipeline",
+                    ReasonCode = "pipeline_failed",
+                    Module = "Application.Scans",
+                    Method = "RunAsync",
+                }));
         }
 
         foreach (ScanProgress p in progress)
@@ -176,9 +215,31 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
         if (!preflight.CanStart)
         {
+            _diagnosticSink.Publish(new DiagnosticEvent(
+                DiagnosticCode.ScanPreflightFailed, _clock(),
+                scanId, null,
+                new DiagnosticFields
+                {
+                    Stage = "scan.preflight",
+                    ReasonCode = "preflight_failed",
+                    Module = "Application.Scans",
+                    Method = "RunPipelineAsync",
+                }));
+
             progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Failed });
             return FinaliseFailed(scanId, "preflight_failed", progressList, 0, 0, 0);
         }
+
+        _diagnosticSink.Publish(new DiagnosticEvent(
+            DiagnosticCode.ScanPreflightPassed, _clock(),
+            scanId, null,
+            new DiagnosticFields
+            {
+                Stage = "scan.preflight",
+                ReasonCode = "preflight_passed",
+                Module = "Application.Scans",
+                Method = "RunPipelineAsync",
+            }));
 
         // ---- Step: Read manifest ----
         ManifestReadResult manifestResult = await _manifestReader
@@ -202,10 +263,33 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
         if (inventory.Outcome != InventoryOutcome.Completed)
         {
+            _diagnosticSink.Publish(new DiagnosticEvent(
+                DiagnosticCode.ScanInventoryEmpty, _clock(),
+                scanId, null,
+                new DiagnosticFields
+                {
+                    Stage = "scan.inventory",
+                    ReasonCode = inventory.FailureCode ?? "inventory_failed",
+                    Module = "Application.Scans",
+                    Method = "RunPipelineAsync",
+                }));
+
             progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Failed });
             return FinaliseFailed(scanId, inventory.FailureCode ?? "inventory_failed",
                 progressList, 0, 0, 0);
         }
+
+        _diagnosticSink.Publish(new DiagnosticEvent(
+            DiagnosticCode.ScanInventoryCompleted, _clock(),
+            scanId, null,
+            new DiagnosticFields
+            {
+                Stage = "scan.inventory",
+                ReasonCode = "inventory_completed",
+                Count = inventory.Files.Count,
+                Module = "Application.Scans",
+                Method = "RunPipelineAsync",
+            }));
 
         var ledger = new InMemoryCoverageLedger(scanId);
         foreach (FileRecord file in inventory.Files)
@@ -223,6 +307,18 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         }
 
         // ---- Step: Parse and detect ----
+        _diagnosticSink.Publish(new DiagnosticEvent(
+            DiagnosticCode.ScanParseDetectStarted, _clock(),
+            scanId, null,
+            new DiagnosticFields
+            {
+                Stage = "scan.parse_detect",
+                ReasonCode = "started",
+                Count = inventory.Files.Count,
+                Module = "Application.Scans",
+                Method = "RunPipelineAsync",
+            }));
+
         progressList.Add(new ScanProgress(ScanStage.Running,
             DiscoveredFiles: inventory.Files.Count,
             ProcessedFiles: 0, FailedFiles: 0,
@@ -382,6 +478,18 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         }
 
         // ---- Step: Drain semantic queue ----
+        _diagnosticSink.Publish(new DiagnosticEvent(
+            DiagnosticCode.ScanSemanticQueueStarted, _clock(),
+            scanId, null,
+            new DiagnosticFields
+            {
+                Stage = "scan.semantic_queue",
+                ReasonCode = "started",
+                Count = _semanticQueue.PendingCount,
+                Module = "Application.Scans",
+                Method = "RunPipelineAsync",
+            }));
+
         if (!cancellationToken.IsCancellationRequested)
         {
             _semanticQueue.CompleteAdding();
@@ -402,6 +510,18 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         // ---- Step: Final reconciliation ----
         progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Reconciling });
         CoverageSummary summary = ledger.Reconcile();
+
+        _diagnosticSink.Publish(new DiagnosticEvent(
+            DiagnosticCode.ScanReconciliationCompleted, _clock(),
+            scanId, null,
+            new DiagnosticFields
+            {
+                Stage = "scan.reconciliation",
+                ReasonCode = "completed",
+                Count = summary.Gaps.Count,
+                Module = "Application.Scans",
+                Method = "RunPipelineAsync",
+            }));
 
         ScanStatus finalStatus = summary.FinalScanStatus(
             unresolvedSemanticCandidates: llmUnresolvedCount);
@@ -424,6 +544,19 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             LlmQueueCount: 0,
             ActiveWorkerCount: 0,
             CurrentFileOrdinal: inventory.Files.Count - pendingFileIds.Count));
+
+        _diagnosticSink.Publish(new DiagnosticEvent(
+            finalStatus == ScanStatus.Completed ? DiagnosticCode.ScanCompleted : DiagnosticCode.ScanFailed,
+            _clock(),
+            scanId, null,
+            new DiagnosticFields
+            {
+                Stage = finalStatus == ScanStatus.Completed ? "scan.completed" : "scan.partial",
+                ReasonCode = finalStatus == ScanStatus.Completed ? "completed" : "partial",
+                Count = findingCount,
+                Module = "Application.Scans",
+                Method = "RunPipelineAsync",
+            }));
 
         return new ScanOutcome(scanId, finalStatus,
             FindingCount: findingCount,

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Win32.SafeHandles;
 using SecurityReview.Application.Abstractions;
+using SecurityReview.Application.Diagnostics;
 using SecurityReview.Infrastructure.Windows.Native;
 using SecurityReview.ParserContracts.Protocol;
 
@@ -19,13 +20,16 @@ public sealed class AppContainerWorkerLauncher : IWorkerLauncher, IWorkerLaunchP
 
     private readonly SandboxLaunchOptions _options;
     private readonly IFileHandleBroker _handleBroker;
+    private readonly IDiagnosticSink _diagnostics;
     private PreparedWorker? _prepared;
 
     public AppContainerWorkerLauncher(SandboxLaunchOptions? options = null,
-        IFileHandleBroker? handleBroker = null)
+        IFileHandleBroker? handleBroker = null,
+        IDiagnosticSink? diagnostics = null)
     {
         _options = options ?? new SandboxLaunchOptions();
         _handleBroker = handleBroker ?? new WindowsFileHandleBroker();
+        _diagnostics = diagnostics ?? new NullDiagnosticSink();
     }
 
     // Verifies the staged worker manifest (SHA-256) and only then grants the
@@ -113,6 +117,18 @@ public sealed class AppContainerWorkerLauncher : IWorkerLauncher, IWorkerLaunchP
         }
         catch
         {
+            _diagnostics.Publish(new DiagnosticEvent(
+                DiagnosticCode.SandboxWorkerFailed,
+                DateTimeOffset.UtcNow, request.ScanId, null,
+                new DiagnosticFields
+                {
+                    Stage = "sandbox.launch",
+                    ReasonCode = "worker_launch_failed",
+                    Module = "Infrastructure.Windows.Sandbox",
+                    Method = "LaunchAsync",
+                    WorkerBuildHash = prepared.WorkerBuildSha256[..16],
+                }));
+
             TerminateJobQuietly(request.WorkerJobHandle);
             // Job termination cannot reap a process whose assignment failed;
             // fail-closed means no suspended or running worker is left behind.

@@ -103,6 +103,19 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
 
         if (!_circuitBreaker.TryEnter())
         {
+            _diagnostics.Publish(new Application.Diagnostics.DiagnosticEvent(
+                Application.Diagnostics.DiagnosticCode.LlmReviewCircuitOpen,
+                DateTimeOffset.UtcNow, null, null,
+                new Application.Diagnostics.DiagnosticFields
+                {
+                    Stage = "llm.review",
+                    ReasonCode = "circuit_open",
+                    Module = "Infrastructure.Llm",
+                    Method = "ReviewAsync",
+                    EndpointFingerprint = _endpointFingerprint,
+                    ModelFingerprint = _modelFingerprint,
+                }));
+
             LlmReviewResult blocked = BlockedByCircuitResult(request.CandidateId);
             await PersistFinalAsync(persistedReview, blocked, cancellationToken).ConfigureAwait(false);
             return blocked;
@@ -131,6 +144,19 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
         }
         catch (LlmSchemaException ex)
         {
+            _diagnostics.Publish(new Application.Diagnostics.DiagnosticEvent(
+                Application.Diagnostics.DiagnosticCode.LlmReviewSchemaException,
+                DateTimeOffset.UtcNow, null, null,
+                new Application.Diagnostics.DiagnosticFields
+                {
+                    Stage = "llm.review",
+                    ReasonCode = "schema_exception",
+                    Module = "Infrastructure.Llm",
+                    Method = "ReviewAsync",
+                    EndpointFingerprint = _endpointFingerprint,
+                    ModelFingerprint = _modelFingerprint,
+                }));
+
             _circuitBreaker.RecordClientOrSchemaFailure();
             parsed = UnresolvedResult(request.CandidateId, ex.Message);
         }
@@ -194,6 +220,24 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
             Duration = duration,
             Attempts = retryResult.Attempts,
         };
+
+        _diagnostics.Publish(new Application.Diagnostics.DiagnosticEvent(
+            parsed.Classification is SemanticClassification.Unresolved
+                ? Application.Diagnostics.DiagnosticCode.LlmReviewFailed
+                : Application.Diagnostics.DiagnosticCode.LlmReviewSucceeded,
+            DateTimeOffset.UtcNow, null, null,
+            new Application.Diagnostics.DiagnosticFields
+            {
+                Stage = "llm.review",
+                ReasonCode = parsed.ReasonCode ?? (parsed.Classification == SemanticClassification.Unresolved ? "unresolved" : "success"),
+                Count = retryResult.Attempts,
+                DurationMs = (long)duration.TotalMilliseconds,
+                Module = "Infrastructure.Llm",
+                Method = "ReviewAsync",
+                EndpointFingerprint = _endpointFingerprint,
+                ModelFingerprint = _modelFingerprint,
+            }));
+
         await PersistFinalAsync(finalPersisted, parsed, cancellationToken).ConfigureAwait(false);
 
         return parsed;

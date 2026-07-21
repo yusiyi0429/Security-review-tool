@@ -56,4 +56,25 @@ public sealed record DiagnosticFields
 
     /// <summary>Prompt template fingerprint (16-hex) — never the prompt text.</summary>
     public string? PromptFingerprint { get; init; }
+
+    /// <summary>OS version (e.g. "Windows 11.0.26100").</summary>
+    public string? OSVersion { get; init; }
+
+    /// <summary>Client application version string.</summary>
+    public string? AppVersion { get; init; }
+
+    /// <summary>Health check result — true when healthy.</summary>
+    public bool? IsHealthy { get; init; }
+
+    /// <summary>Stable detail code for health checks (e.g. "quick_check_ok").</summary>
+    public string? DetailCode { get; init; }
+
+    /// <summary>Worker build hash (SHA-256 hex) for sandbox health.</summary>
+    public string? WorkerBuildHash { get; init; }
+
+    /// <summary>Sandbox profile SID prefix for sandbox health.</summary>
+    public string? SandboxProfileSid { get; init; }
+
+    /// <summary>HRESULT or Win32 error code.</summary>
+    public int? ErrorCode { get; init; }
 }

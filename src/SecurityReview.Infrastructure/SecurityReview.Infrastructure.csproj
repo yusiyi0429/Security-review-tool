@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +21,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="SecurityReview.WindowsSecurityTests" />
     <InternalsVisibleTo Include="SecurityReview.IntegrationTests" />
+    <InternalsVisibleTo Include="SecurityReview.UnitTests" />
   </ItemGroup>
 
   <PropertyGroup>

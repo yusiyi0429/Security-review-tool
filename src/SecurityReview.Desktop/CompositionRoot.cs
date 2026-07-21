@@ -11,6 +11,7 @@ using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
 using SecurityReview.Domain.Llm;
 using SecurityReview.Infrastructure.Cryptography;
+using SecurityReview.Infrastructure.Diagnostics;
 using SecurityReview.Infrastructure.Llm;
 using SecurityReview.Infrastructure.Persistence;
 using SecurityReview.Infrastructure.Persistence.Repositories;
@@ -193,7 +194,7 @@ public sealed class CompositionRoot : IDisposable
                 string workerExe = _args.WorkerExecutableName ?? "SecurityReview.Worker.exe";
 
                 var launcher = new AppContainerWorkerLauncher(
-                    new SandboxLaunchOptions());
+                    new SandboxLaunchOptions(), diagnostics: TryGet<IDiagnosticSink>());
                 var selfTest = new WindowsSandboxSelfTest(
                     launcher, launcher,
                     new SandboxSelfTestEnvironment(staging, workerExe));
@@ -217,7 +218,8 @@ public sealed class CompositionRoot : IDisposable
         ISandboxSelfTest? sandbox = TryGet<ISandboxSelfTest>();
         if (cryptoOk)
         {
-            var diagSink = new NullDiagnosticSink();
+            var diagSink = new Infrastructure.Diagnostics.RedactedJsonlDiagnosticSink(
+                paths.Diagnostics, "diagnostics");
             Register<IDiagnosticSink>(diagSink);
             RegisterConcrete(diagSink);
 
