@@ -116,6 +116,8 @@ public sealed class RetentionServiceTests
         public Task UpdateAsync(ScanRun scan, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<IReadOnlyList<ScanRun>> ListByStatusAsync(IReadOnlyList<ScanStatus> statuses,
             CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ScanRun?> FindLatestPreviousAsync(string activeRulePackHash, string endpointFingerprint,
+            CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private sealed class StubMaintenanceService : IDatabaseMaintenanceService

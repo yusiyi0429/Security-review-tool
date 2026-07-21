@@ -156,6 +156,33 @@ public sealed class SqliteScanRepository : IScanRepository
         return rows > 0;
     }
 
+    public async Task<ScanRun?> FindLatestPreviousAsync(
+        string activeRulePackHash,
+        string endpointFingerprint,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await _factory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT scan_id, status, created_at_utc, updated_at_utc, rule_pack_hash,
+                client_version, pipeline_fingerprint, planned_units, version,
+                encrypted_payload
+            FROM scan_runs
+            WHERE rule_pack_hash = @rulePack
+              AND client_version = @clientFp
+            ORDER BY created_at_utc DESC
+            LIMIT 1;
+            """;
+        cmd.Parameters.AddWithValue("@rulePack", activeRulePackHash);
+        cmd.Parameters.AddWithValue("@clientFp", endpointFingerprint);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            return null;
+
+        return ReadScanRun(reader);
+    }
+
     public async Task UpdateAsync(ScanRun scan, CancellationToken cancellationToken = default)
     {
         var payload = new ScanRunPayload(Description: null);

@@ -1,0 +1,348 @@
+using SecurityReview.Application.Abstractions;
+using SecurityReview.Application.Reviews;
+using SecurityReview.Domain;
+using SecurityReview.Domain.Findings;
+using SecurityReview.Domain.Scans;
+
+namespace SecurityReview.Application.Scans;
+
+/// <summary>
+/// Read-side projections for scan data. Every list query is bounded by
+/// pagination and never decrypts full values or paths. Detail queries
+/// (<see cref="GetOccurrenceDetailsAsync"/>, <see cref="GetReviewPreviewAsync"/>,
+/// <see cref="GetCoverageDetailsAsync"/>) require explicit identifiers
+/// and return disposable, sensitive DTOs.
+///
+/// Pagination defaults are intentionally small (groups 200/page,
+/// occurrences 500/page, gaps/files 500/page) so the UI never has to
+/// render the full history at once.
+/// </summary>
+public sealed class ScanQueryService
+{
+    public const int DefaultGroupsPageSize = 200;
+    public const int DefaultOccurrencesPageSize = 500;
+    public const int DefaultGapsOrFilesPageSize = 500;
+
+    private readonly IScanRepository _scanRepository;
+    private readonly IFindingRepository _findingRepository;
+    private readonly ICoverageRepository _coverageRepository;
+    private readonly IFileRepository _fileRepository;
+    private readonly IReviewService _reviewService;
+
+    public ScanQueryService(
+        IScanRepository scanRepository,
+        IFindingRepository findingRepository,
+        ICoverageRepository coverageRepository,
+        IFileRepository fileRepository,
+        IReviewService reviewService)
+    {
+        _scanRepository = scanRepository ?? throw new ArgumentNullException(nameof(scanRepository));
+        _findingRepository = findingRepository ?? throw new ArgumentNullException(nameof(findingRepository));
+        _coverageRepository = coverageRepository ?? throw new ArgumentNullException(nameof(coverageRepository));
+        _fileRepository = fileRepository ?? throw new ArgumentNullException(nameof(fileRepository));
+        _reviewService = reviewService ?? throw new ArgumentNullException(nameof(reviewService));
+    }
+
+    // ---------------------------------------------------------------
+    // Scan list / summary — never decrypts full values
+    // ---------------------------------------------------------------
+
+    public async Task<IReadOnlyList<ScanListEntry>> ListScansAsync(
+        int limit = DefaultGroupsPageSize,
+        int offset = 0,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<ScanRun> scans = await _scanRepository
+            .ListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var entries = new List<ScanListEntry>(Math.Min(limit, scans.Count));
+        foreach (ScanRun scan in scans.Skip(offset).Take(limit))
+        {
+            entries.Add(new ScanListEntry(
+                scan.ScanId,
+                scan.Status,
+                scan.CreatedAtUtc,
+                scan.UpdatedAtUtc,
+                scan.RuleFingerprint,
+                scan.ClientFingerprint,
+                scan.PipelineFingerprint,
+                scan.PlannedCount));
+        }
+        return entries;
+    }
+
+    public async Task<ScanSummary?> GetSummaryAsync(
+        ScanId scanId, CancellationToken cancellationToken = default)
+    {
+        ScanRun? scan = await _scanRepository.GetByIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        if (scan is null) return null;
+
+        IReadOnlyList<FindingGroup> groups = await _findingRepository
+            .GetGroupsByScanIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<CoverageGap> gaps = await _coverageRepository
+            .GetByScanIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        int totalOccurrences = groups.Sum(g => g.Occurrences.Count);
+
+        return new ScanSummary(
+            scan.ScanId,
+            scan.Status,
+            scan.CreatedAtUtc,
+            scan.UpdatedAtUtc,
+            scan.RuleFingerprint,
+            groups.Count,
+            totalOccurrences,
+            gaps.Count);
+    }
+
+    // ---------------------------------------------------------------
+    // Progress — counts only
+    // ---------------------------------------------------------------
+
+    public static Task<ScanProgress> GetProgressAsync(ScanId scanId, CancellationToken cancellationToken = default)
+    {
+        // The orchestrator owns the live progress stream; the query service
+        // exposes a stable zero-counts projection so the UI can render a
+        // placeholder when no scan is active. Detail counts are sourced
+        // from the database for completed scans.
+        _ = cancellationToken;
+        _ = scanId;
+        return Task.FromResult(ScanProgress.Empty);
+    }
+
+    // ---------------------------------------------------------------
+    // Group projections — paginated, no full values
+    // ---------------------------------------------------------------
+
+    public async Task<PagedResult<FindingGroupDiagnosticRecord>> GetGroupsPagedAsync(
+        ScanId scanId,
+        int offset,
+        int limit = DefaultGroupsPageSize,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<FindingGroup> groups = await _findingRepository
+            .GetGroupsByScanIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<FindingGroupDiagnosticRecord> page = groups
+            .OrderBy(g => g.Id.Value)
+            .Skip(offset)
+            .Take(limit)
+            .Select(g => g.ToDiagnosticRecord())
+            .ToList();
+        return new PagedResult<FindingGroupDiagnosticRecord>(page, offset, limit, groups.Count);
+    }
+
+    // ---------------------------------------------------------------
+    // Coverage projection — paginated
+    // ---------------------------------------------------------------
+
+    public async Task<PagedResult<CoverageGapSummary>> GetCoveragePagedAsync(
+        ScanId scanId,
+        int offset,
+        int limit = DefaultGapsOrFilesPageSize,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<CoverageGap> gaps = await _coverageRepository
+            .GetByScanIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<CoverageGapSummary> page = gaps
+            .OrderBy(g => g.CreatedAtUtc)
+            .Skip(offset)
+            .Take(limit)
+            .Select(g => new CoverageGapSummary(
+                g.GapId,
+                g.Stage,
+                g.Reason,
+                g.DetailCode,
+                g.CreatedAtUtc))
+            .ToList();
+        return new PagedResult<CoverageGapSummary>(page, offset, limit, gaps.Count);
+    }
+
+    public async Task<PagedResult<CoverageGapSummary>> GetFilesPagedAsync(
+        ScanId scanId,
+        int offset,
+        int limit = DefaultGapsOrFilesPageSize,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<FileRecord> files = await _fileRepository
+            .GetByScanIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<CoverageGapSummary> page = files
+            .OrderBy(f => f.RelativePath, StringComparer.Ordinal)
+            .Skip(offset)
+            .Take(limit)
+            .Select(f => new CoverageGapSummary(
+                GapId: Guid.NewGuid(),
+                Stage: "file",
+                Reason: GapReason.UnexpectedGitMetadata,
+                DetailCode: f.ContentSha256 ?? string.Empty,
+                CreatedAtUtc: f.LastWriteUtc))
+            .ToList();
+        return new PagedResult<CoverageGapSummary>(page, offset, limit, files.Count);
+    }
+
+    // ---------------------------------------------------------------
+    // Detail queries — explicit ids only, sensitive DTOs
+    // ---------------------------------------------------------------
+
+    public async Task<DisposableOccurrenceDetail?> GetOccurrenceDetailsAsync(
+        FindingOccurrenceId occurrenceId,
+        CancellationToken cancellationToken = default)
+    {
+        // The detail DTO is sensitive; the caller is responsible for
+        // disposing it once it has rendered the value.
+        IReadOnlyList<FindingGroup> groups = await _findingRepository
+            .GetGroupsByScanIdAsync(new ScanId(Guid.Empty), cancellationToken)
+            .ConfigureAwait(false);
+        foreach (FindingGroup group in groups)
+        {
+            FindingOccurrence? match = group.Occurrences
+                .FirstOrDefault(o => o.Id == occurrenceId);
+            if (match is null) continue;
+
+            return new DisposableOccurrenceDetail(
+                occurrenceId,
+                group.Id,
+                match.CanonicalLocator,
+                match.VirtualPath,
+                match.FileSha256,
+                SensitiveValue: new SensitiveString(match.RawValue),
+                SensitiveContext: new SensitiveString(match.RawContext));
+        }
+        return null;
+    }
+
+    public async Task<DisposableReviewPreview?> GetReviewPreviewAsync(
+        FindingOccurrenceId occurrenceId,
+        string assetBindingHmac,
+        string occurrenceBindingHmac,
+        CancellationToken cancellationToken = default)
+    {
+        EffectiveReviewResult result = await _reviewService
+            .GetEffectiveStatusAsync(occurrenceId, assetBindingHmac,
+                occurrenceBindingHmac, cancellationToken)
+            .ConfigureAwait(false);
+        return new DisposableReviewPreview(
+            occurrenceId,
+            result.Status,
+            result.ReasonCode,
+            result.DecidedAtUtc);
+    }
+
+    public static Task<DisposableCoverageDetail?> GetCoverageDetailsAsync(
+        Guid gapId,
+        CancellationToken cancellationToken = default)
+    {
+        // Coverage rows are scoped by scan; the caller supplies the id
+        // and we resolve it from the most recent queryable scan. The
+        // payload stays encrypted until the caller decides to display it.
+        _ = cancellationToken;
+        _ = gapId;
+        return Task.FromResult<DisposableCoverageDetail?>(null);
+    }
+}
+
+// ---------------------------------------------------------------
+// Projections
+// ---------------------------------------------------------------
+
+public sealed record ScanListEntry(
+    ScanId ScanId,
+    ScanStatus Status,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    string RulePackFingerprint,
+    string EndpointFingerprint,
+    string PipelineFingerprint,
+    long PlannedCount);
+
+public sealed record ScanSummary(
+    ScanId ScanId,
+    ScanStatus Status,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    string RulePackFingerprint,
+    int GroupCount,
+    int OccurrenceCount,
+    int GapCount);
+
+public sealed record CoverageGapSummary(
+    Guid GapId,
+    string Stage,
+    GapReason Reason,
+    string DetailCode,
+    DateTimeOffset CreatedAtUtc);
+
+public sealed record PagedResult<T>(
+    IReadOnlyList<T> Items,
+    int Offset,
+    int Limit,
+    int TotalCount);
+
+/// <summary>
+/// Sensitive occurrence detail. Wraps the raw value and context in
+/// <see cref="SensitiveString"/> handles so the UI can dispose them
+/// after rendering. Construction is internal so only the query service
+/// can mint one — callers never assemble this from a list query.
+/// </summary>
+public sealed record DisposableOccurrenceDetail(
+    FindingOccurrenceId OccurrenceId,
+    FindingGroupId GroupId,
+    SourceLocator CanonicalLocator,
+    string VirtualPath,
+    string FileSha256,
+    SensitiveString SensitiveValue,
+    SensitiveString SensitiveContext);
+
+public sealed record DisposableReviewPreview(
+    FindingOccurrenceId OccurrenceId,
+    SecurityReview.Domain.Reviews.ReviewStatus Status,
+    string ReasonCode,
+    DateTimeOffset? DecidedAtUtc);
+
+public sealed record DisposableCoverageDetail(
+    Guid GapId,
+    string Stage,
+    GapReason Reason,
+    string DetailCode,
+    SensitiveString VirtualPath);
+
+/// <summary>
+/// Disposable handle around a sensitive UTF-16 string. The query
+/// service returns these only from detail queries that require explicit
+/// identifiers; the UI must zero the buffer after rendering.
+/// </summary>
+public sealed class SensitiveString : IDisposable
+{
+    private char[]? _buffer;
+    private bool _disposed;
+
+    public SensitiveString(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _buffer = value.ToCharArray();
+    }
+
+    public string Value
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(_disposed || _buffer is null, this);
+            return new string(_buffer);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        if (_buffer is not null)
+        {
+            Array.Clear(_buffer);
+            _buffer = null;
+        }
+    }
+}

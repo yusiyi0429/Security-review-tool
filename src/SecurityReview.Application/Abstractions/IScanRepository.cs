@@ -21,4 +21,16 @@ public interface IScanRepository
     /// </summary>
     Task<IReadOnlyList<ScanRun>> ListByStatusAsync(IReadOnlyList<ScanStatus> statuses,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the most recent prior scan for any of the supplied
+    /// root paths (matched by stored rule-pack hash and LLM
+    /// endpoint fingerprint), or <c>null</c> when none exists. Used
+    /// by the rescan handler to anchor the diff against the previous
+    /// scan of the same lineage.
+    /// </summary>
+    Task<ScanRun?> FindLatestPreviousAsync(
+        string activeRulePackHash,
+        string endpointFingerprint,
+        CancellationToken cancellationToken = default);
 }
