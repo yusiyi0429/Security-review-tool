@@ -1,8 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\SecurityReview.Domain\SecurityReview.Domain.csproj" />
     <ProjectReference Include="..\SecurityReview.ParserContracts\SecurityReview.ParserContracts.csproj" />
+    <ProjectReference Include="..\SecurityReview.Parsers\SecurityReview.Parsers.csproj" />
     <ProjectReference Include="..\SecurityReview.RulePack\SecurityReview.RulePack.csproj" />
   </ItemGroup>
 

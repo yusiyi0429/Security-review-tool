@@ -189,6 +189,7 @@
         "dependencies": {
           "SecurityReview.Domain": "[1.0.0, )",
           "SecurityReview.ParserContracts": "[1.0.0, )",
+          "SecurityReview.Parsers": "[1.0.0, )",
           "SecurityReview.RulePack": "[1.0.0, )"
         }
       },
