@@ -38,7 +38,7 @@ public sealed class FileMutationTests
             Assert.NotEqual(first.Sha256Hex, second.Sha256Hex);
             Assert.Equal(first.Length, second.Length);
             Assert.Equal(FileStabilityAction.RescanOnce,
-                FileStabilityDecision.Decide(hashesEqual: false, priorRetries: 0));
+                FileStabilityDecision.Decide(hashesEqual: false, priorRetries: 0, identityPreserved: true));
         }
         finally
         {
@@ -82,9 +82,9 @@ public sealed class FileMutationTests
                 TestContext.Current.CancellationToken);
 
             Assert.Equal(FileStabilityAction.RescanOnce,
-                FileStabilityDecision.Decide(false, 0));
+                FileStabilityDecision.Decide(false, 0, identityPreserved: true));
             Assert.Equal(FileStabilityAction.MarkUnstable,
-                FileStabilityDecision.Decide(false, 1));
+                FileStabilityDecision.Decide(false, 1, identityPreserved: true));
             Assert.NotEqual(first, second.Sha256Hex);
             Assert.NotEqual(second.Sha256Hex, third.Sha256Hex);
             Assert.Equal(GapReason.FileUnstable,
@@ -120,12 +120,11 @@ public sealed class FileMutationTests
 
             Assert.NotEqual(before.Identity.FileIndex, after.Identity.FileIndex);
             Assert.Equal(before.Length, after.Length);
-            // Identity change is detected by the broker at open time; the caller maps it
-            // to MarkUnstable without checking the (identical) content hash.
-            bool identityChanged = before.Identity.FileIndex != after.Identity.FileIndex;
-            FileStabilityAction action = identityChanged
-                ? FileStabilityAction.MarkUnstable
-                : FileStabilityDecision.Decide(before.Sha256Hex == after.Sha256Hex, priorRetries: 0);
+            // Identity change is detected at open time; Decicde maps it to MarkUnstable
+            // without checking the (identical) content hash.
+            FileStabilityAction action = FileStabilityDecision.Decide(
+                before.Sha256Hex == after.Sha256Hex, priorRetries: 0,
+                identityPreserved: before.Identity == after.Identity);
             Assert.Equal(FileStabilityAction.MarkUnstable, action);
         }
         finally
