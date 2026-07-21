@@ -1,0 +1,893 @@
+{
+  "version": "1.0",
+  "scenarios": [
+    {
+      "id": "ACC-001",
+      "description": "Portable startup: verify the tool starts in a fresh Windows sandbox, scans 3 text files, and produces a bounded conclusion.",
+      "linkedReqs": ["REQ-001"],
+      "linkedAcs": ["AC-001"],
+      "linkedSrsFs": ["SRS-F-001"],
+      "linkedVts": ["VT-001"],
+      "requiredOsCapability": "windows-sandbox",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "3 healthy text files, mock LLM returning confirmed",
+        "fileCount": 3,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      },
+      "expectedConclusion": {
+        "isBounded": true
+      }
+    },
+    {
+      "id": "ACC-002",
+      "description": "Cold start timing: verify the tool starts and completes a scan on 0 files within 5 seconds.",
+      "linkedReqs": ["REQ-001"],
+      "linkedAcs": ["AC-001"],
+      "linkedSrsFs": ["SRS-F-001"],
+      "linkedVts": ["VT-002"],
+      "requiredOsCapability": "windows-sandbox",
+      "maxDurationMs": 5000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "0 files — cold start timing only",
+        "fileCount": 0
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-003",
+      "description": "Input summary and mutation: scan 3 text files where 1 is mutated mid-scan, expect a Partial result with a FileUnstable gap and diff detecting new findings.",
+      "linkedReqs": ["REQ-002"],
+      "linkedAcs": ["AC-002", "AC-003", "AC-004"],
+      "linkedSrsFs": ["SRS-F-002"],
+      "linkedVts": ["VT-003"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "3 text files (1 mutated), mock LLM returning confirmed",
+        "fileCount": 3,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Partial",
+        "minFiles": 2,
+        "minGaps": 1
+      },
+      "expectedGaps": [
+        {
+          "reason": "FileUnstable"
+        }
+      ],
+      "expectedDiff": {
+        "detectsNewFindings": true
+      }
+    },
+    {
+      "id": "ACC-004",
+      "description": "Manifest read and missing: verify the Windows sandbox reads a manifest and handles the case where a manifest file is absent.",
+      "linkedReqs": ["REQ-003"],
+      "linkedAcs": ["AC-005", "AC-006"],
+      "linkedSrsFs": ["SRS-F-003"],
+      "linkedVts": ["VT-004"],
+      "requiredOsCapability": "windows-sandbox",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files",
+        "fileCount": 2
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-005",
+      "description": "Magic mismatch: scan a file with .txt extension containing JSON content; expect a SensitiveContent finding via secret candidate generation.",
+      "linkedReqs": ["REQ-004"],
+      "linkedAcs": ["AC-007"],
+      "linkedSrsFs": ["SRS-F-004"],
+      "linkedVts": ["VT-005"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 files (1 with .txt extension but JSON content), mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minFindings": 1
+      },
+      "expectedFindings": [
+        {
+          "valuePattern": "password",
+          "kind": "SensitiveContent"
+        }
+      ]
+    },
+    {
+      "id": "ACC-006",
+      "description": "Hidden and ADS content: scan files with alternate data streams in Windows sandbox, expect AccessDenied gaps.",
+      "linkedReqs": ["REQ-004"],
+      "linkedAcs": ["AC-008", "AC-009"],
+      "linkedSrsFs": ["SRS-F-004"],
+      "linkedVts": ["VT-006"],
+      "requiredOsCapability": "windows-sandbox",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 files with ADS content",
+        "fileCount": 2
+      },
+      "expectedScan": {
+        "status": "Completed"
+      },
+      "expectedGaps": [
+        {
+          "reason": "AccessDenied"
+        }
+      ]
+    },
+    {
+      "id": "ACC-007",
+      "description": "Multi-encoding: scan UTF-8, UTF-16, and GBK files to verify correct decoding across encodings.",
+      "linkedReqs": ["REQ-005"],
+      "linkedAcs": ["AC-010", "AC-011"],
+      "linkedSrsFs": ["SRS-F-005"],
+      "linkedVts": ["VT-007"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "3 files (UTF-8, UTF-16, GBK), mock LLM returning confirmed",
+        "fileCount": 3,
+        "generateMultiEncodingFiles": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-008",
+      "description": "Office and PDF boundary: scan an Office document and a PDF file to verify structured format parsing.",
+      "linkedReqs": ["REQ-005"],
+      "linkedAcs": ["AC-012"],
+      "linkedSrsFs": ["SRS-F-005"],
+      "linkedVts": ["VT-008"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 files (1 Office, 1 PDF), mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateOfficeFile": true,
+        "generatePdfFile": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-009",
+      "description": "Python, JAR and binary files: verify multiple locator types (TextLocator, NestedLocator, ByteLocator) across diverse file formats.",
+      "linkedReqs": ["REQ-006"],
+      "linkedAcs": ["AC-013", "AC-014", "AC-015"],
+      "linkedSrsFs": ["SRS-F-006"],
+      "linkedVts": ["VT-009"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "3 files (Python, JAR, binary), mock LLM returning confirmed",
+        "fileCount": 3,
+        "generatePythonFile": true,
+        "generateJarFile": true,
+        "generateBinaryFile": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      },
+      "expectedLocators": [
+        {
+          "locatorType": "TextLocator"
+        },
+        {
+          "locatorType": "NestedLocator"
+        },
+        {
+          "locatorType": "ByteLocator"
+        }
+      ]
+    },
+    {
+      "id": "ACC-010",
+      "description": "Docker and OCI layout: scan an OCI image layout, expecting at least one chunk produced.",
+      "linkedReqs": ["REQ-007"],
+      "linkedAcs": ["AC-016", "AC-017"],
+      "linkedSrsFs": ["SRS-F-007"],
+      "linkedVts": ["VT-010"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "OCI layout, mock LLM returning confirmed",
+        "generateOciLayout": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minChunks": 1
+      }
+    },
+    {
+      "id": "ACC-011",
+      "description": "No execution: verify script-like files are not executed — content is inspected statically.",
+      "linkedReqs": ["REQ-008"],
+      "linkedAcs": ["AC-018"],
+      "linkedSrsFs": ["SRS-F-008"],
+      "linkedVts": ["VT-011"],
+      "requiredOsCapability": "windows-sandbox",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 script-like files, mock LLM returning confirmed",
+        "fileCount": 2,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-012",
+      "description": "Network denial: verify the sandbox blocks all external network traffic except the LLM endpoint.",
+      "linkedReqs": ["REQ-008"],
+      "linkedAcs": ["AC-018"],
+      "linkedSrsFs": ["SRS-F-008"],
+      "linkedVts": ["VT-012"],
+      "requiredOsCapability": "windows-sandbox",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files, mock LLM returning confirmed",
+        "fileCount": 2,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      },
+      "expectedNetwork": {
+        "noExternalTelemetry": true,
+        "onlyLlmEndpointContacted": true
+      }
+    },
+    {
+      "id": "ACC-013",
+      "description": "Archive attacks: scan a synthetic archive to verify decompression bombs and archive limits are handled gracefully.",
+      "linkedReqs": ["REQ-008"],
+      "linkedAcs": ["AC-019"],
+      "linkedSrsFs": ["SRS-F-008"],
+      "linkedVts": ["VT-013"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "Synthetic archive, mock LLM returning confirmed",
+        "generateArchive": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minGaps": 1
+      },
+      "expectedGaps": [
+        {
+          "reason": "ArchiveLimit"
+        }
+      ]
+    },
+    {
+      "id": "ACC-014",
+      "description": "Worker crash, corrupt and encrypted files: scan encrypted and corrupt files, expect Partial result with Encrypted or Corrupt gaps.",
+      "linkedReqs": ["REQ-008"],
+      "linkedAcs": ["AC-020", "AC-021"],
+      "linkedSrsFs": ["SRS-F-008"],
+      "linkedVts": ["VT-014"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "Encrypted and corrupt files, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateEncryptedFile": true,
+        "generateCorruptFile": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Partial",
+        "minGaps": 1
+      },
+      "expectedGaps": [
+        {
+          "reason": "Encrypted"
+        }
+      ]
+    },
+    {
+      "id": "ACC-015",
+      "description": "8-class baseline and compliance: scan 3 text files with secret candidates, expect SensitiveContent and AssetCompliance findings, bounded and non-absolute conclusion.",
+      "linkedReqs": ["REQ-009"],
+      "linkedAcs": ["AC-022", "AC-023", "AC-024"],
+      "linkedSrsFs": ["SRS-F-009"],
+      "linkedVts": ["VT-015"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "3 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 3,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minFindings": 2
+      },
+      "expectedFindings": [
+        {
+          "valuePattern": "password",
+          "kind": "SensitiveContent"
+        },
+        {
+          "valuePattern": "compliance",
+          "kind": "AssetCompliance"
+        }
+      ],
+      "expectedConclusion": {
+        "isBounded": true,
+        "isNotAbsolute": true
+      }
+    },
+    {
+      "id": "ACC-016",
+      "description": "Rule pack import and tamper: verify importing a rule pack and that modifying rules invalidates the cache.",
+      "linkedReqs": ["REQ-010"],
+      "linkedAcs": ["AC-025", "AC-026", "AC-027"],
+      "linkedSrsFs": ["SRS-F-010"],
+      "linkedVts": ["VT-016"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with rule pack, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateRulePack": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      },
+      "expectedCache": {
+        "invalidatesCacheOnRuleChange": true
+      }
+    },
+    {
+      "id": "ACC-017",
+      "description": "Multi-detector, placeholder, entity and third-party: verify detectors find content matching SECRET pattern.",
+      "linkedReqs": ["REQ-011"],
+      "linkedAcs": ["AC-028", "AC-029", "AC-030", "AC-031"],
+      "linkedSrsFs": ["SRS-F-011"],
+      "linkedVts": ["VT-017"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minFindings": 1
+      },
+      "expectedFindings": [
+        {
+          "valuePattern": "SECRET"
+        }
+      ]
+    },
+    {
+      "id": "ACC-018",
+      "description": "LLM minimization: verify that no sensitive data is present in LLM requests (redaction before sending).",
+      "linkedReqs": ["REQ-012"],
+      "linkedAcs": ["AC-032"],
+      "linkedSrsFs": ["SRS-F-012"],
+      "linkedVts": ["VT-018"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedNetwork": {
+        "noSensitiveDataInRequests": true
+      }
+    },
+    {
+      "id": "ACC-019",
+      "description": "LLM prompt injection: verify the tool detects and handles injection content in scanned files.",
+      "linkedReqs": ["REQ-012"],
+      "linkedAcs": ["AC-033"],
+      "linkedSrsFs": ["SRS-F-012"],
+      "linkedVts": ["VT-019"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "1 file with prompt injection content, mock LLM detecting injection",
+        "fileCount": 1,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "injection-detected"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-020",
+      "description": "LLM unavailable and timeout: verify the scan completes as Partial with LlmUnresolved gap when LLM is unavailable.",
+      "linkedReqs": ["REQ-012"],
+      "linkedAcs": ["AC-034", "AC-035"],
+      "linkedSrsFs": ["SRS-F-012"],
+      "linkedVts": ["VT-020"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 files with secret candidates, mock LLM unavailable",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "unavailable"
+      },
+      "expectedScan": {
+        "status": "Partial"
+      },
+      "expectedGaps": [
+        {
+          "reason": "LlmUnresolved"
+        }
+      ]
+    },
+    {
+      "id": "ACC-021",
+      "description": "Exact locators, full values and grouping: verify findings include TextLocator with line numbers and value patterns.",
+      "linkedReqs": ["REQ-013"],
+      "linkedAcs": ["AC-036", "AC-037", "AC-038", "AC-039", "AC-040"],
+      "linkedSrsFs": ["SRS-F-013"],
+      "linkedVts": ["VT-021"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minFindings": 1
+      },
+      "expectedFindings": [
+        {
+          "valuePattern": "apikey"
+        }
+      ],
+      "expectedLocators": [
+        {
+          "locatorType": "TextLocator",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "ACC-022",
+      "description": "Review and exception: verify findings can be marked reviewed, exceptions added, and exceptions are bound to the scan version.",
+      "linkedReqs": ["REQ-014"],
+      "linkedAcs": ["AC-041", "AC-042"],
+      "linkedSrsFs": ["SRS-F-014"],
+      "linkedVts": ["VT-022"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files, mock LLM returning confirmed",
+        "fileCount": 2,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      },
+      "expectedReviews": {
+        "canMarkReviewed": true,
+        "canAddException": true,
+        "exceptionBoundToVersion": true
+      }
+    },
+    {
+      "id": "ACC-023",
+      "description": "Diff and cache: verify that a rescan with one mutated file detects new, disappeared, and persistent findings; cache reuses parse results for unchanged files and invalidates on change.",
+      "linkedReqs": ["REQ-014"],
+      "linkedAcs": ["AC-043", "AC-044"],
+      "linkedSrsFs": ["SRS-F-014"],
+      "linkedVts": ["VT-023"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "3 text files (1 mutated), mock LLM returning confirmed",
+        "fileCount": 3,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedDiff": {
+        "detectsNewFindings": true,
+        "detectsDisappearedFindings": true,
+        "detectsPersistentFindings": true
+      },
+      "expectedCache": {
+        "reusesParseCacheWhenUnchanged": true,
+        "invalidatesCacheOnFileChange": true
+      }
+    },
+    {
+      "id": "ACC-024",
+      "description": "Encryption DPAPI: verify Windows DPAPI-based encryption of scan artifacts in sandbox.",
+      "linkedReqs": ["REQ-015"],
+      "linkedAcs": ["AC-045"],
+      "linkedSrsFs": ["SRS-F-015"],
+      "linkedVts": ["VT-024"],
+      "requiredOsCapability": "windows-sandbox",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files, mock LLM returning confirmed",
+        "fileCount": 2,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-025",
+      "description": "Retention and local-only: verify scan data is retained only locally and not exfiltrated.",
+      "linkedReqs": ["REQ-015"],
+      "linkedAcs": ["AC-046", "AC-047"],
+      "linkedSrsFs": ["SRS-F-015"],
+      "linkedVts": ["VT-025"],
+      "requiredOsCapability": "windows-sandbox",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files, mock LLM returning confirmed",
+        "fileCount": 2,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-026",
+      "description": "XLSX export with 6 sheets: verify the generated XLSX report contains all six required sheets.",
+      "linkedReqs": ["REQ-016"],
+      "linkedAcs": ["AC-048", "AC-049"],
+      "linkedSrsFs": ["SRS-F-016"],
+      "linkedVts": ["VT-026"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedReport": {
+        "sheetCount": 6,
+        "hasSummarySheet": true,
+        "hasFindingsSheet": true,
+        "hasGapsSheet": true,
+        "hasReviewsSheet": true,
+        "hasAssetsSheet": true,
+        "hasVersionsSheet": true
+      }
+    },
+    {
+      "id": "ACC-027",
+      "description": "Formula injection prevention: verify the XLSX export has no formula injection vectors and no external links.",
+      "linkedReqs": ["REQ-016"],
+      "linkedAcs": ["AC-050"],
+      "linkedSrsFs": ["SRS-F-016"],
+      "linkedVts": ["VT-027"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 files with formula-like content, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedReport": {
+        "noFormulaInjection": true,
+        "noExternalLinks": true
+      }
+    },
+    {
+      "id": "ACC-028",
+      "description": "Progress and cancel: verify that a scan can be cancelled mid-flight via the GUI and reports Cancelled status.",
+      "linkedReqs": ["REQ-017"],
+      "linkedAcs": ["AC-051", "AC-052"],
+      "linkedSrsFs": ["SRS-F-017"],
+      "linkedVts": ["VT-028"],
+      "requiredOsCapability": "windows-gui",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "5 text files, mock LLM returning confirmed",
+        "fileCount": 5,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Cancelled",
+        "minFiles": 0
+      }
+    },
+    {
+      "id": "ACC-029",
+      "description": "Preview and external open: verify the GUI can preview files and open assets externally.",
+      "linkedReqs": ["REQ-017"],
+      "linkedAcs": ["AC-053", "AC-054"],
+      "linkedSrsFs": ["SRS-F-017"],
+      "linkedVts": ["VT-029"],
+      "requiredOsCapability": "windows-gui",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files, mock LLM returning confirmed",
+        "fileCount": 2,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed"
+      }
+    },
+    {
+      "id": "ACC-030",
+      "description": "Deterministic regression 100%: verify that secret candidate detection is deterministic and finds SensitiveContent at High severity or above.",
+      "linkedReqs": ["REQ-018"],
+      "linkedAcs": ["AC-055"],
+      "linkedSrsFs": ["SRS-F-018"],
+      "linkedVts": ["VT-030"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minFindings": 1
+      },
+      "expectedFindings": [
+        {
+          "valuePattern": "connectionString",
+          "kind": "SensitiveContent",
+          "severity": "High"
+        }
+      ]
+    },
+    {
+      "id": "ACC-031",
+      "description": "Semantic recall ≥95%: verify that semantic review correctly identifies findings requiring human review.",
+      "linkedReqs": ["REQ-018"],
+      "linkedAcs": ["AC-056"],
+      "linkedSrsFs": ["SRS-F-018"],
+      "linkedVts": ["VT-031"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minFindings": 1
+      },
+      "expectedFindings": [
+        {
+          "valuePattern": "secret",
+          "requiresSemanticReview": true
+        }
+      ]
+    },
+    {
+      "id": "ACC-032",
+      "description": "Gap coverage 100%: verify that scanning 3 healthy text files produces zero coverage gaps.",
+      "linkedReqs": ["REQ-018"],
+      "linkedAcs": ["AC-057"],
+      "linkedSrsFs": ["SRS-F-018"],
+      "linkedVts": ["VT-032"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "3 healthy text files, mock LLM returning confirmed",
+        "fileCount": 3,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedScan": {
+        "status": "Completed",
+        "minGaps": 0,
+        "maxGaps": 0
+      }
+    },
+    {
+      "id": "ACC-033",
+      "description": "No telemetry: verify that no external telemetry is sent and no asset content or sensitive values appear in logs.",
+      "linkedReqs": ["REQ-019"],
+      "linkedAcs": ["AC-058"],
+      "linkedSrsFs": ["SRS-F-019"],
+      "linkedVts": ["VT-033"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedNetwork": {
+        "noExternalTelemetry": true
+      },
+      "expectedDiagnostic": {
+        "noAssetContentInLogs": true,
+        "noSensitiveValuesInLogs": true
+      }
+    },
+    {
+      "id": "ACC-034",
+      "description": "LLM network only: verify the only external network contact is the LLM endpoint, with no telemetry.",
+      "linkedReqs": ["REQ-019"],
+      "linkedAcs": ["AC-059"],
+      "linkedSrsFs": ["SRS-F-019"],
+      "linkedVts": ["VT-034"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedNetwork": {
+        "noExternalTelemetry": true,
+        "onlyLlmEndpointContacted": true
+      }
+    },
+    {
+      "id": "ACC-035",
+      "description": "Diagnostic log redaction: verify no asset content, sensitive values, or LLM request bodies appear in diagnostic logs.",
+      "linkedReqs": ["REQ-019"],
+      "linkedAcs": ["AC-060"],
+      "linkedSrsFs": ["SRS-F-019"],
+      "linkedVts": ["VT-035"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedDiagnostic": {
+        "noAssetContentInLogs": true,
+        "noSensitiveValuesInLogs": true,
+        "noLlmRequestBodyInLogs": true
+      }
+    }
+  ]
+}

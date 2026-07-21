@@ -1,0 +1,307 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://security-review-tool/acceptance-manifest.schema.json",
+  "title": "Acceptance Manifest",
+  "description": "Machine-readable acceptance manifest linking every REQ/AC/SRS-F/VT to executable scenarios with expected scan/conclusion/findings/locators/gaps/reviews/diff/cache/report/network/diagnostic assertions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "scenarios"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Manifest schema version."
+    },
+    "scenarios": {
+      "type": "array",
+      "description": "All acceptance test scenarios.",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/AcceptanceScenario"
+      }
+    }
+  },
+  "definitions": {
+    "AcceptanceScenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "linkedReqs",
+        "linkedAcs",
+        "linkedSrsFs",
+        "linkedVts",
+        "requiredOsCapability",
+        "maxDurationMs",
+        "maxMemoryMb"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^ACC-\\d{3}$",
+          "description": "Unique scenario identifier (e.g. ACC-001)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable scenario description."
+        },
+        "linkedReqs": {
+          "type": "array",
+          "description": "Linked BRD requirements (REQ-001..019).",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^REQ-\\d{3}$"
+          }
+        },
+        "linkedAcs": {
+          "type": "array",
+          "description": "Linked acceptance criteria (AC-001..060).",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^AC-\\d{3}$"
+          }
+        },
+        "linkedSrsFs": {
+          "type": "array",
+          "description": "Linked SRS functional requirements (SRS-F-001..019).",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^SRS-F-\\d{3}$"
+          }
+        },
+        "linkedVts": {
+          "type": "array",
+          "description": "Linked verification test cases (VT-001..035).",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^VT-\\d{3}$"
+          }
+        },
+        "requiredOsCapability": {
+          "type": "string",
+          "enum": ["any", "windows-sandbox", "windows-gui"],
+          "description": "Required OS capability: any (cross-platform), windows-sandbox (requires AppContainer), windows-gui (requires WPF GUI)."
+        },
+        "variableFields": {
+          "type": "array",
+          "description": "Fields to normalize during comparison: uuid, timestamp, tempPath.",
+          "items": {
+            "type": "string",
+            "enum": ["uuid", "timestamp", "tempPath"]
+          }
+        },
+        "syntheticInput": {
+          "type": "object",
+          "description": "Description of synthetic assets to generate for this scenario.",
+          "additionalProperties": false,
+          "properties": {
+            "description": { "type": "string" },
+            "fileCount": { "type": "integer", "minimum": 0 },
+            "generateSecretCandidate": { "type": "boolean" },
+            "generateCorruptFile": { "type": "boolean" },
+            "generateEncryptedFile": { "type": "boolean" },
+            "generateArchive": { "type": "boolean" },
+            "generateOciLayout": { "type": "boolean" },
+            "generateOfficeFile": { "type": "boolean" },
+            "generatePdfFile": { "type": "boolean" },
+            "generatePythonFile": { "type": "boolean" },
+            "generateJarFile": { "type": "boolean" },
+            "generateBinaryFile": { "type": "boolean" },
+            "generateMultiEncodingFiles": { "type": "boolean" },
+            "generateRulePack": { "type": "boolean" },
+            "useMockLlm": { "type": "boolean" },
+            "mockLlmOutcome": {
+              "type": "string",
+              "enum": ["confirmed", "rejected", "unresolved", "injection-detected", "timeout", "unavailable"]
+            },
+            "totalBytesHint": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "expectedScan": {
+          "type": "object",
+          "description": "Expected scan outcome assertions.",
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["Completed", "Partial", "Failed", "Cancelled"],
+              "description": "Expected terminal scan status."
+            },
+            "minFindings": { "type": "integer", "minimum": 0 },
+            "maxFindings": { "type": "integer", "minimum": 0 },
+            "minFiles": { "type": "integer", "minimum": 0 },
+            "maxFiles": { "type": "integer", "minimum": 0 },
+            "minChunks": { "type": "integer", "minimum": 0 },
+            "minGaps": { "type": "integer", "minimum": 0 },
+            "maxGaps": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "expectedConclusion": {
+          "type": "object",
+          "description": "Expected bounded conclusion assertions.",
+          "additionalProperties": false,
+          "properties": {
+            "isBounded": { "type": "boolean" },
+            "isNotAbsolute": { "type": "boolean" },
+            "partialReason": { "type": "string" }
+          }
+        },
+        "expectedFindings": {
+          "type": "array",
+          "description": "Expected finding patterns (value patterns, not exact UUID-dependent values).",
+          "items": {
+            "$ref": "#/definitions/ExpectedAcceptanceFinding"
+          }
+        },
+        "expectedLocators": {
+          "type": "array",
+          "description": "Expected locator patterns for findings.",
+          "items": {
+            "$ref": "#/definitions/ExpectedLocator"
+          }
+        },
+        "expectedGaps": {
+          "type": "array",
+          "description": "Expected coverage gaps.",
+          "items": {
+            "$ref": "#/definitions/ExpectedAcceptanceGap"
+          }
+        },
+        "expectedReviews": {
+          "type": "object",
+          "description": "Expected review behaviour.",
+          "additionalProperties": false,
+          "properties": {
+            "canMarkReviewed": { "type": "boolean" },
+            "canAddException": { "type": "boolean" },
+            "exceptionBoundToVersion": { "type": "boolean" }
+          }
+        },
+        "expectedDiff": {
+          "type": "object",
+          "description": "Expected diff behaviour on rescan.",
+          "additionalProperties": false,
+          "properties": {
+            "detectsNewFindings": { "type": "boolean" },
+            "detectsDisappearedFindings": { "type": "boolean" },
+            "detectsPersistentFindings": { "type": "boolean" }
+          }
+        },
+        "expectedCache": {
+          "type": "object",
+          "description": "Expected cache behaviour.",
+          "additionalProperties": false,
+          "properties": {
+            "reusesParseCacheWhenUnchanged": { "type": "boolean" },
+            "invalidatesCacheOnRuleChange": { "type": "boolean" },
+            "invalidatesCacheOnFileChange": { "type": "boolean" }
+          }
+        },
+        "expectedReport": {
+          "type": "object",
+          "description": "Expected XLSX report assertions.",
+          "additionalProperties": false,
+          "properties": {
+            "sheetCount": { "type": "integer" },
+            "hasSummarySheet": { "type": "boolean" },
+            "hasFindingsSheet": { "type": "boolean" },
+            "hasGapsSheet": { "type": "boolean" },
+            "hasReviewsSheet": { "type": "boolean" },
+            "hasAssetsSheet": { "type": "boolean" },
+            "hasVersionsSheet": { "type": "boolean" },
+            "noFormulaInjection": { "type": "boolean" },
+            "noExternalLinks": { "type": "boolean" }
+          }
+        },
+        "expectedNetwork": {
+          "type": "object",
+          "description": "Expected network behaviour assertions.",
+          "additionalProperties": false,
+          "properties": {
+            "noExternalTelemetry": { "type": "boolean" },
+            "onlyLlmEndpointContacted": { "type": "boolean" },
+            "noSensitiveDataInRequests": { "type": "boolean" }
+          }
+        },
+        "expectedDiagnostic": {
+          "type": "object",
+          "description": "Expected diagnostic assertions.",
+          "additionalProperties": false,
+          "properties": {
+            "noAssetContentInLogs": { "type": "boolean" },
+            "noSensitiveValuesInLogs": { "type": "boolean" },
+            "noLlmRequestBodyInLogs": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "ExpectedAcceptanceFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["valuePattern"],
+      "properties": {
+        "valuePattern": {
+          "type": "string",
+          "description": "Substring or regex pattern expected in finding value."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["Critical", "High", "Medium", "Low", "Info"]
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["SensitiveContent", "AssetCompliance"]
+        },
+        "categoryId": { "type": "string" },
+        "requiresSemanticReview": { "type": "boolean" }
+      }
+    },
+    "ExpectedLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locatorType"],
+      "properties": {
+        "locatorType": {
+          "type": "string",
+          "enum": ["TextLocator", "JsonLocator", "CellLocator", "ByteLocator", "NestedLocator"]
+        },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "byteStart": { "type": "integer", "minimum": 0 },
+        "byteLength": { "type": "integer", "minimum": 1 },
+        "virtualPath": { "type": "string" }
+      }
+    },
+    "ExpectedAcceptanceGap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": [
+            "UnsupportedFormat",
+            "AccessDenied",
+            "Encrypted",
+            "DecodeUnreliable",
+            "Corrupt",
+            "ArchiveLimit",
+            "ParserTimeout",
+            "ParserCrash",
+            "SandboxUnavailable",
+            "FileUnstable",
+            "UserExcluded",
+            "LlmUnresolved",
+            "Cancelled"
+          ]
+        },
+        "detailCode": { "type": "string" },
+        "virtualPath": { "type": "string" }
+      }
+    }
+  }
+}
