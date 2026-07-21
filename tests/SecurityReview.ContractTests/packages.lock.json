@@ -8,6 +8,15 @@
         "resolved": "10.0.1",
         "contentHash": "27jXSV/0DbVqF5jDrAxuQFZ9oaz6gmG03p8ttxAFk+X0M4woFYj7MoWDLCna5EGLb0CE6OE7X6ZH3Wt5smTtaA=="
       },
+      "DocumentFormat.OpenXml": {
+        "type": "Direct",
+        "requested": "[3.5.1, )",
+        "resolved": "3.5.1",
+        "contentHash": "zxdOf5VVCe/uNklbRhj8dVBzQGj3DoqkUuqOp9cAZVuN8mNYDjof1lvSQA2OQNr8Ptc9d7pbA7Azq/ReaI3FpA==",
+        "dependencies": {
+          "DocumentFormat.OpenXml.Framework": "3.5.1"
+        }
+      },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
         "requested": "[18.8.1, )",
@@ -230,13 +239,12 @@
           "SecurityReview.ParserContracts": "[1.0.0, )"
         }
       },
-      "DocumentFormat.OpenXml": {
-        "type": "CentralTransitive",
-        "requested": "[3.5.1, )",
-        "resolved": "3.5.1",
-        "contentHash": "zxdOf5VVCe/uNklbRhj8dVBzQGj3DoqkUuqOp9cAZVuN8mNYDjof1lvSQA2OQNr8Ptc9d7pbA7Azq/ReaI3FpA==",
+      "securityreview.rulepackbuilder": {
+        "type": "Project",
         "dependencies": {
-          "DocumentFormat.OpenXml.Framework": "3.5.1"
+          "DocumentFormat.OpenXml": "[3.5.1, )",
+          "SecurityReview.Domain": "[1.0.0, )",
+          "SecurityReview.RulePack": "[1.0.0, )"
         }
       },
       "Microsoft.Data.Sqlite": {

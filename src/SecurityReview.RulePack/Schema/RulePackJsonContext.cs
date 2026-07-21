@@ -21,6 +21,10 @@ namespace SecurityReview.RulePack.Schema;
 [JsonSerializable(typeof(Severity))]
 [JsonSerializable(typeof(DetectionConfidence))]
 [JsonSerializable(typeof(DetectorKind))]
+[JsonSerializable(typeof(IReadOnlyList<CategoryDefinition>))]
+[JsonSerializable(typeof(IReadOnlyList<AssetPolicy>))]
+[JsonSerializable(typeof(IReadOnlyList<DetectorDefinition>))]
+[JsonSerializable(typeof(IReadOnlyList<ComplianceRule>))]
 public sealed partial class RulePackJsonContext : JsonSerializerContext
 {
 }

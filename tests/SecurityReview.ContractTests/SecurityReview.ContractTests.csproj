@@ -19,11 +19,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\SecurityReview.Domain\SecurityReview.Domain.csproj" />
     <ProjectReference Include="..\..\src\SecurityReview.Application\SecurityReview.Application.csproj" />
     <ProjectReference Include="..\..\src\SecurityReview.ParserContracts\SecurityReview.ParserContracts.csproj" />
     <ProjectReference Include="..\..\src\SecurityReview.RulePack\SecurityReview.RulePack.csproj" />
     <ProjectReference Include="..\..\src\SecurityReview.Infrastructure\SecurityReview.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\tools\SecurityReview.RulePackBuilder\SecurityReview.RulePackBuilder.csproj" />
   </ItemGroup>
 
 </Project>
