@@ -137,7 +137,7 @@ public sealed class ScanScheduler : IDisposable
     /// <summary>Stream of results from worker jobs.</summary>
     public ChannelReader<WorkerJobResult> Results => _resultChannel.Reader;
 
-    /// <summary>Cancel all active work.</summary>
+    /// <summary>Cancel all active work. Drains remaining items as cancelled.</summary>
     public void Cancel()
     {
         CancellationTokenSource? cts;
@@ -147,6 +147,22 @@ public sealed class ScanScheduler : IDisposable
         }
 
         cts?.Cancel();
+
+        // Drain remaining channel items as cancelled to unblock result channel
+        try
+        {
+            while (_workChannel.Reader.TryRead(out ScanWorkItem? item))
+            {
+                _resultChannel.Writer.TryWrite(new WorkerJobResult(
+                    item.JobId, item.FileId, WorkerResultKind.Cancelled,
+                    Chunk: null!, Gap: null!, ChildVirtualPath: null,
+                    ChildProbe: null, Failure: WorkerFailure.Cancelled));
+            }
+        }
+        catch
+        {
+            // Channel may already be completed; continue
+        }
     }
 
     public static ParseLimits CreateOrdinaryLimits(DateTimeOffset nowUtc) =>

@@ -78,21 +78,27 @@ internal sealed class WorkerHost
 
                     case ParserEvent.ChildDiscovered child:
                         string childPayload = System.Text.Json.JsonSerializer.Serialize(
-                            new { virtualPath = child.VirtualPath,
+                            new
+                            {
+                                virtualPath = child.VirtualPath,
                                 formatId = child.Probe.Format.FormatId,
                                 confidence = child.Probe.Format.Confidence,
-                                declaredLength = child.Probe.DeclaredLength });
+                                declaredLength = child.Probe.DeclaredLength
+                            });
                         await _session.SendAsync(MessageType.GapProduced, childPayload)
                             .ConfigureAwait(false);
                         break;
 
                     case ParserEvent.GapProduced gapEvt:
                         string gapPayload = System.Text.Json.JsonSerializer.Serialize(
-                            new { gapId = gapEvt.Gap.GapId,
+                            new
+                            {
+                                gapId = gapEvt.Gap.GapId,
                                 reason = gapEvt.Gap.Reason.ToString(),
                                 detailCode = gapEvt.Gap.DetailCode,
                                 virtualPath = gapEvt.Gap.VirtualPath,
-                                formatId = gapEvt.Gap.FormatId });
+                                formatId = gapEvt.Gap.FormatId
+                            });
                         await _session.SendAsync(MessageType.GapProduced, gapPayload)
                             .ConfigureAwait(false);
                         break;
