@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://security-review.local/schemas/security-asset-manifest-v1.schema.json",
+  "title": "Security asset manifest, schema version 1",
+  "description": "Contract for <scan-root>/security-asset-manifest.json. Mirrors the strict reader rules in SecurityReview.Infrastructure/Manifest/JsonManifestReader.cs: UTF-8 only, at most 1 MiB (1,048,576 bytes), JSON depth at most 16, no comments or trailing commas, no duplicate property names, all strings at most 2,048 characters. Declared compliance evidence is attestation only and never suppresses content scanning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "asset_id",
+    "asset_version",
+    "components",
+    "compliance_evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "description": "Manifest schema version; must be exactly 1.",
+      "const": 1
+    },
+    "asset_id": {
+      "description": "Non-empty asset identifier.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "asset_version": {
+      "description": "Non-empty asset version string.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "components": {
+      "description": "1 to 1,000 non-overlapping component mappings below the scan root.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "asset_type"],
+        "properties": {
+          "path": {
+            "description": "Scan-root-relative path ('.' for the root). No absolute paths, no drive qualifiers, no '.' or '..' segments, no NUL bytes; backslashes are normalized to forward slashes.",
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^(?!\\s*[/\\\\])(?!\\s*[A-Za-z]:)(?![\\s\\S]*\\x00)(?![\\s\\S]*(?:^|[/\\\\])\\.{1,2}(?:[/\\\\]|\\s*$))\\s*(?:\\.|[\\s\\S]+)$"
+          },
+          "asset_type": {
+            "description": "Registered asset type identifier, ASSET-001 through ASSET-011.",
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^ASSET-(001|002|003|004|005|006|007|008|009|010|011)$"
+          }
+        }
+      }
+    },
+    "compliance_evidence": {
+      "description": "Declared compliance evidence. Attestation only: it never suppresses content scanning.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knowledge_base_transformed",
+        "model_finetuned",
+        "third_party_authorizations"
+      ],
+      "properties": {
+        "knowledge_base_transformed": {
+          "$ref": "#/$defs/declaration"
+        },
+        "model_finetuned": {
+          "$ref": "#/$defs/declaration"
+        },
+        "third_party_authorizations": {
+          "description": "At most 1,000 third-party authorization entries.",
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "status"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "status": {
+                "$ref": "#/$defs/status"
+              },
+              "reference": {
+                "$ref": "#/$defs/reference"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "status": {
+      "type": "string",
+      "maxLength": 2048,
+      "enum": [
+        "verified",
+        "declared_without_reference",
+        "not_applicable",
+        "unverifiable"
+      ]
+    },
+    "reference": {
+      "type": ["string", "null"],
+      "maxLength": 2048
+    },
+    "declaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reference"],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "reference": {
+          "$ref": "#/$defs/reference"
+        }
+      }
+    }
+  }
+}
