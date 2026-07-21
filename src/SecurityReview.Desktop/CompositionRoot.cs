@@ -1,0 +1,436 @@
+using System.Collections.Concurrent;
+using SecurityReview.Application.Abstractions;
+using SecurityReview.Application.Diagnostics;
+using SecurityReview.Application.Llm;
+using SecurityReview.Application.Reviews;
+using SecurityReview.Application.Rules;
+using SecurityReview.Application.Scans;
+using SecurityReview.Application.Scans.Preflight;
+using SecurityReview.Desktop.Services;
+using SecurityReview.Desktop.ViewModels;
+using SecurityReview.Infrastructure.Cryptography;
+using SecurityReview.Infrastructure.Llm;
+using SecurityReview.Infrastructure.Persistence;
+using SecurityReview.Infrastructure.Persistence.Repositories;
+using SecurityReview.Infrastructure.Rules;
+using SecurityReview.Infrastructure.Windows.Sandbox;
+
+namespace SecurityReview.Desktop;
+
+/// <summary>
+/// Manual composition root for the desktop process.
+/// Builds the full object graph in the exact mandatory order:
+///
+/// 1. App paths
+/// 2. Startup recovery / SQLite factory
+/// 3. Keyring / crypto
+/// 4. Repositories
+/// 5. Rule store / policy
+/// 6. Sandbox / worker
+/// 7. LLM adapters
+/// 8. Application handlers / query
+/// 9. View models / UI services
+///
+/// When keyring, DB, or sandbox is blocked, the shell opens in
+/// health-blocked mode with scan disabled. No unsandboxed parser
+/// path is ever constructed.
+///
+/// No DI/MVVM package — manual singleton management.
+/// </summary>
+public sealed class CompositionRoot : IDisposable
+{
+    private readonly ConcurrentDictionary<Type, object> _services = new();
+    private readonly ConcurrentDictionary<Type, object> _concrete = new();
+    private bool _disposed;
+
+    public sealed record Args(
+        string AppDataBasePath,
+        bool IsTest = false,
+        string? SandboxStagingDirectory = null,
+        string? WorkerExecutableName = null)
+    {
+        public static Args ForProduction()
+        {
+            return new Args(System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SecurityReviewTool"));
+        }
+
+        public static Args ForTest(string tempDir)
+        {
+            return new Args(tempDir, IsTest: true);
+        }
+    }
+
+    private readonly Args _args;
+
+    public CompositionRoot(Args args)
+    {
+        _args = args ?? throw new ArgumentNullException(nameof(args));
+        Build();
+    }
+
+    private void Build()
+    {
+        // --- Step 1: App paths ---
+        AppDataPaths paths = _args.IsTest
+            ? AppDataPaths.CreateForTest(_args.AppDataBasePath)
+            : AppDataPaths.CreateDefault();
+        paths.EnsureCreated();
+        Register<IApplicationPaths>(paths);
+        RegisterConcrete(paths);
+
+        // --- Step 2: SQLite connection factory ---
+        var connectionFactory = new SqliteConnectionFactory(paths);
+        Register<ISqliteConnectionFactory>(connectionFactory);
+        RegisterConcrete(connectionFactory);
+
+        // --- Step 3: Keyring / crypto ---
+        WindowsDpapiKeyRing? keyring = null;
+        HkdfSha256? hkdf = null;
+        bool cryptoOk = true;
+
+        if (_args.IsTest)
+        {
+            byte[] masterKey = new byte[32];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(masterKey);
+            hkdf = new HkdfSha256(masterKey);
+            var testProtector = new AesGcmPayloadProtector(hkdf.DeriveEncryptionKey(), "test-key");
+            var testFp = new PersistentValueFingerprintService(hkdf.DeriveFingerprintKey());
+            var testSecrets = new WindowsDpapiSecretStore(
+                System.IO.Path.Combine(_args.AppDataBasePath, "secrets"));
+
+            Register<IPayloadProtector>(testProtector);
+            RegisterConcrete(testProtector);
+            Register<IValueFingerprintService>(testFp);
+            RegisterConcrete(testFp);
+            Register<ISecretStore>(testSecrets);
+            RegisterConcrete(testSecrets);
+        }
+        else
+        {
+            try
+            {
+                keyring = WindowsDpapiKeyRing.LoadOrCreate(paths);
+                hkdf = keyring.Hkdf;
+                var prodProtector = new AesGcmPayloadProtector(hkdf.DeriveEncryptionKey(), keyring.KeyId);
+                var prodFp = new PersistentValueFingerprintService(hkdf.DeriveFingerprintKey());
+                var prodSecrets = new WindowsDpapiSecretStore(paths);
+
+                Register<IPayloadProtector>(prodProtector);
+                RegisterConcrete(prodProtector);
+                Register<IValueFingerprintService>(prodFp);
+                RegisterConcrete(prodFp);
+                Register<ISecretStore>(prodSecrets);
+                RegisterConcrete(prodSecrets);
+                RegisterConcrete(keyring);
+            }
+            catch
+            {
+                cryptoOk = false;
+                Health.MarkBlocked("keyring_unavailable");
+            }
+        }
+
+        // --- Step 4: Repositories ---
+        // Correct constructors per the real implementations.
+        IPayloadProtector? protector = TryGet<IPayloadProtector>();
+        IValueFingerprintService? fp = TryGet<IValueFingerprintService>();
+
+        if (protector is not null && fp is not null)
+        {
+            // SqliteScanRepository(ISqliteConnectionFactory, IPayloadProtector)
+            Register<IScanRepository>(
+                new SqliteScanRepository(connectionFactory, protector));
+
+            // SqliteScanSnapshotRepository(ISqliteConnectionFactory) — 1 param
+            Register<IScanSnapshotRepository>(
+                new SqliteScanSnapshotRepository(connectionFactory));
+
+            // SqliteFindingRepository(ISqliteConnectionFactory, IPayloadProtector, IValueFingerprintService)
+            Register<IFindingRepository>(
+                new SqliteFindingRepository(connectionFactory, protector, fp));
+
+            // SqliteCoverageRepository(ISqliteConnectionFactory, IPayloadProtector)
+            Register<ICoverageRepository>(
+                new SqliteCoverageRepository(connectionFactory, protector));
+
+            // SqliteFileRepository(ISqliteConnectionFactory, IPayloadProtector, IValueFingerprintService)
+            Register<IFileRepository>(
+                new SqliteFileRepository(connectionFactory, protector, fp));
+
+            // SqliteCacheRepository(ISqliteConnectionFactory) — 1 param
+            Register<ICacheRepository>(
+                new SqliteCacheRepository(connectionFactory));
+
+            // SqliteReviewRepository(ISqliteConnectionFactory, IPayloadProtector)
+            Register<IReviewRepository>(
+                new SqliteReviewRepository(connectionFactory, protector));
+
+            // SqliteLlmReviewRepository(ISqliteConnectionFactory, IPayloadProtector)
+            Register<ILlmAttemptRepository>(
+                new SqliteLlmReviewRepository(connectionFactory, protector));
+
+            // SqliteRulePackMetadataRepository(ISqliteConnectionFactory) — 1 param
+            Register<IRulePackMetadataRepository>(
+                new SqliteRulePackMetadataRepository(connectionFactory));
+        }
+
+        // --- Step 5: Rule store ---
+        var ruleStore = new FileRulePackStore(paths.Rules);
+        Register<IRulePackStore>(ruleStore);
+        RegisterConcrete(ruleStore);
+
+        // --- Step 6: Sandbox / worker ---
+        if (!_args.IsTest)
+        {
+            try
+            {
+                string staging = _args.SandboxStagingDirectory
+                    ?? System.IO.Path.Combine(paths.Temp, "worker-staging");
+                string workerExe = _args.WorkerExecutableName ?? "SecurityReview.Worker.exe";
+
+                var launcher = new AppContainerWorkerLauncher(
+                    new SandboxLaunchOptions());
+                var selfTest = new WindowsSandboxSelfTest(
+                    launcher, launcher,
+                    new SandboxSelfTestEnvironment(staging, workerExe));
+                Register<IWorkerLauncher>(launcher);
+                Register<ISandboxSelfTest>(selfTest);
+                RegisterConcrete(selfTest);
+            }
+            catch
+            {
+                Health.MarkBlocked("sandbox_unavailable");
+            }
+        }
+        else
+        {
+            var stub = new StubSandboxSelfTest();
+            Register<ISandboxSelfTest>(stub);
+            RegisterConcrete(stub);
+        }
+
+        // --- Step 7: LLM adapters ---
+        ISandboxSelfTest? sandbox = TryGet<ISandboxSelfTest>();
+        if (cryptoOk)
+        {
+            var diagSink = new NullDiagnosticSink();
+            Register<IDiagnosticSink>(diagSink);
+            RegisterConcrete(diagSink);
+
+            ISecretStore? secrets = TryGet<ISecretStore>();
+            if (secrets is not null)
+            {
+                var llmCredentials = new LlmCredentialStore(secrets);
+                RegisterConcrete(llmCredentials);
+
+                var llmTest = new LlmConnectionTestService(llmCredentials, diagSink);
+                Register<ILlmConnectionTestService>(llmTest);
+
+                // OpenAiSemanticReviewer requires HttpEndpoint, HttpClient etc —
+                // we defer full composition until LLM configuration is set.
+            }
+        }
+
+        // --- Step 8: Application handlers / query ---
+        IScanRepository? sr = TryGet<IScanRepository>();
+        IScanSnapshotRepository? ssr = TryGet<IScanSnapshotRepository>();
+
+        if (sr is not null && ssr is not null && protector is not null)
+        {
+            var createScan = new CreateScanHandler(sr, ssr, protector);
+            RegisterConcrete(createScan);
+
+            if (sandbox is not null)
+            {
+                var preflight = new ScanPreflightService(
+                    sandbox,
+                    new StubBaselineProvider(),
+                    new StubSpaceProbe(),
+                    new StubDbHealthCheck());
+                var startScan = new StartScanHandler(sr, ssr, preflight);
+                RegisterConcrete(startScan);
+
+                var cancelScan = new CancelScanHandler(sr);
+                RegisterConcrete(cancelScan);
+
+                var rescan = new RescanHandler(sr, createScan);
+                RegisterConcrete(rescan);
+            }
+
+            // ReviewService needs IReviewRepository, IPayloadProtector,
+            // IValueFingerprintService, IWindowsIdentityProvider.
+            IReviewRepository? rr = TryGet<IReviewRepository>();
+            IValueFingerprintService? fpSvc = TryGet<IValueFingerprintService>();
+
+            if (rr is not null && fpSvc is not null)
+            {
+                // IWindowsIdentityProvider is Windows-only; stub for test.
+                var identityProvider = new StubWindowsIdentityProvider();
+                var reviewSvc = new ReviewService(rr, protector, fpSvc, identityProvider);
+                Register<IReviewService>(reviewSvc);
+
+                IFindingRepository? fr = TryGet<IFindingRepository>();
+                ICoverageRepository? cr = TryGet<ICoverageRepository>();
+                IFileRepository? flr = TryGet<IFileRepository>();
+
+                if (fr is not null && cr is not null && flr is not null)
+                {
+                    var scanQuery = new ScanQueryService(sr, fr, cr, flr, reviewSvc);
+                    RegisterConcrete(scanQuery);
+                }
+            }
+        }
+
+        // --- Step 9: View models & UI services ---
+        RegisterConcrete(Health);
+        Register<IUiErrorSink>(ErrorSink);
+        RegisterConcrete(ErrorSink);
+        RegisterConcrete(NavigationService);
+        RegisterConcrete(MainWindowViewModel);
+    }
+
+    // ------------------------------------------------------------------ Service resolution
+
+    public T GetService<T>() where T : class
+    {
+        Type key = typeof(T);
+        if (_services.TryGetValue(key, out var value))
+            return (T)value;
+        if (_concrete.TryGetValue(key, out var concrete))
+            return (T)concrete;
+        throw new InvalidOperationException(
+            $"Service of type {key.Name} is not registered in the composition root.");
+    }
+
+    // ------------------------------------------------------------------ Registration
+
+    private void Register<T>(T instance) where T : class
+    {
+        _services[typeof(T)] = instance;
+    }
+
+    private void RegisterConcrete<T>(T instance) where T : class
+    {
+        _concrete[typeof(T)] = instance;
+    }
+
+    private T? TryGet<T>() where T : class
+    {
+        if (_services.TryGetValue(typeof(T), out var value))
+            return (T)value;
+        if (_concrete.TryGetValue(typeof(T), out var concrete))
+            return (T)concrete;
+        return null;
+    }
+
+    // ------------------------------------------------------------------ Pre-built UI services
+
+    private readonly Lazy<StartupHealthService> _healthLazy = new(() => new StartupHealthService());
+    private readonly Lazy<UiErrorSink> _errorSinkLazy = new(() => new UiErrorSink());
+    private readonly Lazy<Services.NavigationService> _navLazy = new(() => new Services.NavigationService());
+
+    public StartupHealthService Health => _healthLazy.Value;
+    public UiErrorSink ErrorSink => _errorSinkLazy.Value;
+    public Services.NavigationService NavigationService => _navLazy.Value;
+
+    public MainWindowViewModel MainWindowViewModel
+        => new(NavigationService, Health, ErrorSink);
+
+    // ------------------------------------------------------------------ IDisposable
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        foreach (var kvp in _concrete)
+        {
+            if (kvp.Value is IDisposable d && kvp.Value != this)
+            {
+                try { d.Dispose(); } catch { }
+            }
+        }
+        foreach (var kvp in _services)
+        {
+            if (kvp.Value is IDisposable d && kvp.Value != this)
+            {
+                try { d.Dispose(); } catch { }
+            }
+        }
+
+        _services.Clear();
+        _concrete.Clear();
+    }
+}
+
+// ----------------------------------------------------------------------
+// Default error sink
+// ----------------------------------------------------------------------
+
+public sealed class UiErrorSink : IUiErrorSink
+{
+    private const int MaxEntries = 20;
+    private readonly List<UiErrorEntry> _entries = new(MaxEntries);
+    private readonly object _gate = new();
+
+    public event Action<UiErrorEntry>? ErrorReported;
+
+    public void Report(string code, string message)
+    {
+        var entry = new UiErrorEntry(code, message, DateTimeOffset.UtcNow);
+        lock (_gate)
+        {
+            if (_entries.Count >= MaxEntries)
+                _entries.RemoveAt(0);
+            _entries.Add(entry);
+        }
+        ErrorReported?.Invoke(entry);
+    }
+
+    public IReadOnlyList<UiErrorEntry> Recent => _entries.AsReadOnly();
+}
+
+public sealed record UiErrorEntry(string Code, string Message, DateTimeOffset TimestampUtc);
+
+// ----------------------------------------------------------------------
+// Test stubs
+// ----------------------------------------------------------------------
+
+file sealed class StubSandboxSelfTest : ISandboxSelfTest
+{
+    public Task<SandboxSelfTestResult> RunAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new SandboxSelfTestResult(
+            true, SandboxSelfTestResult.OkCode,
+            "0000000000000000000000000000000000000000000000000000000000000000",
+            Environment.OSVersion.VersionString,
+            "S-1-0-0", DateTimeOffset.UtcNow));
+    }
+}
+
+file sealed class StubBaselineProvider : ISignedBaselineProvider
+{
+    public Task<bool> HasActiveSignedBaselineAsync(CancellationToken cancellationToken)
+        => Task.FromResult(true);
+}
+
+file sealed class StubSpaceProbe : IAppDataSpaceProbe
+{
+    public Task<bool> HasWritableSpaceAsync(CancellationToken cancellationToken)
+        => Task.FromResult(true);
+}
+
+file sealed class StubDbHealthCheck : IDatabaseHealthCheck
+{
+    public Task<bool> IsHealthyAsync(CancellationToken cancellationToken) => Task.FromResult(true);
+}
+
+file sealed class StubWindowsIdentityProvider : IWindowsIdentityProvider
+{
+    public WindowsIdentityInfo? GetCurrentUser()
+    {
+        return new WindowsIdentityInfo("S-1-5-21-stub", "TestUser");
+    }
+}

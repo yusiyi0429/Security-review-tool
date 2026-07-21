@@ -1,0 +1,39 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Chinese (zh-CN) UI strings. Never contains secrets or internal paths. -->
+
+    <!-- Navigation -->
+    <sys:String x:Key="NavNewScan">新建扫描</sys:String>
+    <sys:String x:Key="NavTaskHistory">任务历史</sys:String>
+    <sys:String x:Key="NavRuleManagement">规则管理</sys:String>
+    <sys:String x:Key="NavLlmSettings">LLM 设置</sys:String>
+    <sys:String x:Key="NavDiagnostics">诊断与帮助</sys:String>
+
+    <!-- Window -->
+    <sys:String x:Key="AppTitle">安全审查工具</sys:String>
+
+    <!-- Status bar labels -->
+    <sys:String x:Key="StatusRuleVersion">规则版本</sys:String>
+    <sys:String x:Key="StatusSandbox">沙箱状态</sys:String>
+    <sys:String x:Key="StatusLlm">LLM 连接</sys:String>
+    <sys:String x:Key="StatusAppVersion">应用版本</sys:String>
+
+    <!-- Health states -->
+    <sys:String x:Key="HealthChecking">检查中…</sys:String>
+    <sys:String x:Key="HealthReady">正常</sys:String>
+    <sys:String x:Key="HealthBlocked">已阻止</sys:String>
+    <sys:String x:Key="HealthUnknown">未知</sys:String>
+
+    <!-- LLM states -->
+    <sys:String x:Key="LlmNotConfigured">未配置</sys:String>
+    <sys:String x:Key="LlmConnected">已连接</sys:String>
+    <sys:String x:Key="LlmDisconnected">未连接</sys:String>
+
+    <!-- Warnings -->
+    <sys:String x:Key="WarningNonLatestRule">规则包不是最新版本</sys:String>
+    <sys:String x:Key="WarningScanDisabled">扫描已禁用 — 启动健康检查未通过</sys:String>
+
+</ResourceDictionary>

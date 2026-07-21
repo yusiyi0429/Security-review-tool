@@ -1,0 +1,40 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Color palette: cool blue-gray with amber warnings. No complete values stored. -->
+
+    <!-- Surface colors -->
+    <Color x:Key="ScSurface0">#FAFBFC</Color>
+    <Color x:Key="ScSurface1">#F0F2F5</Color>
+    <Color x:Key="ScSurface2">#E4E7EB</Color>
+    <Color x:Key="ScSurface3">#D1D5DB</Color>
+
+    <!-- Text colors -->
+    <Color x:Key="ScTextPrimary">#1F2937</Color>
+    <Color x:Key="ScTextSecondary">#6B7280</Color>
+    <Color x:Key="ScTextDisabled">#9CA3AF</Color>
+
+    <!-- Accent -->
+    <Color x:Key="ScAccent">#2563EB</Color>
+    <Color x:Key="ScAccentHover">#1D4ED8</Color>
+
+    <!-- Semantic colors -->
+    <Color x:Key="ScOk">#059669</Color>
+    <Color x:Key="ScWarn">#D97706</Color>
+    <Color x:Key="ScError">#DC2626</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="BrushSurface0" Color="{StaticResource ScSurface0}" />
+    <SolidColorBrush x:Key="BrushSurface1" Color="{StaticResource ScSurface1}" />
+    <SolidColorBrush x:Key="BrushSurface2" Color="{StaticResource ScSurface2}" />
+    <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource ScTextPrimary}" />
+    <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource ScTextSecondary}" />
+    <SolidColorBrush x:Key="BrushTextDisabled" Color="{StaticResource ScTextDisabled}" />
+    <SolidColorBrush x:Key="BrushAccent" Color="{StaticResource ScAccent}" />
+    <SolidColorBrush x:Key="BrushOk" Color="{StaticResource ScOk}" />
+    <SolidColorBrush x:Key="BrushWarn" Color="{StaticResource ScWarn}" />
+    <SolidColorBrush x:Key="BrushError" Color="{StaticResource ScError}" />
+
+</ResourceDictionary>
