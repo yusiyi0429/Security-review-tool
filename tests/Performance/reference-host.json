@@ -1,0 +1,88 @@
+{
+  "$schema": "reference-host.schema.json",
+  "schemaVersion": 1,
+  "description": "Performance baseline reference host — runs are rejected below this floor.",
+  "baseline": {
+    "os": {
+      "family": "Windows",
+      "edition": "Windows 11",
+      "build": "24H2",
+      "architecture": "x64",
+      "supportedEditions": ["Windows 11 24H2", "Windows 11 23H2", "Windows Server 2025"],
+      "minimumBuild": 26100,
+      "notes": "Windows 10 LTSC 2021 runs are compatibility-only, not the primary baseline."
+    },
+    "cpu": {
+      "logicalCores": 8,
+      "minimumLogicalCores": 8,
+      "architecture": "x64",
+      "notes": "Hyper-threading counted as logical cores."
+    },
+    "memory": {
+      "totalGiB": 16,
+      "minimumTotalGiB": 16,
+      "notes": "ECC not required."
+    },
+    "storage": {
+      "type": "NVMe SSD",
+      "minimumSequentialReadMBps": 1000,
+      "minimumFreeSpaceGiB": 100,
+      "notes": "Measured via winsat disk -seq -read or equivalent."
+    },
+    "security": {
+      "defenderRealTimeProtection": true,
+      "notes": "Defender real-time protection must be enabled during measurement."
+    },
+    "power": {
+      "plan": "Balanced",
+      "onAcPower": true,
+      "notes": "Balanced power plan, plugged in."
+    },
+    "environment": {
+      "noDebugger": true,
+      "noRemoteDesktop": false,
+      "minimumFreeMemoryGiB": 8,
+      "notes": "No debugger attached during measurement."
+    }
+  },
+  "validation": {
+    "requiredEnvironmentVariables": ["SECURITY_REVIEW_PERF_HOST=1"],
+    "rejectIfBelowBaseline": true,
+    "collectActualSettings": [
+      "os.edition",
+      "os.build",
+      "cpu.logicalCores",
+      "memory.totalGiB",
+      "storage.type",
+      "storage.sequentialReadMBps",
+      "storage.freeSpaceGiB",
+      "defender.realTimeProtection",
+      "power.plan",
+      "power.onAcPower"
+    ],
+    "reportMismatches": true
+  },
+  "compatibilityTiers": [
+    {
+      "tier": "primary",
+      "os": "Windows 11 24H2",
+      "cpu": 8,
+      "memoryGiB": 16,
+      "storage": "NVMe",
+      "expectedP95StartupS": 5.0,
+      "expectedP95ScanMin": 30.0,
+      "expectedP95PeakMemoryGiB": 1.5
+    },
+    {
+      "tier": "compatibility",
+      "os": "Windows 10 LTSC 2021",
+      "cpu": 4,
+      "memoryGiB": 8,
+      "storage": "SSD",
+      "notes": "Compatibility runs only. NFR thresholds may not hold.",
+      "expectedP95StartupS": null,
+      "expectedP95ScanMin": null,
+      "expectedP95PeakMemoryGiB": null
+    }
+  ]
+}
