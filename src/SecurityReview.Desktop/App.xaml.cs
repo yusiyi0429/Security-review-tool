@@ -1,5 +1,7 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Markup;
+using SecurityReview.Application.Diagnostics;
 using SecurityReview.Desktop.Services;
 
 namespace SecurityReview.Desktop;
@@ -52,11 +54,29 @@ public partial class App : global::System.Windows.Application, IDisposable
         // Install the global UI exception boundary.
         var boundary = new UiExceptionBoundary(
             _root.ErrorSink,
-            async ex =>
+            ex =>
             {
-                // Emit redacted diagnostic to the configured sink.
-                // In production, this would persist to the diagnostics store.
-                await Task.CompletedTask;
+                Exception cause = ex;
+                while (cause.InnerException is { } inner)
+                {
+                    cause = inner;
+                }
+
+                _root.GetService<IDiagnosticSink>().Publish(new DiagnosticEvent(
+                    DiagnosticCode.UiStartupFailed,
+                    DateTimeOffset.UtcNow,
+                    ScanId: null,
+                    CorrelationId: null,
+                    new DiagnosticFields
+                    {
+                        Stage = "ui.startup",
+                        ReasonCode = GetStartupFailureReason(ex),
+                        Module = "SecurityReview.Desktop",
+                        Method = "App.OnStartup",
+                        AppVersion = typeof(App).Assembly.GetName().Version?.ToString(3),
+                        ErrorCode = cause.HResult,
+                    }));
+                return Task.CompletedTask;
             });
         boundary.Install(this);
 
@@ -72,12 +92,15 @@ public partial class App : global::System.Windows.Application, IDisposable
             boundary.ReportStartupFailure(ex);
             MessageBox.Show(
                 UiExceptionBoundary.StartupFailureMessage,
-                "安全审查工具",
+                "安全审查工具 - 启动失败",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(-1);
         }
     }
+
+    private static string GetStartupFailureReason(Exception exception) =>
+        exception is XamlParseException ? "xaml_parse" : "unexpected_exception";
 
     protected override void OnExit(ExitEventArgs e)
     {

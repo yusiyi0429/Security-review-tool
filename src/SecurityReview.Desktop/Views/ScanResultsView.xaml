@@ -4,175 +4,201 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
-             mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=vm:ScanResultsViewModel}">
-    <Grid Margin="16">
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:ScanResultsViewModel}">
+    <Grid Margin="24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="2*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="3*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header: Status & Conclusion -->
-        <Border Grid.Row="0" Padding="12" CornerRadius="6" Margin="0,0,0,8"
-                Background="#E8F0FE">
+        <Grid Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
             <StackPanel>
-                <TextBlock FontSize="18" FontWeight="Bold">
-                    <Run Text="扫描结果 · "/>
-                    <Run Text="{Binding ScanStatusDisplay}"/>
+                <TextBlock Text="ASSESSMENT RESULT" Style="{StaticResource PageEyebrowStyle}" />
+                <TextBlock Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0">
+                    <Run Text="扫描结果 / " /><Run Text="{Binding ScanStatusDisplay}" />
                 </TextBlock>
-                <TextBlock Text="{Binding ConclusionDisplay}" FontSize="14"
-                           Margin="0,4,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding ConclusionDisplay}" Style="{StaticResource PageSubtitleStyle}"
+                           Margin="0,5,20,0" />
             </StackPanel>
-        </Border>
-
-        <!-- Filters -->
-        <GroupBox Grid.Row="1" Header="筛选器" Margin="0,0,0,8">
-            <StackPanel>
-                <UniformGrid Columns="6" Margin="0,0,0,8">
-                    <StackPanel Margin="2">
-                        <TextBlock Text="类别" FontSize="11" Foreground="Gray"/>
-                        <ComboBox SelectedItem="{Binding FilterKind}"
-                                  ItemsSource="{x:Static vm:FilterLists.FindingKinds}"/>
-                    </StackPanel>
-                    <StackPanel Margin="2">
-                        <TextBlock Text="严重级别" FontSize="11" Foreground="Gray"/>
-                        <ComboBox SelectedItem="{Binding FilterSeverity}"
-                                  ItemsSource="{x:Static vm:FilterLists.Severities}"/>
-                    </StackPanel>
-                    <StackPanel Margin="2">
-                        <TextBlock Text="置信度" FontSize="11" Foreground="Gray"/>
-                        <ComboBox SelectedItem="{Binding FilterConfidence}"
-                                  ItemsSource="{x:Static vm:FilterLists.Confidences}"/>
-                    </StackPanel>
-                    <StackPanel Margin="2">
-                        <TextBlock Text="资产类型" FontSize="11" Foreground="Gray"/>
-                        <TextBox Text="{Binding FilterAssetType, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
-                    <StackPanel Margin="2">
-                        <TextBlock Text="复核状态" FontSize="11" Foreground="Gray"/>
-                        <ComboBox SelectedItem="{Binding FilterReviewStatus}"
-                                  ItemsSource="{x:Static vm:FilterLists.ReviewStatuses}"/>
-                    </StackPanel>
-                    <StackPanel Margin="2">
-                        <TextBlock Text="差异状态" FontSize="11" Foreground="Gray"/>
-                        <ComboBox SelectedItem="{Binding FilterDifferenceStatus}"
-                                  ItemsSource="{x:Static vm:FilterLists.DifferenceStatuses}"/>
-                    </StackPanel>
-                </UniformGrid>
+            <Border Grid.Column="1" Style="{StaticResource WarningSignalStyle}" Padding="14,10"
+                    VerticalAlignment="Bottom">
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="应用筛选" Command="{Binding ApplyFilterCommand}"
-                            Padding="10,4" Margin="0,0,8,0"/>
-                    <Button Content="清除筛选" Command="{Binding ClearFiltersCommand}"
-                            Padding="10,4"/>
+                    <TextBlock Text="{Binding TotalGroups}" FontFamily="Bahnschrift SemiBold" FontSize="20"
+                               Foreground="{StaticResource BrushWarn}" VerticalAlignment="Center" />
+                    <TextBlock Text="  个发现组" Foreground="{StaticResource BrushTextSecondary}"
+                               VerticalAlignment="Center" />
                 </StackPanel>
-            </StackPanel>
-        </GroupBox>
-
-        <!-- Pagination -->
-        <Grid Grid.Row="2" Margin="0,0,0,8">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Content="上一页" Command="{Binding PreviousPageCommand}"
-                        IsEnabled="{Binding HasPreviousPage}"
-                        Padding="8,4" Margin="0,0,8,0"/>
-                <TextBlock VerticalAlignment="Center" Margin="4,0">
-                    <Run Text="第 "/>
-                    <Run Text="{Binding CurrentPage, Mode=OneWay}"/>
-                    <Run Text=" 页 · 共 "/>
-                    <Run Text="{Binding TotalPages, Mode=OneWay}"/>
-                    <Run Text=" 页 ("/>
-                    <Run Text="{Binding TotalGroups, Mode=OneWay}"/>
-                    <Run Text=" 个发现组)"/>
-                </TextBlock>
-                <Button Content="下一页" Command="{Binding NextPageCommand}"
-                        IsEnabled="{Binding HasNextPage}"
-                        Padding="8,4" Margin="8,0,0,0"/>
-            </StackPanel>
+            </Border>
         </Grid>
 
-        <!-- Groups List -->
-        <GroupBox Grid.Row="3" Header="发现组" Margin="0,0,0,8">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding Groups}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border BorderBrush="LightGray" BorderThickness="1"
-                                    Padding="10,6" Margin="0,0,0,4" CornerRadius="4"
-                                    Cursor="Hand"
-                                    MouseLeftButtonUp="GroupItem_Click">
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock FontWeight="SemiBold">
-                                            <Run Text="{Binding KindDisplay}"/>
-                                            <Run Text=" · "/>
-                                            <Run Text="{Binding SeverityDisplay}"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                        <TextBlock Text="指纹: " Foreground="Gray" FontSize="12"/>
-                                        <TextBlock Text="{Binding ShortFingerprint}"
-                                                   FontFamily="Consolas" FontSize="12"
-                                                   Foreground="Gray"/>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding OccurrenceCount, StringFormat='{}{0} 个出现'}"
-                                               Foreground="Gray" FontSize="12"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </GroupBox>
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="14" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <UniformGrid Columns="6" Margin="0,0,14,0">
+                    <StackPanel Margin="0,0,7,0">
+                        <TextBlock Text="类别" Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox SelectedItem="{Binding FilterKind}" ItemsSource="{x:Static vm:FilterLists.FindingKinds}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,7,0">
+                        <TextBlock Text="严重级别" Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox SelectedItem="{Binding FilterSeverity}" ItemsSource="{x:Static vm:FilterLists.Severities}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,7,0">
+                        <TextBlock Text="置信度" Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox SelectedItem="{Binding FilterConfidence}" ItemsSource="{x:Static vm:FilterLists.Confidences}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,7,0">
+                        <TextBlock Text="资产类型" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBox Text="{Binding FilterAssetType, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,7,0">
+                        <TextBlock Text="复核状态" Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox SelectedItem="{Binding FilterReviewStatus}" ItemsSource="{x:Static vm:FilterLists.ReviewStatuses}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="差异状态" Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox SelectedItem="{Binding FilterDifferenceStatus}" ItemsSource="{x:Static vm:FilterLists.DifferenceStatuses}" />
+                    </StackPanel>
+                </UniformGrid>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <Button Content="清除" Command="{Binding ClearFiltersCommand}" MinWidth="62" Margin="0,0,7,0" />
+                    <Button Content="应用" Command="{Binding ApplyFilterCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" MinWidth="66" Padding="14,7" />
+                </StackPanel>
+            </Grid>
+        </Border>
 
-        <!-- Occurrence Detail Pane -->
-        <Grid Grid.Row="4" Margin="0,0,0,8">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="1.15*" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="1*" />
             </Grid.ColumnDefinitions>
 
-            <GroupBox Grid.Column="0" Header="出现列表" Margin="0,0,4,0">
-                <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding ExpandedOccurrences}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border BorderBrush="LightGray" BorderThickness="1"
-                                        Padding="6,3" Margin="0,0,0,2" CornerRadius="3"
-                                        Cursor="Hand"
-                                        MouseLeftButtonUp="OccurrenceItem_Click">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding DisplayPath}"
-                                                   FontSize="12"/>
-                                        <TextBlock Text="{Binding DisplayLocator}"
-                                                   FontSize="11" Foreground="Gray"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </GroupBox>
+            <Border Style="{StaticResource CardStyle}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="56" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Background="{StaticResource BrushSurface0}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="发现组" Style="{StaticResource SectionTitleStyle}"
+                                   Margin="16,0" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <Button Content="‹" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}"
+                                    MinWidth="36" Padding="8,5" Margin="0,0,7,0" />
+                            <TextBlock VerticalAlignment="Center" Margin="3,0,10,0" FontSize="12">
+                                <Run Text="{Binding CurrentPage}" /><Run Text=" / " /><Run Text="{Binding TotalPages}" />
+                            </TextBlock>
+                            <Button Content="›" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}"
+                                    MinWidth="36" Padding="8,5" />
+                        </StackPanel>
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Groups}" Margin="10">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource BrushSurface1}"
+                                            BorderBrush="{StaticResource BrushSurface2}" BorderThickness="1"
+                                            CornerRadius="6" Padding="12,10" Margin="0,0,0,7"
+                                            Cursor="Hand" MouseLeftButtonUp="GroupItem_Click">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="4" CornerRadius="2" Background="{StaticResource BrushWarn}" />
+                                            <StackPanel Grid.Column="1" Margin="9,0,10,0">
+                                                <TextBlock FontWeight="SemiBold">
+                                                    <Run Text="{Binding KindDisplay}" /><Run Text="  /  " Foreground="{StaticResource BrushTextDisabled}" />
+                                                    <Run Text="{Binding SeverityDisplay}" Foreground="{StaticResource BrushError}" />
+                                                </TextBlock>
+                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                    <TextBlock Text="FP  " FontFamily="Bahnschrift SemiBold" FontSize="10"
+                                                               Foreground="{StaticResource BrushTextDisabled}" />
+                                                    <TextBlock Text="{Binding ShortFingerprint}" Style="{StaticResource MonoTextStyle}" FontSize="11" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <Border Grid.Column="2" Background="{StaticResource BrushWarnSoft}" CornerRadius="10"
+                                                    Padding="8,3" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding OccurrenceCount, StringFormat='{}{0} 处'}" FontSize="11"
+                                                           FontWeight="SemiBold" Foreground="{StaticResource BrushWarn}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
 
-            <GroupBox Grid.Column="1" Header="发现详情" Margin="4,0,0,0">
-                <StackPanel>
-                    <TextBlock Text="值:" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding DecryptedValue, Mode=OneWay}"
-                             IsReadOnly="True" TextWrapping="Wrap"
-                             FontFamily="Consolas" FontSize="13"
-                             Background="#F5F5F5" BorderBrush="LightGray"
-                             MaxHeight="100" VerticalScrollBarVisibility="Auto"
-                             Margin="0,0,0,8"/>
-                    <TextBlock Text="上下文:" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding DecryptedContext, Mode=OneWay}"
-                             IsReadOnly="True" TextWrapping="Wrap"
-                             FontFamily="Consolas" FontSize="13"
-                             Background="#F5F5F5" BorderBrush="LightGray"
-                             MaxHeight="150" VerticalScrollBarVisibility="Auto"/>
-                </StackPanel>
-            </GroupBox>
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="0.9*" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="1.1*" />
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource CardStyle}" Padding="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="48" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="出现位置" Style="{StaticResource SectionTitleStyle}"
+                                   VerticalAlignment="Center" Margin="15,0" />
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ExpandedOccurrences}" Margin="10,4,10,10">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,0,0,1"
+                                                Padding="5,8" Cursor="Hand" MouseLeftButtonUp="OccurrenceItem_Click">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding DisplayPath}" FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding DisplayLocator}" Style="{StaticResource MonoTextStyle}"
+                                                           FontSize="10" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="解密值" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBox Grid.Row="1" Text="{Binding DecryptedValue, Mode=OneWay}" IsReadOnly="True"
+                                 TextWrapping="Wrap" FontFamily="Cascadia Mono" FontSize="12"
+                                 VerticalScrollBarVisibility="Auto" Margin="0,0,0,10" />
+                        <TextBlock Grid.Row="2" Text="上下文" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBox Grid.Row="3" Text="{Binding DecryptedContext, Mode=OneWay}" IsReadOnly="True"
+                                 TextWrapping="Wrap" FontFamily="Cascadia Mono" FontSize="12"
+                                 VerticalScrollBarVisibility="Auto" />
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

@@ -75,13 +75,13 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0"
                                                Text="{Binding LineNumber}"
-                                               FontFamily="Consolas" FontSize="12"
+                                               FontFamily="Cascadia Mono" FontSize="12"
                                                Foreground="{StaticResource BrushTextDisabled}"
                                                Margin="0,0,8,0"
                                                TextAlignment="Right"/>
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding Text}"
-                                               FontFamily="Consolas" FontSize="12"
+                                               FontFamily="Cascadia Mono" FontSize="12"
                                                Foreground="{StaticResource BrushTextPrimary}"
                                                TextWrapping="NoWrap"/>
                                 </Grid>
@@ -128,7 +128,7 @@
                                                     BorderThickness="1"
                                                     MinWidth="80">
                                                 <TextBlock Text="{Binding}"
-                                                           FontFamily="Consolas" FontSize="12"
+                                                           FontFamily="Cascadia Mono" FontSize="12"
                                                            Foreground="{StaticResource BrushTextPrimary}"/>
                                             </Border>
                                         </DataTemplate>
@@ -170,11 +170,11 @@
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="{Binding Offset, StringFormat={}{0:X8}}"
-                                               FontFamily="Consolas" FontSize="12"
+                                               FontFamily="Cascadia Mono" FontSize="12"
                                                Foreground="{StaticResource BrushTextDisabled}"
                                                Width="70" Margin="0,0,8,0"/>
                                     <TextBlock Text="{Binding Hex}"
-                                               FontFamily="Consolas" FontSize="12"
+                                               FontFamily="Cascadia Mono" FontSize="12"
                                                Foreground="{StaticResource BrushTextPrimary}"/>
                                 </StackPanel>
                             </DataTemplate>
@@ -194,7 +194,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding}"
-                                           FontFamily="Consolas" FontSize="12"
+                                           FontFamily="Cascadia Mono" FontSize="12"
                                            Foreground="{StaticResource BrushTextPrimary}"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

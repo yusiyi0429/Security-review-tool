@@ -8,15 +8,17 @@
         xmlns:views="clr-namespace:SecurityReview.Desktop.Views"
         mc:Ignorable="d"
         Title="安全审查工具"
-        MinWidth="1280" MinHeight="720"
-        Width="1280" Height="720"
+        Icon="Assets/SecurityReviewTool.ico"
+        MinWidth="1180" MinHeight="720"
+        Width="1360" Height="820"
         WindowStartupLocation="CenterScreen"
-        FontFamily="Microsoft YaHei, Segoe UI, sans-serif"
-        FontSize="14"
+        FontFamily="Microsoft YaHei UI"
+        FontSize="13"
+        Foreground="{DynamicResource BrushTextPrimary}"
+        Background="{DynamicResource BrushSurface0}"
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        Focusable="True"
         d:DataContext="{d:DesignInstance vm:MainWindowViewModel}">
 
     <Window.Resources>
@@ -26,143 +28,177 @@
                 <ResourceDictionary Source="Resources/Strings.zh-CN.xaml" />
                 <ResourceDictionary Source="Resources/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
         </ResourceDictionary>
     </Window.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Grid Background="{StaticResource BrushSurface0}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="248" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="38" />
+        </Grid.RowDefinitions>
 
-        <!-- Title bar -->
-        <Border Grid.Row="0" Grid.ColumnSpan="2"
-                Background="{StaticResource BrushSurface1}"
-                BorderBrush="{StaticResource BrushSurface2}"
-                BorderThickness="0,0,0,1"
-                Padding="16,10">
-            <TextBlock Text="{StaticResource AppTitle}"
-                       FontSize="16" FontWeight="SemiBold"
-                       Foreground="{StaticResource BrushTextPrimary}" />
-        </Border>
+        <!-- Brand rail -->
+        <Border Grid.RowSpan="2" Background="{StaticResource BrushShellGradient}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        <!-- Navigation sidebar -->
-        <Border Grid.Row="1" Grid.Column="0"
-                Background="{StaticResource BrushSurface0}"
-                BorderBrush="{StaticResource BrushSurface2}"
-                BorderThickness="0,0,1,0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="0,8,0,0">
-                    <Button Style="{StaticResource NavButtonStyle}"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="{x:Static local:Services.NavigationEntry.新建扫描}"
-                            Content="{StaticResource NavNewScan}" />
-                    <Button Style="{StaticResource NavButtonStyle}"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="{x:Static local:Services.NavigationEntry.任务历史}"
-                            Content="{StaticResource NavTaskHistory}" />
-                    <Button Style="{StaticResource NavButtonStyle}"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="{x:Static local:Services.NavigationEntry.规则管理}"
-                            Content="{StaticResource NavRuleManagement}" />
-                    <Button Style="{StaticResource NavButtonStyle}"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="{x:Static local:Services.NavigationEntry.LLM设置}"
-                            Content="{StaticResource NavLlmSettings}" />
-                    <Button Style="{StaticResource NavButtonStyle}"
-                            Command="{Binding NavigateCommand}"
-                            CommandParameter="{x:Static local:Services.NavigationEntry.诊断与帮助}"
-                            Content="{StaticResource NavDiagnostics}" />
+                <Grid Margin="22,24,18,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="46" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="40" Height="40" CornerRadius="10" Background="#16FFFFFF">
+                        <Image Source="Assets/SecurityReviewTool.png" Width="32" Height="32"
+                               Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
+                        <TextBlock Text="SECURITY REVIEW" FontFamily="Bahnschrift SemiBold"
+                                   FontSize="14" Foreground="{StaticResource BrushTextOnDark}"
+                                   />
+                        <TextBlock Text="敏感信息监测工作台" FontSize="11"
+                                   Foreground="{StaticResource BrushTextOnDarkMuted}" Margin="0,2,0,0" />
+                    </StackPanel>
+                </Grid>
+
+                <Border Grid.Row="1" Height="1" Background="#20FFFFFF" Margin="18,0" />
+
+                <StackPanel Grid.Row="2" Margin="0,18,0,0">
+                    <TextBlock Text="WORKSPACE" FontFamily="Bahnschrift SemiBold" FontSize="10"
+                               Foreground="#7390AA" Margin="26,0,0,8" />
+                    <RadioButton GroupName="PrimaryNavigation" Style="{StaticResource NavButtonStyle}"
+                                 Tag="01" IsChecked="True"
+                                 Command="{Binding NavigateCommand}"
+                                 CommandParameter="{x:Static local:Services.NavigationEntry.新建扫描}"
+                                 Content="{StaticResource NavNewScan}" />
+                    <RadioButton GroupName="PrimaryNavigation" Style="{StaticResource NavButtonStyle}"
+                                 Tag="02" Command="{Binding NavigateCommand}"
+                                 CommandParameter="{x:Static local:Services.NavigationEntry.任务历史}"
+                                 Content="{StaticResource NavTaskHistory}" />
+                    <RadioButton GroupName="PrimaryNavigation" Style="{StaticResource NavButtonStyle}"
+                                 Tag="03" Command="{Binding NavigateCommand}"
+                                 CommandParameter="{x:Static local:Services.NavigationEntry.规则管理}"
+                                 Content="{StaticResource NavRuleManagement}" />
+                    <RadioButton GroupName="PrimaryNavigation" Style="{StaticResource NavButtonStyle}"
+                                 Tag="04" Command="{Binding NavigateCommand}"
+                                 CommandParameter="{x:Static local:Services.NavigationEntry.LLM设置}"
+                                 Content="{StaticResource NavLlmSettings}" />
+                    <RadioButton GroupName="PrimaryNavigation" Style="{StaticResource NavButtonStyle}"
+                                 Tag="05" Command="{Binding NavigateCommand}"
+                                 CommandParameter="{x:Static local:Services.NavigationEntry.诊断与帮助}"
+                                 Content="{StaticResource NavDiagnostics}" />
                 </StackPanel>
-            </ScrollViewer>
+
+                <Border Grid.Row="3" Margin="18,16,18,54" Padding="13,11"
+                        CornerRadius="6" Background="#0F3555" BorderBrush="#1B4768" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="6" Height="6" Fill="{StaticResource BrushOk}"
+                                 VerticalAlignment="Top" Margin="0,5,0,0" />
+                        <StackPanel Grid.Column="1" Margin="9,0,0,0">
+                            <TextBlock Text="LOCAL-FIRST" FontFamily="Bahnschrift SemiBold" FontSize="10"
+                                       Foreground="{StaticResource BrushTextOnDark}" />
+                            <TextBlock Text="敏感数据默认仅在本机处理" FontSize="11"
+                                       Foreground="{StaticResource BrushTextOnDarkMuted}" Margin="0,3,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
         </Border>
 
-        <!-- Content area with dynamic view switching -->
-        <ContentControl Grid.Row="1" Grid.Column="1"
-                        Background="{StaticResource BrushSurface0}"
-                        Margin="16"
-                        Content="{Binding CurrentView}">
-            <ContentControl.Resources>
-                <DataTemplate DataType="{x:Type vm:NewScanViewModel}">
-                    <views:NewScanView />
-                </DataTemplate>
-                <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
-                    <views:HistoryView />
-                </DataTemplate>
-                <DataTemplate DataType="{x:Type vm:RuleManagementViewModel}">
-                    <views:RuleManagementView />
-                </DataTemplate>
-                <DataTemplate DataType="{x:Type vm:LlmSettingsViewModel}">
-                    <views:LlmSettingsView />
-                </DataTemplate>
-                <DataTemplate DataType="{x:Type vm:CoverageViewModel}">
-                    <views:CoverageView />
-                </DataTemplate>
-            </ContentControl.Resources>
-        </ContentControl>
+        <!-- Work area -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="82" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!-- Status bar -->
-        <Border Grid.Row="2" Grid.ColumnSpan="2"
-                Background="{StaticResource BrushSurface1}"
-                BorderBrush="{StaticResource BrushSurface2}"
-                BorderThickness="0,1,0,0"
-                Padding="10,6">
+            <Border Background="{StaticResource BrushSurface1}"
+                    BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,0,0,1">
+                <Grid Margin="28,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="安全检测工作台" FontFamily="Bahnschrift SemiBold"
+                                   FontSize="20" Foreground="{StaticResource BrushTextPrimary}" />
+                        <TextBlock Text="资产发现 · 规则匹配 · 风险复核" FontSize="12"
+                                   Foreground="{StaticResource BrushTextSecondary}" Margin="0,3,0,0" />
+                    </StackPanel>
+                    <Border Grid.Column="1" VerticalAlignment="Center" Padding="11,7"
+                            CornerRadius="5" Background="{StaticResource BrushAccentSoft}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="7" Height="7" Fill="{StaticResource BrushAccent}"
+                                     VerticalAlignment="Center" Margin="0,0,7,0" />
+                            <TextBlock Text="本地安全模式" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrushAccentHover}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <ContentControl Grid.Row="1" Margin="28,22,28,24"
+                            Content="{Binding CurrentView}">
+                <ContentControl.Resources>
+                    <DataTemplate DataType="{x:Type vm:NewScanViewModel}">
+                        <views:NewScanView />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
+                        <views:HistoryView />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:RuleManagementViewModel}">
+                        <views:RuleManagementView />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:LlmSettingsViewModel}">
+                        <views:LlmSettingsView />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:CoverageViewModel}">
+                        <views:CoverageView />
+                    </DataTemplate>
+                </ContentControl.Resources>
+            </ContentControl>
+        </Grid>
+
+        <!-- Operational status strip -->
+        <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource BrushSurface1}"
+                BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,1,0,0"
+                Padding="18,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <!-- Rule version -->
-                    <TextBlock Style="{StaticResource StatusBarLabelStyle}"
-                               Text="{StaticResource StatusRuleVersion}" />
-                    <TextBlock Style="{StaticResource StatusBarItemStyle}"
-                               Text="{Binding RulePackageVersion}" />
-
-                    <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
-
-                    <!-- Sandbox health -->
-                    <TextBlock Style="{StaticResource StatusBarLabelStyle}"
-                               Text="{StaticResource StatusSandbox}" />
-                    <TextBlock Style="{StaticResource StatusBarItemStyle}"
-                               Text="{Binding SandboxHealth}" />
-
-                    <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
-
-                    <!-- LLM state -->
-                    <TextBlock Style="{StaticResource StatusBarLabelStyle}"
-                               Text="{StaticResource StatusLlm}" />
-                    <TextBlock Style="{StaticResource StatusBarItemStyle}"
-                               Text="{Binding LlmState}" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="6" Height="6" Fill="{StaticResource BrushOk}" Margin="0,0,5,0" />
+                    <TextBlock Style="{StaticResource StatusBarLabelStyle}" Text="{StaticResource StatusRuleVersion}" />
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}" Text="{Binding RulePackageVersion}" />
+                    <Separator Width="1" Margin="9,5" Background="{StaticResource BrushSurface3}" />
+                    <TextBlock Style="{StaticResource StatusBarLabelStyle}" Text="{StaticResource StatusSandbox}" />
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}" Text="{Binding SandboxHealth}" />
+                    <Separator Width="1" Margin="9,5" Background="{StaticResource BrushSurface3}" />
+                    <TextBlock Style="{StaticResource StatusBarLabelStyle}" Text="{StaticResource StatusLlm}" />
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}" Text="{Binding LlmState}" />
                 </StackPanel>
-
-                <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <!-- Non-latest rule warning -->
-                    <TextBlock x:Name="WarningRule"
-                               Style="{StaticResource StatusBarItemStyle}"
-                               Foreground="{StaticResource BrushWarn}"
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}" Foreground="{StaticResource BrushWarn}"
                                Text="{StaticResource WarningNonLatestRule}"
-                               Visibility="{Binding NonLatestRuleWarning,
-                                   Converter={StaticResource BooleanToVisibility}}">
-                        <TextBlock.Resources>
-                            <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
-                        </TextBlock.Resources>
-                    </TextBlock>
-
-                    <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
-
-                    <!-- App version -->
-                    <TextBlock Style="{StaticResource StatusBarLabelStyle}"
-                               Text="{StaticResource StatusAppVersion}" />
-                    <TextBlock Style="{StaticResource StatusBarItemStyle}"
-                               Text="{Binding AppVersion}" />
+                               Visibility="{Binding NonLatestRuleWarning, Converter={StaticResource BooleanToVisibility}}" />
+                    <TextBlock Style="{StaticResource StatusBarLabelStyle}" Text="{StaticResource StatusAppVersion}" />
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}" Text="{Binding AppVersion}" />
                 </StackPanel>
             </Grid>
         </Border>

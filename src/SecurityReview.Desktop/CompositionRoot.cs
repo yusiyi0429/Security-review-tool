@@ -83,6 +83,11 @@ public sealed class CompositionRoot : IDisposable
         Register<IApplicationPaths>(paths);
         RegisterConcrete(paths);
 
+        var diagSink = new Infrastructure.Diagnostics.RedactedJsonlDiagnosticSink(
+            paths.Diagnostics, "diagnostics");
+        Register<IDiagnosticSink>(diagSink);
+        RegisterConcrete(diagSink);
+
         // --- Step 2: SQLite connection factory ---
         var connectionFactory = new SqliteConnectionFactory(paths);
         Register<ISqliteConnectionFactory>(connectionFactory);
@@ -218,11 +223,6 @@ public sealed class CompositionRoot : IDisposable
         ISandboxSelfTest? sandbox = TryGet<ISandboxSelfTest>();
         if (cryptoOk)
         {
-            var diagSink = new Infrastructure.Diagnostics.RedactedJsonlDiagnosticSink(
-                paths.Diagnostics, "diagnostics");
-            Register<IDiagnosticSink>(diagSink);
-            RegisterConcrete(diagSink);
-
             ISecretStore? secrets = TryGet<ISecretStore>();
             if (secrets is not null)
             {

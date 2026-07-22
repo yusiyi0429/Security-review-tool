@@ -4,130 +4,142 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
-             mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=vm:ScanProgressViewModel}">
-    <Grid Margin="16">
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:ScanProgressViewModel}">
+    <Grid Margin="24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header: Current Stage -->
-        <Border Grid.Row="0" Padding="12" CornerRadius="6" Margin="0,0,0,12"
-                Background="#E8F0FE">
-            <StackPanel>
-                <TextBlock Text="扫描状态" FontSize="18" FontWeight="Bold"/>
-                <TextBlock Text="{Binding StageDisplay}" FontSize="24"
-                           Foreground="#1A56DB" Margin="0,4,0,0"/>
-            </StackPanel>
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock Text="LIVE SCAN" Style="{StaticResource PageEyebrowStyle}" />
+            <TextBlock Text="扫描正在执行" Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0" />
+            <TextBlock Text="检测引擎正在本地处理资产，可在下方查看实时阶段与工作负载。"
+                       Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,0" />
+        </StackPanel>
+
+        <Border Grid.Row="1" Style="{StaticResource AccentSignalStyle}" Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="当前阶段" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBlock Text="{Binding StageDisplay}" FontFamily="Bahnschrift SemiBold" FontSize="22" />
+                    <ProgressBar Value="{Binding ProgressPercentage}" Minimum="0" Maximum="100"
+                                 Style="{StaticResource WorkbenchProgressBarStyle}" Margin="0,14,0,0" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding ProgressPercentage, StringFormat='{}{0:F1}%'}"
+                           FontFamily="Bahnschrift SemiBold" FontSize="34"
+                           Foreground="{StaticResource BrushAccentHover}" VerticalAlignment="Center" Margin="28,0,4,0" />
+            </Grid>
         </Border>
 
-        <!-- Progress Bar -->
-        <Grid Grid.Row="1" Margin="0,0,0,12">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <ProgressBar Grid.Row="0" Value="{Binding ProgressPercentage}"
-                         Minimum="0" Maximum="100" Height="24"/>
-            <TextBlock Grid.Row="1" Text="{Binding ProgressPercentage, StringFormat='{}{0:F1}%'}"
-                       HorizontalAlignment="Center" Margin="0,4,0,0"
-                       FontSize="14" FontWeight="SemiBold"/>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="工作负载" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,14" />
+                    <UniformGrid Grid.Row="1" Columns="2" Rows="5">
+                        <StackPanel Margin="0,5,12,10">
+                            <TextBlock Text="已发现文件" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding DiscoveredFiles}" FontFamily="Bahnschrift SemiBold" FontSize="21" />
+                        </StackPanel>
+                        <StackPanel Margin="12,5,0,10">
+                            <TextBlock Text="已处理文件" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding ProcessedFiles}" FontFamily="Bahnschrift SemiBold" FontSize="21" />
+                        </StackPanel>
+                        <StackPanel Margin="0,5,12,10">
+                            <TextBlock Text="处理失败" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding FailedFiles}" FontFamily="Bahnschrift SemiBold" FontSize="21"
+                                       Foreground="{StaticResource BrushError}" />
+                        </StackPanel>
+                        <StackPanel Margin="12,5,0,10">
+                            <TextBlock Text="发现计数" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding FindingCount}" FontFamily="Bahnschrift SemiBold" FontSize="21"
+                                       Foreground="{StaticResource BrushWarn}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,5,12,10">
+                            <TextBlock Text="归档条目" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding ArchiveEntryCount}" FontFamily="Bahnschrift SemiBold" FontSize="18" />
+                        </StackPanel>
+                        <StackPanel Margin="12,5,0,10">
+                            <TextBlock Text="活动 Worker" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding ActiveWorkerCount}" FontFamily="Bahnschrift SemiBold" FontSize="18" />
+                        </StackPanel>
+                        <StackPanel Margin="0,5,12,10">
+                            <TextBlock Text="LLM 队列" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding LlmQueueCount}" FontFamily="Bahnschrift SemiBold" FontSize="18" />
+                        </StackPanel>
+                        <StackPanel Margin="12,5,0,10">
+                            <TextBlock Text="当前文件序号" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding CurrentFileOrdinal}" FontFamily="Bahnschrift SemiBold" FontSize="18" />
+                        </StackPanel>
+                        <StackPanel Margin="0,5,12,0">
+                            <TextBlock Text="已处理 / 计划字节" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock FontFamily="Cascadia Mono" FontSize="12">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:N0} / {1:N0}">
+                                        <Binding Path="ProcessedBytes" /><Binding Path="PlannedBytes" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </StackPanel>
+                    </UniformGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="阶段日志" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Grid.Column="1" Text="REALTIME" FontFamily="Bahnschrift SemiBold" FontSize="9"
+                                   Foreground="{StaticResource BrushOk}" />
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding StageLog}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,0,0,1"
+                                            Padding="0,9">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Stage}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Description}" Style="{StaticResource PageSubtitleStyle}"
+                                                       FontSize="11" Margin="0,3,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
         </Grid>
 
-        <!-- Detail Counts -->
-        <GroupBox Grid.Row="2" Header="进度详情" Margin="0,0,0,12">
-            <UniformGrid Columns="3" Rows="4">
-                <StackPanel Margin="4">
-                    <TextBlock Text="阶段" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding StageDisplay}" FontWeight="SemiBold"/>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="已发现" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding DiscoveredFiles}" FontWeight="SemiBold"/>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="已处理" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding ProcessedFiles}" FontWeight="SemiBold"/>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="失败" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding FailedFiles}" FontWeight="SemiBold"/>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="已处理字节 / 计划" Foreground="Gray" FontSize="11"/>
-                    <TextBlock FontWeight="SemiBold">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:N0} / {1:N0}">
-                                <Binding Path="ProcessedBytes"/>
-                                <Binding Path="PlannedBytes"/>
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="归档条目" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding ArchiveEntryCount}" FontWeight="SemiBold"/>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="活动 Worker" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding ActiveWorkerCount}" FontWeight="SemiBold"/>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="发现计数" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding FindingCount}" FontWeight="SemiBold"/>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="LLM 队列" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding LlmQueueCount}" FontWeight="SemiBold"/>
-                </StackPanel>
-                <StackPanel Margin="4">
-                    <TextBlock Text="当前文件序号" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding CurrentFileOrdinal}" FontWeight="SemiBold"/>
-                </StackPanel>
-            </UniformGrid>
-        </GroupBox>
-
-        <!-- Stage Log -->
-        <GroupBox Grid.Row="3" Header="阶段日志" Margin="0,0,0,12">
-            <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding StageLog}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock FontSize="12" Margin="2,1,2,1">
-                                <Run Text="{Binding Stage, Mode=OneWay}"
-                                     FontWeight="SemiBold"/>
-                                <Run Text=" " Foreground="Gray"/>
-                                <Run Text="{Binding Description, Mode=OneWay}" Foreground="Gray"/>
-                            </TextBlock>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </GroupBox>
-
-        <!-- Cancel Button -->
-        <Grid Grid.Row="4">
-            <Button Content="{Binding CancelButtonText}"
-                    Command="{Binding CancelCommand}"
-                    IsEnabled="{Binding CancelEnabled}"
-                    Padding="16,8" FontSize="16" HorizontalAlignment="Center"
-                    MinWidth="160"
-                    Foreground="White">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#DC3545"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding CancelEnabled}" Value="False">
-                                <Setter Property="Background" Value="Gray"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
+        <Grid Grid.Row="3" Margin="0,18,0,0">
+            <Button Content="{Binding CancelButtonText}" Command="{Binding CancelCommand}"
+                    IsEnabled="{Binding CancelEnabled}" Style="{StaticResource DangerButtonStyle}"
+                    MinWidth="160" HorizontalAlignment="Right" />
         </Grid>
     </Grid>
 </UserControl>

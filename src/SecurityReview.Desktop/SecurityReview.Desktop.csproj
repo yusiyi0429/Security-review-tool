@@ -10,6 +10,8 @@
     <Content Include="Assets\rules\trusted-signers.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Assets\SecurityReviewTool.ico" />
+    <Resource Include="Assets\SecurityReviewTool.png" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -17,6 +19,7 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <AssemblyName>SecurityReviewTool</AssemblyName>
+    <ApplicationIcon>Assets\SecurityReviewTool.ico</ApplicationIcon>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>

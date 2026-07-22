@@ -4,61 +4,83 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
-             mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=vm:LlmSettingsViewModel}">
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:LlmSettingsViewModel}">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="16">
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Connection test status -->
-            <Border Grid.Row="0" Padding="12" CornerRadius="6"
-                    Background="#E8F0FE" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock FontSize="14" FontWeight="Bold">
-                        <Run Text="测试状态: "/><Run Text="{Binding LastTestStatus}"/>
-                    </TextBlock>
-                    <TextBlock FontSize="12" Foreground="Gray" Margin="0,4,0,0">
-                        <Run Text="端点: "/><Run Text="{Binding LastTestOrigin}"/>
-                    </TextBlock>
-                    <TextBlock FontSize="12" Foreground="Gray">
-                        <Run Text="时间: "/><Run Text="{Binding LastTestTime}"/>
-                    </TextBlock>
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="AI ASSIST" Style="{StaticResource PageEyebrowStyle}" />
+                <TextBlock Text="LLM 设置" Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0" />
+                <TextBlock Text="连接兼容端点以辅助结果分析。未配置时，核心规则扫描仍可独立运行。"
+                           Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,0" />
+            </StackPanel>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.35*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="连接配置" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="仅允许 HTTPS 基地址；密钥由系统安全存储管理。"
+                                   Style="{StaticResource PageSubtitleStyle}" Margin="0,4,0,18" />
+
+                        <TextBlock Text="服务基地址（HTTPS）" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBox Text="{Binding BaseUri, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,0,0,15" />
+
+                        <TextBlock Text="模型标识" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,0,0,20" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="加载配置" Command="{Binding LoadCommand}" Margin="0,0,8,0" />
+                            <Button Content="保存配置" Command="{Binding SaveCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" Padding="14,7" Margin="0,0,8,0" />
+                            <Button Content="清除" Command="{Binding ClearCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Grid.Column="2">
+                    <Border Style="{StaticResource AccentSignalStyle}" Margin="0,0,0,14">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="连接测试" Style="{StaticResource SectionTitleStyle}" />
+                                <Ellipse Grid.Column="1" Width="9" Height="9" Fill="{StaticResource BrushAccent}"
+                                         VerticalAlignment="Center" />
+                            </Grid>
+                            <TextBlock Text="{Binding LastTestStatus}" FontFamily="Bahnschrift SemiBold"
+                                       FontSize="20" Margin="0,12,0,10" />
+                            <Border Background="#70FFFFFF" CornerRadius="5" Padding="10">
+                                <StackPanel>
+                                    <TextBlock Text="上次测试端点" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{Binding LastTestOrigin}" Style="{StaticResource MonoTextStyle}"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding LastTestTime}" FontSize="11"
+                                               Foreground="{StaticResource BrushTextSecondary}" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <Button Content="测试当前连接  →" Command="{Binding TestCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                    <TextBlock Text="测试请求不会携带扫描发现或敏感内容。"
+                               Style="{StaticResource PageSubtitleStyle}" FontSize="11"
+                               HorizontalAlignment="Center" Margin="0,8,0,0" />
                 </StackPanel>
-            </Border>
-
-            <!-- Base URI -->
-            <StackPanel Grid.Row="1" Margin="0,0,0,8">
-                <TextBlock Text="基地址 (HTTPS)" FontWeight="SemiBold"/>
-                <TextBox Text="{Binding BaseUri, UpdateSourceTrigger=PropertyChanged}"
-                         Margin="0,4,0,0"/>
-            </StackPanel>
-
-            <!-- Model -->
-            <StackPanel Grid.Row="2" Margin="0,0,0,8">
-                <TextBlock Text="模型" FontWeight="SemiBold"/>
-                <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
-                         Margin="0,4,0,0"/>
-            </StackPanel>
-
-            <!-- Actions -->
-            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
-                <Button Content="加载配置" Command="{Binding LoadCommand}"
-                        Padding="8,4" Margin="0,0,6,0"/>
-                <Button Content="保存配置" Command="{Binding SaveCommand}"
-                        Padding="8,4" Margin="0,0,6,0"/>
-                <Button Content="测试连接" Command="{Binding TestCommand}"
-                        Padding="8,4" Margin="0,0,6,0"/>
-                <Button Content="清除配置" Command="{Binding ClearCommand}"
-                        Padding="8,4"/>
-            </StackPanel>
+            </Grid>
         </Grid>
     </ScrollViewer>
 </UserControl>

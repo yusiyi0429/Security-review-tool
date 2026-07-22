@@ -37,6 +37,7 @@ WizardStyle=modern
 CloseApplications=yes
 RestartApplications=no
 UninstallDisplayIcon={app}\SecurityReviewTool.exe
+SetupIconFile=..\src\SecurityReview.Desktop\Assets\SecurityReviewTool.ico
 UsePreviousAppDir=yes
 
 [Languages]
@@ -49,8 +50,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\安全审查工具"; Filename: "{app}\SecurityReviewTool.exe"; WorkingDir: "{app}"
-Name: "{autodesktop}\安全审查工具"; Filename: "{app}\SecurityReviewTool.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{group}\安全审查工具"; Filename: "{app}\SecurityReviewTool.exe"; WorkingDir: "{app}"; IconFilename: "{app}\SecurityReviewTool.exe"; IconIndex: 0
+Name: "{autodesktop}\安全审查工具"; Filename: "{app}\SecurityReviewTool.exe"; WorkingDir: "{app}"; IconFilename: "{app}\SecurityReviewTool.exe"; IconIndex: 0; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\SecurityReviewTool.exe"; Description: "{cm:LaunchProgram,安全审查工具}"; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent

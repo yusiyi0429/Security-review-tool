@@ -4,45 +4,95 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
-             mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance Type=vm:HistoryViewModel}">
-    <Grid Margin="16">
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:HistoryViewModel}">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Toolbar -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="刷新" Command="{Binding RefreshCommand}"
-                    Padding="8,4" Margin="0,0,6,0"/>
-            <Button Content="重新扫描" Command="{Binding RescanCommand}"
-                    Padding="8,4" Margin="0,0,6,0"/>
-            <Button Content="删除" Command="{Binding DeleteCommand}"
-                    Padding="8,4"/>
-        </StackPanel>
+        <Grid Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="AUDIT TRAIL" Style="{StaticResource PageEyebrowStyle}" />
+                <TextBlock Text="任务历史" Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0" />
+                <TextBlock Text="回看扫描结论，基于历史配置重新执行，或清理不再需要的任务记录。"
+                           Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+                <Button Content="刷新记录" Command="{Binding RefreshCommand}" Margin="0,0,8,0" />
+                <Button Content="重新扫描" Command="{Binding RescanCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" Padding="14,7" Margin="0,0,8,0" />
+                <Button Content="删除记录" Command="{Binding DeleteCommand}" />
+            </StackPanel>
+        </Grid>
 
-        <!-- Scan list -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding Scans}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border BorderBrush="LightGray" BorderThickness="1"
-                                Padding="10,8" Margin="0,0,0,4" CornerRadius="4">
-                            <StackPanel>
-                                <TextBlock FontWeight="SemiBold" FontSize="14">
-                                    <Run Text="{Binding CreatedAtDisplay}"/>
-                                    <Run Text=" · "/>
-                                    <Run Text="{Binding StatusDisplay}"/>
-                                </TextBlock>
-                                <TextBlock Text="{Binding RiskSummary}"
-                                           FontSize="12" Foreground="Gray"
-                                           Margin="0,4,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+        <Border Grid.Row="1" Style="{StaticResource AccentSignalStyle}" Padding="14,10" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="i" FontFamily="Bahnschrift SemiBold" FontSize="13"
+                           Foreground="{StaticResource BrushAccentHover}" Margin="0,0,9,0" />
+                <TextBlock Grid.Column="1" Text="选择一条任务记录后，可执行重新扫描或删除操作。"
+                           Foreground="{StaticResource BrushAccentHover}" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="48" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid Background="{StaticResource BrushSurface0}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="180" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="扫描任务 / 创建时间" Style="{StaticResource FieldLabelStyle}"
+                               FontWeight="SemiBold" VerticalAlignment="Center" Margin="18,5,0,0" />
+                    <TextBlock Grid.Column="1" Text="风险摘要" Style="{StaticResource FieldLabelStyle}"
+                               FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,5,18,0" />
+                </Grid>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Scans}" Margin="12,10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,0,0,1"
+                                        Padding="7,12" Background="Transparent">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="180" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="4" Height="28" CornerRadius="2" Background="{StaticResource BrushAccent}"
+                                                HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock FontWeight="SemiBold" FontSize="14">
+                                                <Run Text="{Binding CreatedAtDisplay}" />
+                                                <Run Text="  /  " Foreground="{StaticResource BrushTextDisabled}" />
+                                                <Run Text="{Binding StatusDisplay}" />
+                                            </TextBlock>
+                                            <TextBlock Text="本地安全扫描记录" Style="{StaticResource PageSubtitleStyle}"
+                                                       FontSize="11" Margin="0,3,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding RiskSummary}" FontSize="12"
+                                                   Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

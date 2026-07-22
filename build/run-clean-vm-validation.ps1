@@ -197,8 +197,13 @@ try {
         $windowFound = $false
         while ([DateTime]::UtcNow -lt $deadline) {
             $proc.Refresh()
-            if ($proc.MainWindowHandle -ne [IntPtr]::Zero) {
+            if ($proc.MainWindowHandle -ne [IntPtr]::Zero -and
+                $proc.MainWindowTitle -eq "安全审查工具") {
                 $windowFound = $true
+                break
+            }
+            if ($proc.MainWindowTitle -eq "安全审查工具 - 启动失败") {
+                $evidence.failures += "Startup failure dialog was shown instead of the main window."
                 break
             }
             if ($proc.HasExited) {

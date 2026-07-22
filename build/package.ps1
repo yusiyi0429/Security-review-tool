@@ -63,13 +63,23 @@ try {
     dotnet @restoreArgs
     if ($LASTEXITCODE -ne 0) { throw "Locked restore failed." }
 
-    dotnet build SecurityReviewTool.sln -c $Configuration --no-restore
-    if ($LASTEXITCODE -ne 0) { throw "Build failed." }
+    $solutionProjects = @(
+        dotnet sln SecurityReviewTool.sln list |
+            Where-Object { $_.Trim().EndsWith(".csproj", [StringComparison]::OrdinalIgnoreCase) } |
+            ForEach-Object { $_.Trim() }
+    )
+    if ($LASTEXITCODE -ne 0 -or $solutionProjects.Count -eq 0) {
+        throw "Could not enumerate solution projects."
+    }
+    foreach ($project in $solutionProjects) {
+        dotnet build $project -c $Configuration -r $RuntimeIdentifier --no-restore
+        if ($LASTEXITCODE -ne 0) { throw "Build failed for $project." }
+    }
 
-    dotnet test tests/SecurityReview.UnitTests/SecurityReview.UnitTests.csproj -c $Configuration --no-restore
+    dotnet test tests/SecurityReview.UnitTests/SecurityReview.UnitTests.csproj -c $Configuration -r $RuntimeIdentifier --no-restore
     if ($LASTEXITCODE -ne 0) { throw "Unit tests failed." }
 
-    dotnet test tests/SecurityReview.ContractTests/SecurityReview.ContractTests.csproj -c $Configuration --no-restore
+    dotnet test tests/SecurityReview.ContractTests/SecurityReview.ContractTests.csproj -c $Configuration -r $RuntimeIdentifier --no-restore
     if ($LASTEXITCODE -ne 0) { throw "Contract tests failed." }
 
     # ------------------------------------------------------------------

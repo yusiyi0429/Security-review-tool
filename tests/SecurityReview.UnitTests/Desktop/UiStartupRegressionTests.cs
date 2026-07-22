@@ -1,9 +1,11 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
 
 namespace SecurityReview.UnitTests.Desktop;
 
-public sealed class UiStartupRegressionTests
+public sealed partial class UiStartupRegressionTests
 {
     [Fact]
     public void Main_window_has_no_star_sized_framework_elements()
@@ -21,6 +23,95 @@ public sealed class UiStartupRegressionTests
             .ToArray();
 
         Assert.Empty(invalidAttributes);
+    }
+
+    [Fact]
+    public void All_static_resources_are_defined_in_desktop_xaml()
+    {
+        string desktopRoot = Path.Combine(FindRepositoryRoot(),
+            "src", "SecurityReview.Desktop");
+        string[] xamlPaths = Directory.GetFiles(
+            desktopRoot, "*.xaml", SearchOption.AllDirectories);
+        XDocument[] documents = xamlPaths.Select(XDocument.Load).ToArray();
+
+        var definitions = documents
+            .SelectMany(document => document.Descendants())
+            .SelectMany(element => element.Attributes())
+            .Where(attribute => attribute.Name.LocalName == "Key")
+            .Select(attribute => attribute.Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var missing = documents
+            .SelectMany(document => document.Descendants())
+            .SelectMany(element => element.Attributes())
+            .SelectMany(attribute => StaticResourceRegex().Matches(attribute.Value))
+            .Select(match => match.Groups[1].Value)
+            .Where(key => !definitions.Contains(key))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Empty(missing);
+    }
+
+    [GeneratedRegex(@"\{StaticResource\s+([^\s,}]+)")]
+    private static partial Regex StaticResourceRegex();
+
+    [Fact]
+    public void Main_window_xaml_loads_on_sta_thread()
+    {
+        // Some isolated CI/test hosts omit the legacy Windows alias even though
+        // SystemRoot is present. WPF's font cache still constructs its Fonts URI
+        // from "windir" during Window type initialization.
+        string? originalWindir = Environment.GetEnvironmentVariable("windir");
+        if (string.IsNullOrWhiteSpace(originalWindir))
+        {
+            string? systemRoot = Environment.GetEnvironmentVariable("SystemRoot");
+            Assert.False(string.IsNullOrWhiteSpace(systemRoot));
+            Environment.SetEnvironmentVariable("windir", systemRoot);
+        }
+
+        string tempDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"security-review-ui-startup-{Guid.NewGuid():N}");
+        Exception? startupException = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var root = new CompositionRoot(
+                    CompositionRoot.Args.ForTest(tempDirectory));
+                var window = new MainWindow(root.MainWindowViewModel, root);
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                startupException = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+
+        bool completed = thread.Join(TimeSpan.FromSeconds(15));
+        try
+        {
+            Assert.True(completed,
+                "Main window XAML loading did not finish within 15 seconds.");
+            Assert.Null(startupException);
+        }
+        finally
+        {
+            if (completed && Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+
+            if (string.IsNullOrWhiteSpace(originalWindir))
+            {
+                Environment.SetEnvironmentVariable("windir", originalWindir);
+            }
+        }
     }
 
     [Fact]

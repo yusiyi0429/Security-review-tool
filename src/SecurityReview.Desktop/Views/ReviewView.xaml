@@ -16,7 +16,7 @@
         <!-- Review form: visible when HasSelection -->
         <GroupBox Header="复核" Margin="0">
             <GroupBox.Style>
-                <Style TargetType="GroupBox">
+                <Style TargetType="GroupBox" BasedOn="{StaticResource GroupBoxCardStyle}">
                     <Setter Property="Visibility" Value="Collapsed"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding HasSelection}" Value="True">
@@ -168,7 +168,7 @@
                                  Text="{Binding ExceptionFilePath, Mode=OneWay}"
                                  IsReadOnly="True" Margin="0,3,0,3"
                                  Background="{StaticResource BrushSurface0}"
-                                 FontFamily="Consolas" FontSize="12"/>
+                                 FontFamily="Cascadia Mono" FontSize="12"/>
 
                         <TextBlock Grid.Row="5" Grid.Column="0" Text="定位器"
                                    VerticalAlignment="Center" Margin="0,3,8,3"
@@ -177,7 +177,7 @@
                                  Text="{Binding ExceptionLocator, Mode=OneWay}"
                                  IsReadOnly="True" Margin="0,3,0,3"
                                  Background="{StaticResource BrushSurface0}"
-                                 FontFamily="Consolas" FontSize="12"/>
+                                 FontFamily="Cascadia Mono" FontSize="12"/>
 
                         <TextBlock Grid.Row="6" Grid.Column="0" Text="发现值"
                                    VerticalAlignment="Center" Margin="0,3,8,3"
@@ -186,7 +186,7 @@
                                  Text="{Binding ExceptionFindingValue, Mode=OneWay}"
                                  IsReadOnly="True" Margin="0,3,0,3"
                                  Background="{StaticResource BrushSurface0}"
-                                 FontFamily="Consolas" FontSize="12"/>
+                                 FontFamily="Cascadia Mono" FontSize="12"/>
 
                         <TextBlock Grid.Row="7" Grid.Column="0" Text="规则包哈希"
                                    VerticalAlignment="Center" Margin="0,3,8,3"
@@ -195,7 +195,7 @@
                             <TextBox Text="{Binding ExceptionRulePackHash, Mode=OneWay}"
                                      IsReadOnly="True" Margin="0,3,0,3"
                                      Background="{StaticResource BrushSurface0}"
-                                     FontFamily="Consolas" FontSize="12"
+                                     FontFamily="Cascadia Mono" FontSize="12"
                                      Width="140"/>
                             <TextBlock Text=" 规则 ID"
                                        VerticalAlignment="Center"
@@ -204,7 +204,7 @@
                             <TextBox Text="{Binding ExceptionRuleId, Mode=OneWay}"
                                      IsReadOnly="True" Margin="0,3,0,3"
                                      Background="{StaticResource BrushSurface0}"
-                                     FontFamily="Consolas" FontSize="12"
+                                     FontFamily="Cascadia Mono" FontSize="12"
                                      Width="120"/>
                         </StackPanel>
                     </Grid>

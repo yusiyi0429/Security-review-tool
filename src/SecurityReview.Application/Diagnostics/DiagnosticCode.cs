@@ -69,4 +69,5 @@ public enum DiagnosticCode
     DiagnosticSinkStarted = 0x0670,
     DiagnosticBundleExported = 0x0671,
     DiagnosticBundleExportFailed = 0x0672,
+    UiStartupFailed = 0x0673,
 }

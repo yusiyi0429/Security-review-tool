@@ -15,7 +15,7 @@
         <!-- Detail content: visible when HasDetail and not IsLoading -->
         <GroupBox Header="发现详情" Margin="0">
             <GroupBox.Style>
-                <Style TargetType="GroupBox">
+                <Style TargetType="GroupBox" BasedOn="{StaticResource GroupBoxCardStyle}">
                     <Setter Property="Visibility" Value="Collapsed"/>
                     <Style.Triggers>
                         <MultiDataTrigger>
@@ -51,7 +51,7 @@
                          Text="{Binding VirtualPath, Mode=OneWay}"
                          IsReadOnly="True" Margin="0,4,0,4"
                          Background="{StaticResource BrushSurface1}"
-                         FontFamily="Consolas" FontSize="13"/>
+                         FontFamily="Cascadia Mono" FontSize="13"/>
 
                 <!-- Row 1: Locator Display + Copy button -->
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="定位器"
@@ -61,7 +61,7 @@
                          Text="{Binding LocatorDisplay, Mode=OneWay}"
                          IsReadOnly="True" Margin="0,4,0,4"
                          Background="{StaticResource BrushSurface1}"
-                         FontFamily="Consolas" FontSize="13"/>
+                         FontFamily="Cascadia Mono" FontSize="13"/>
                 <Button Grid.Row="1" Grid.Column="2"
                         Content="复制定位器" Command="{Binding CopyLocatorCommand}"
                         Padding="8,4" Margin="6,4,0,4"
@@ -76,7 +76,7 @@
                          Text="{Binding FileHash, Mode=OneWay}"
                          IsReadOnly="True" Margin="0,4,0,4"
                          Background="{StaticResource BrushSurface1}"
-                         FontFamily="Consolas" FontSize="13"/>
+                         FontFamily="Cascadia Mono" FontSize="13"/>
 
                 <!-- Row 3: Decrypted Value -->
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="解密值"
@@ -85,7 +85,7 @@
                 <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
                          Text="{Binding DecryptedValue, Mode=OneWay}"
                          IsReadOnly="True" TextWrapping="Wrap"
-                         FontFamily="Consolas" FontSize="13"
+                         FontFamily="Cascadia Mono" FontSize="13"
                          MinHeight="60" MaxHeight="120"
                          Margin="0,4,0,4"
                          Background="{StaticResource BrushSurface1}"
@@ -98,7 +98,7 @@
                 <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
                          Text="{Binding DecryptedContext, Mode=OneWay}"
                          IsReadOnly="True" TextWrapping="Wrap"
-                         FontFamily="Consolas" FontSize="13"
+                         FontFamily="Cascadia Mono" FontSize="13"
                          MinHeight="60" MaxHeight="120"
                          Margin="0,4,0,4"
                          Background="{StaticResource BrushSurface1}"

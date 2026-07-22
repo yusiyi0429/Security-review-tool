@@ -1,40 +1,63 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Color palette: cool blue-gray with amber warnings. No complete values stored. -->
+    <!-- Security workbench palette: deep navy shell, calm canvas, cyan signal. -->
 
-    <!-- Surface colors -->
-    <Color x:Key="ScSurface0">#FAFBFC</Color>
-    <Color x:Key="ScSurface1">#F0F2F5</Color>
-    <Color x:Key="ScSurface2">#E4E7EB</Color>
-    <Color x:Key="ScSurface3">#D1D5DB</Color>
+    <!-- Surfaces -->
+    <Color x:Key="ScSurface0">#F4F7FA</Color>
+    <Color x:Key="ScSurface1">#FFFFFF</Color>
+    <Color x:Key="ScSurface2">#E7EDF3</Color>
+    <Color x:Key="ScSurface3">#CED8E3</Color>
+    <Color x:Key="ScShell">#0B1F33</Color>
+    <Color x:Key="ScShellRaised">#102C47</Color>
+    <Color x:Key="ScShellHover">#173B5B</Color>
 
-    <!-- Text colors -->
-    <Color x:Key="ScTextPrimary">#1F2937</Color>
-    <Color x:Key="ScTextSecondary">#6B7280</Color>
-    <Color x:Key="ScTextDisabled">#9CA3AF</Color>
+    <!-- Text -->
+    <Color x:Key="ScTextPrimary">#15283B</Color>
+    <Color x:Key="ScTextSecondary">#607286</Color>
+    <Color x:Key="ScTextDisabled">#95A3B2</Color>
+    <Color x:Key="ScTextOnDark">#F3F8FC</Color>
+    <Color x:Key="ScTextOnDarkMuted">#9FB3C8</Color>
 
-    <!-- Accent -->
-    <Color x:Key="ScAccent">#2563EB</Color>
-    <Color x:Key="ScAccentHover">#1D4ED8</Color>
+    <!-- Brand signal -->
+    <Color x:Key="ScAccent">#0E9FC2</Color>
+    <Color x:Key="ScAccentHover">#087F9D</Color>
+    <Color x:Key="ScAccentSoft">#E4F7FB</Color>
 
-    <!-- Semantic colors -->
-    <Color x:Key="ScOk">#059669</Color>
-    <Color x:Key="ScWarn">#D97706</Color>
-    <Color x:Key="ScError">#DC2626</Color>
+    <!-- Semantic -->
+    <Color x:Key="ScOk">#148365</Color>
+    <Color x:Key="ScOkSoft">#E7F6F1</Color>
+    <Color x:Key="ScWarn">#C87918</Color>
+    <Color x:Key="ScWarnSoft">#FFF4E3</Color>
+    <Color x:Key="ScError">#C83D4D</Color>
+    <Color x:Key="ScErrorSoft">#FDECEF</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="BrushSurface0" Color="{StaticResource ScSurface0}" />
     <SolidColorBrush x:Key="BrushSurface1" Color="{StaticResource ScSurface1}" />
     <SolidColorBrush x:Key="BrushSurface2" Color="{StaticResource ScSurface2}" />
+    <SolidColorBrush x:Key="BrushSurface3" Color="{StaticResource ScSurface3}" />
+    <SolidColorBrush x:Key="BrushShell" Color="{StaticResource ScShell}" />
+    <SolidColorBrush x:Key="BrushShellRaised" Color="{StaticResource ScShellRaised}" />
+    <SolidColorBrush x:Key="BrushShellHover" Color="{StaticResource ScShellHover}" />
     <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource ScTextPrimary}" />
     <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource ScTextSecondary}" />
     <SolidColorBrush x:Key="BrushTextDisabled" Color="{StaticResource ScTextDisabled}" />
+    <SolidColorBrush x:Key="BrushTextOnDark" Color="{StaticResource ScTextOnDark}" />
+    <SolidColorBrush x:Key="BrushTextOnDarkMuted" Color="{StaticResource ScTextOnDarkMuted}" />
     <SolidColorBrush x:Key="BrushAccent" Color="{StaticResource ScAccent}" />
+    <SolidColorBrush x:Key="BrushAccentHover" Color="{StaticResource ScAccentHover}" />
+    <SolidColorBrush x:Key="BrushAccentSoft" Color="{StaticResource ScAccentSoft}" />
     <SolidColorBrush x:Key="BrushOk" Color="{StaticResource ScOk}" />
+    <SolidColorBrush x:Key="BrushOkSoft" Color="{StaticResource ScOkSoft}" />
     <SolidColorBrush x:Key="BrushWarn" Color="{StaticResource ScWarn}" />
+    <SolidColorBrush x:Key="BrushWarnSoft" Color="{StaticResource ScWarnSoft}" />
     <SolidColorBrush x:Key="BrushError" Color="{StaticResource ScError}" />
+    <SolidColorBrush x:Key="BrushErrorSoft" Color="{StaticResource ScErrorSoft}" />
 
+    <LinearGradientBrush x:Key="BrushShellGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#0D253D" Offset="0" />
+        <GradientStop Color="#091A2B" Offset="1" />
+    </LinearGradientBrush>
 </ResourceDictionary>
