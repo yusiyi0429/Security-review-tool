@@ -1,0 +1,3 @@
+# Parser-corpus fixtures are byte-for-byte test vectors. Disabling text
+# normalization keeps hashes and encoding fixtures identical on every runner.
+tests/Corpus/** -text
