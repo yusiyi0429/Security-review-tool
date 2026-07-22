@@ -429,6 +429,9 @@ public sealed class CompositionRoot : IDisposable
         if (_disposed) return;
         _disposed = true;
 
+        ISqliteConnectionFactory? connectionFactory =
+            TryGet<ISqliteConnectionFactory>();
+
         foreach (var kvp in _concrete)
         {
             if (kvp.Value is IDisposable d && kvp.Value != this)
@@ -443,6 +446,8 @@ public sealed class CompositionRoot : IDisposable
                 try { d.Dispose(); } catch { }
             }
         }
+
+        connectionFactory?.ClearPools();
 
         _services.Clear();
         _concrete.Clear();
