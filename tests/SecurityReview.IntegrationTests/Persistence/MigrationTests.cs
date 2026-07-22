@@ -36,11 +36,11 @@ public sealed class MigrationTests : IAsyncDisposable
     public async Task Migration_creates_schema_once_and_is_idempotent()
     {
         var result1 = await _runner.MigrateAsync(CancellationToken.None);
-        Assert.True(result1.Success);
+        Assert.True(result1.Success, result1.ErrorMessage);
         Assert.Contains(1, result1.AppliedVersions);
 
         var result2 = await _runner.MigrateAsync(CancellationToken.None);
-        Assert.True(result2.Success);
+        Assert.True(result2.Success, result2.ErrorMessage);
         Assert.Empty(result2.AppliedVersions);
 
         Assert.Equal(1, await ReadSchemaVersionAsync());

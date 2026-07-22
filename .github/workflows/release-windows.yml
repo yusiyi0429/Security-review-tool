@@ -55,7 +55,7 @@ jobs:
             -c Release `
             -r win-x64 `
             --no-restore `
-            --filter "FullyQualifiedName~CompositionRootTests|FullyQualifiedName~CompleteScanWorkflowTests|FullyQualifiedName~SemanticFailureWorkflowTests|FullyQualifiedName~Private_network_scope_round_trips_with_http_endpoint" `
+            --filter "FullyQualifiedName~MigrationTests|FullyQualifiedName~CompositionRootTests|FullyQualifiedName~CompleteScanWorkflowTests|FullyQualifiedName~SemanticFailureWorkflowTests|FullyQualifiedName~Private_network_scope_round_trips_with_http_endpoint" `
             --logger "trx;LogFileName=FocusedIntegration.trx"
 
       - name: Build and verify installer

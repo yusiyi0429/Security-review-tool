@@ -81,6 +81,7 @@ public static class DatabaseHealthCheck
         await using var tx = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            cmd.Transaction = (SqliteTransaction)tx;
             cmd.CommandText = """
                 CREATE TABLE IF NOT EXISTS _health_canary (id INTEGER PRIMARY KEY, value TEXT);
                 INSERT INTO _health_canary (id, value) VALUES (1, 'canary');
