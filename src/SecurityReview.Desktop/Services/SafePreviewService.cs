@@ -26,9 +26,18 @@ public sealed class SafePreviewService
         ArgumentNullException.ThrowIfNull(fullText);
         ArgumentNullException.ThrowIfNull(locator);
 
+        if (fullText.Length == 0)
+        {
+            return new SafePreviewFragment(
+                Array.Empty<SafePreviewLine>(), -1, 0, 0, 0, 0,
+                locator.ToCanonicalDisplay());
+        }
+
         var (lineOffset, byteOffset, byteLength) = ResolveTextPosition(locator, fullText);
 
         string[] lines = fullText.Split('\n');
+        if (lines.Length > 0 && lines[^1].Length == 0)
+            lines = lines[..^1];
         int targetLine = lineOffset >= 0 && lineOffset < lines.Length ? (int)lineOffset : 0;
 
         int startLine = Math.Max(0, targetLine - MaxTextLines / 2);
@@ -64,8 +73,8 @@ public sealed class SafePreviewService
                 }
                 else if (locator is SourceLocator.JsonLocator jl)
                 {
-                    highlightCharStart = Math.Clamp((int)jl.ByteStart, 0, line.Length);
-                    highlightCharEnd = Math.Min(line.Length, highlightCharStart + (int)jl.ByteLength);
+                    (highlightCharStart, highlightCharEnd) = ResolveUtf8CharRange(
+                        line, byteOffset, jl.ByteLength);
                 }
                 else
                 {
@@ -76,7 +85,7 @@ public sealed class SafePreviewService
         }
 
         long truncatedBefore = startLine;
-        long truncatedAfter = lines.Length - endLine;
+        long truncatedAfter = lines.Length - (startLine + fragmentLines.Count);
 
         return new SafePreviewFragment(
             fragmentLines,
@@ -205,7 +214,7 @@ public sealed class SafePreviewService
                 {
                     long nextByteCount = byteCount + Encoding.UTF8.GetByteCount(ln + "\n");
                     if (byteCount <= jl.ByteStart && nextByteCount > jl.ByteStart)
-                        return (lineIdx, jl.ByteStart, jl.ByteLength);
+                        return (lineIdx, jl.ByteStart - byteCount, jl.ByteLength);
                     byteCount = nextByteCount;
                     lineIdx++;
                 }
@@ -216,6 +225,38 @@ public sealed class SafePreviewService
             default:
                 return (0, 0, 0);
         }
+    }
+
+    private static (int Start, int End) ResolveUtf8CharRange(
+        string text, long byteStart, long byteLength)
+    {
+        if (byteStart < 0 || byteLength <= 0)
+            return (0, 0);
+
+        int start = Utf8ByteOffsetToCharIndex(text, byteStart);
+        int end = Utf8ByteOffsetToCharIndex(text, byteStart + byteLength);
+        return (start, Math.Max(start, end));
+    }
+
+    private static int Utf8ByteOffsetToCharIndex(string text, long byteOffset)
+    {
+        if (byteOffset <= 0)
+            return 0;
+
+        long consumed = 0;
+        for (int i = 0; i < text.Length; i++)
+        {
+            int charLength = char.IsHighSurrogate(text[i]) &&
+                i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]) ? 2 : 1;
+            int bytes = Encoding.UTF8.GetByteCount(text.AsSpan(i, charLength));
+            if (consumed + bytes > byteOffset)
+                return i;
+            consumed += bytes;
+            if (consumed == byteOffset)
+                return i + charLength;
+            i += charLength - 1;
+        }
+        return text.Length;
     }
 
     private static int FindRowIndex(IReadOnlyList<IReadOnlyList<string>> rows, string sheetName)

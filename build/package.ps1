@@ -15,6 +15,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = $PSScriptRoot | Split-Path -Parent
+$OutputDir = [System.IO.Path]::GetFullPath($OutputDir)
 Push-Location $root
 try {
     $versionFile = Join-Path $root "VERSION"
@@ -79,12 +80,12 @@ try {
     New-Item -ItemType Directory -Path $vulnDir -Force | Out-Null
 
     $vulnFile = Join-Path $vulnDir "vulnerabilities.txt"
-    dotnet list SecurityReviewTool.sln package --vulnerable --include-transitive | `
+    dotnet list SecurityReviewTool.sln package --vulnerable --include-transitive --no-restore | `
         Tee-Object -FilePath $vulnFile
     if ($LASTEXITCODE -ne 0) { throw "Vulnerability scan failed." }
 
     $depFile = Join-Path $vulnDir "deprecated.txt"
-    dotnet list SecurityReviewTool.sln package --deprecated | `
+    dotnet list SecurityReviewTool.sln package --deprecated --no-restore | `
         Tee-Object -FilePath $depFile
     if ($LASTEXITCODE -ne 0) { throw "Deprecation scan failed." }
 
@@ -276,11 +277,13 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "SBOM generation failed." }
 
     # Copy SBOM into staging
-    $stageSbomDir = Join-Path $appStage "_manifest"
-    $sbomManifestDir = Join-Path $sbomOutDir "_manifest"
-    if (Test-Path $sbomManifestDir) {
-        Copy-Item -Recurse -Force "$sbomManifestDir/*" -Destination $stageSbomDir
+    $stageSbomDir = Join-Path $appStage "_manifest/spdx_2.2"
+    $sbomFile = Join-Path $sbomOutDir "_manifest/spdx_2.2/manifest.spdx.json"
+    if (-not (Test-Path -LiteralPath $sbomFile -PathType Leaf)) {
+        throw "Generated SBOM was not found at the expected path."
     }
+    New-Item -ItemType Directory -Path $stageSbomDir -Force | Out-Null
+    Copy-Item -LiteralPath $sbomFile -Destination $stageSbomDir -Force
 
     # Get runtime and SDK versions
     $runtimeVersion = (& dotnet --list-runtimes | Select-String "Microsoft.NETCore.App" | Select-Object -First 1).ToString().Split(" ")[1]
@@ -407,6 +410,11 @@ try {
     $zipHash = [System.Security.Cryptography.SHA256]::HashData([System.IO.File]::ReadAllBytes($zipFinal))
     $zipHashHex = [System.BitConverter]::ToString($zipHash).Replace("-", "").ToLowerInvariant()
     "$zipHashHex  $zipName" | Set-Content -Path "$zipFinal.sha256" -Encoding ASCII
+
+    & (Join-Path $PSScriptRoot "verify-package.ps1") `
+        -Package $zipFinal `
+        -RequireUnsignedPilotWarning:$AllowUnsignedPilot
+    if ($LASTEXITCODE -ne 0) { throw "Final package verification failed." }
 
     Write-Host ""
     Write-Host "=== Package complete ==="

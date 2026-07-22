@@ -167,7 +167,10 @@ public static class BuildRulePackCommand
         byte[] signature = EcdsaRulePackSigner.SignManifest(manifestBytes, privateKey);
 
         // Write signature.json
-        byte[] signatureJson = EcdsaRulePackSigner.WriteSignatureJson(signature, signerKeyId);
+        byte[] signatureJson = EcdsaRulePackSigner.WriteSignatureJson(
+            signature,
+            signerKeyId,
+            EcdsaRulePackSigner.GetPublicKeyBase64(privateKey));
 
         // Replace signature.json in ZIP
         using (var outputStream = new MemoryStream())

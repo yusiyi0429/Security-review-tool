@@ -56,7 +56,7 @@ public sealed class CandidateMinimizerTests
 
         string masked = DeterministicSecretMasker.Mask(
             "header prefix 4111-1111-1111-1111 suffix",
-            new[] { new DeterministicSecretSpan(0, 14, "SENS-005") });
+            new[] { new DeterministicSecretSpan(14, 19, "SENS-005") });
 
         Assert.Equal("header prefix [REDACTED:SENS-005] suffix", masked);
     }
@@ -66,11 +66,11 @@ public sealed class CandidateMinimizerTests
     {
 
         string masked = DeterministicSecretMasker.Mask(
-            "AKIAABCDEFGHIJKLMNOPQ foo AKIAABCDEFGHIJKLMNOP",
+            "AKIAABCDEFGHIJKLMNOP foo AKIAABCDEFGHIJKLMNOP",
             new[]
             {
                 new DeterministicSecretSpan(0, 20, "SENS-002"),
-                new DeterministicSecretSpan(25, 19, "SENS-002"),
+                new DeterministicSecretSpan(25, 20, "SENS-002"),
             });
 
         Assert.Equal("[REDACTED:SENS-002] foo [REDACTED:SENS-002]", masked);
@@ -94,8 +94,8 @@ public sealed class CandidateMinimizerTests
             });
 
         // The overlapping union must remain masked.
-        Assert.DoesNotContain(secret.AsSpan(7, 16).ToString(), masked, StringComparison.Ordinal);
-        Assert.DoesNotContain(secret.AsSpan(11, 16).ToString(), masked, StringComparison.Ordinal);
+        Assert.DoesNotContain(secret.AsSpan(0, 16).ToString(), masked, StringComparison.Ordinal);
+        Assert.DoesNotContain(secret.AsSpan(4, 16).ToString(), masked, StringComparison.Ordinal);
         // The whole original secret span must not be visible in plaintext.
         Assert.DoesNotContain(secret, masked, StringComparison.Ordinal);
     }
@@ -117,10 +117,10 @@ public sealed class CandidateMinimizerTests
         // Caller passes spans out of order; the masker must still apply
         // them in left-to-right order without losing any byte.
         string masked = DeterministicSecretMasker.Mask(
-            "AKIAABCDEFGHIJKLMNOPQ foo AKIAABCDEFGHIJKLMNOP",
+            "AKIAABCDEFGHIJKLMNOP foo AKIAABCDEFGHIJKLMNOP",
             new[]
             {
-                new DeterministicSecretSpan(25, 19, "SENS-002"),
+                new DeterministicSecretSpan(25, 20, "SENS-002"),
                 new DeterministicSecretSpan(0, 20, "SENS-002"),
             });
 

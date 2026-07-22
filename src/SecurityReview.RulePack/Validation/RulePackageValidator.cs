@@ -26,6 +26,7 @@ public class RulePackageValidator : IRulePackValidator
         "signature.json",
         "categories.json",
         "assets.json",
+        "rules.json",
         "detectors.json",
         "compliance.json",
         "dictionaries/entities.json",
@@ -122,6 +123,9 @@ public class RulePackageValidator : IRulePackValidator
             {
                 string name = NormalizedEntryName(entry);
 
+                if (name is "manifest.json" or "signature.json")
+                    continue;
+
                 if (!manifestFileMap.TryGetValue(name, out var declared))
                     return Fail("EXTRA_ENTRY");
 
@@ -129,12 +133,6 @@ public class RulePackageValidator : IRulePackValidator
 
                 if (content.Length != declared.Size)
                     return Fail("SIZE_MISMATCH");
-
-                // signature.json hash is exempt — the manifest is signed after the hash is
-                // computed, so the hash of signature.json (which contains the signature) cannot
-                // match the manifest entry computed before signing.
-                if (name is "signature.json")
-                    continue;
 
                 string actualHash = Convert.ToHexStringLower(SHA256.HashData(content));
                 if (!string.Equals(actualHash, declared.Sha256, StringComparison.Ordinal))

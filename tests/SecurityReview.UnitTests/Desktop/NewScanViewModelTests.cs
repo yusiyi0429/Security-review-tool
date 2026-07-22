@@ -52,9 +52,17 @@ public sealed class NewScanViewModelTests
     public void Start_command_enabled_when_targets_present_and_no_exclusions()
     {
         var vm = CreateViewModel();
-        vm.AddTargetFromDrop("/valid/path/test.txt");
-        Assert.True(vm.StartScanCommand.CanExecute(null));
-        Assert.True(vm.HasValidTargets);
+        string testFile = Path.GetTempFileName();
+        try
+        {
+            vm.AddTargetFromDrop(testFile);
+            Assert.True(vm.StartScanCommand.CanExecute(null));
+            Assert.True(vm.HasValidTargets);
+        }
+        finally
+        {
+            File.Delete(testFile);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -175,7 +183,7 @@ public sealed class NewScanViewModelTests
         var vm = CreateViewModel();
         var manifest = new AssetManifest(
             "test-asset", "1.0",
-            new[] { AssetComponent.Create("src", AssetTypeId.Parse("SRC-001")) },
+            new[] { AssetComponent.Create("src", AssetTypeId.Parse("ASSET-001")) },
             ComplianceEvidence.Create(
                 new ComplianceDeclaration(ComplianceEvidenceStatus.NotApplicable, null),
                 new ComplianceDeclaration(ComplianceEvidenceStatus.NotApplicable, null),

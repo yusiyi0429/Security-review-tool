@@ -28,18 +28,20 @@ public static class WorkbookCellReader
         if (cell.CellFormula is not null)
             return null;
 
-        if (cell.CellValue is null)
-            return null;
-
         if (cell.DataType?.Value == CellValues.SharedString)
         {
+            if (cell.CellValue is null)
+                return null;
             return ReadSharedString(doc, cell.CellValue.Text);
         }
 
         if (cell.DataType?.Value == CellValues.InlineString)
         {
-            return cell.InlineString?.Text?.Text ?? cell.CellValue.Text;
+            return cell.InlineString?.InnerText;
         }
+
+        if (cell.CellValue is null)
+            return null;
 
         return cell.CellValue.Text;
     }

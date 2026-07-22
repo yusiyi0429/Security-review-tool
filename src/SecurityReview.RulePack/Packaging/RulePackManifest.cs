@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SecurityReview.RulePack.Packaging;
 
@@ -12,12 +13,25 @@ public sealed record RulePackManifest
 {
     public const string ManifestEntryName = "manifest.json";
 
+    [JsonPropertyName("schema_version")]
     public int SchemaVersion { get; init; } = 1;
+
+    [JsonPropertyName("rule_pack_id")]
     public string RulePackId { get; init; } = "";
+
+    [JsonPropertyName("version")]
     public string Version { get; init; } = "";
+
+    [JsonPropertyName("min_client_version")]
     public string MinClientVersion { get; init; } = "";
+
+    [JsonPropertyName("created_at_utc")]
     public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
+
+    [JsonPropertyName("signer_key_id")]
     public string SignerKeyId { get; init; } = "";
+
+    [JsonPropertyName("files")]
     public IReadOnlyList<FileEntry> Files { get; init; } = Array.Empty<FileEntry>();
 
     /// <summary>
@@ -29,7 +43,8 @@ public sealed record RulePackManifest
         string minClientVersion,
         string signerKeyId,
         int schemaVersion,
-        IReadOnlyList<FileEntry> files)
+        IReadOnlyList<FileEntry> files,
+        DateTimeOffset? createdAtUtc = null)
     {
         ArgumentNullException.ThrowIfNull(rulePackId);
         ArgumentNullException.ThrowIfNull(version);
@@ -48,7 +63,7 @@ public sealed record RulePackManifest
             Version = version,
             MinClientVersion = minClientVersion,
             SignerKeyId = signerKeyId,
-            CreatedAtUtc = DateTimeOffset.UtcNow,
+            CreatedAtUtc = createdAtUtc?.ToUniversalTime() ?? DateTimeOffset.UtcNow,
             Files = sorted,
         };
     }
@@ -162,8 +177,13 @@ public sealed record RulePackManifest
     /// </summary>
     public sealed record FileEntry
     {
+        [JsonPropertyName("path")]
         public string Path { get; init; } = "";
+
+        [JsonPropertyName("sha256")]
         public string Sha256 { get; init; } = "";
+
+        [JsonPropertyName("size")]
         public long Size { get; init; }
 
         public static FileEntry Create(string path, string sha256Hex, long size) => new()

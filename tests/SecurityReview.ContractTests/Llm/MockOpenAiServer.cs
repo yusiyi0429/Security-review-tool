@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Formats.Asn1;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -31,7 +32,9 @@ public sealed class MockOpenAiServer : IAsyncDisposable, IDisposable
     private readonly List<string> _canaryEndpoints = new();
 
     public int Port { get; }
-    public string Origin => $"https://127.0.0.1:{Port}";
+    public string Origin => _tlsCertificate is null
+        ? $"http://127.0.0.1:{Port}"
+        : $"https://127.0.0.1:{Port}";
     public string HttpOrigin => $"http://127.0.0.1:{Port}";
     public string ChatCompletionsPath { get; }
 
@@ -115,7 +118,6 @@ public sealed class MockOpenAiServer : IAsyncDisposable, IDisposable
             try
             {
                 var reader = new StreamReader(wire, Encoding.ASCII, false, 8192, leaveOpen: true);
-                var writer = new StreamWriter(wire, new UTF8Encoding(false)) { AutoFlush = false };
                 string requestLine = await reader.ReadLineAsync().ConfigureAwait(false)
                     ?? string.Empty;
                 if (string.IsNullOrEmpty(requestLine))
@@ -207,7 +209,6 @@ public sealed class MockOpenAiServer : IAsyncDisposable, IDisposable
                 await wire.WriteAsync(headerBytes).ConfigureAwait(false);
                 await wire.WriteAsync(bodyBytes).ConfigureAwait(false);
                 await wire.FlushAsync().ConfigureAwait(false);
-                await writer.DisposeAsync().ConfigureAwait(false);
             }
             catch
             {
@@ -279,7 +280,10 @@ internal static class X509Helper
         if (dnsName is not null)
         {
             var san = new SubjectAlternativeNameBuilder();
-            san.AddDnsName(dnsName);
+            if (IPAddress.TryParse(dnsName, out var ipAddress))
+                san.AddIpAddress(ipAddress);
+            else
+                san.AddDnsName(dnsName);
             req.CertificateExtensions.Add(san.Build());
         }
         if (canaryUrls is not null)
@@ -287,19 +291,32 @@ internal static class X509Helper
             // Embed canary URLs in the AIA extension so a chain
             // builder that ignores DisableCertificateDownloads would
             // try to reach them.
+            var writer = new AsnWriter(AsnEncodingRules.DER);
+            writer.PushSequence();
             foreach (string url in canaryUrls)
             {
-                req.CertificateExtensions.Add(
-                    new X509Extension(
-                        "1.3.6.1.5.5.7.1.1", // Authority Information Access
-                        Encoding.ASCII.GetBytes($"uniformResourceIdentifier:{url}"),
-                        critical: false));
+                writer.PushSequence();
+                writer.WriteObjectIdentifier("1.3.6.1.5.5.7.48.2");
+                writer.WriteCharacterString(
+                    UniversalTagNumber.IA5String,
+                    url,
+                    new Asn1Tag(TagClass.ContextSpecific, 6));
+                writer.PopSequence();
             }
+            writer.PopSequence();
+            req.CertificateExtensions.Add(
+                new X509Extension(
+                    "1.3.6.1.5.5.7.1.1",
+                    writer.Encode(),
+                    critical: false));
         }
         var cert = req.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddMinutes(-5),
             DateTimeOffset.UtcNow.AddDays(1));
-        return X509CertificateLoader.LoadCertificate(cert.Export(X509ContentType.Pfx));
+        return X509CertificateLoader.LoadPkcs12(
+            cert.Export(X509ContentType.Pfx),
+            password: null,
+            X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
     }
 }
 
@@ -307,18 +324,30 @@ internal static class X509CertificateExtensions
 {
     public static IEnumerable<string> GetCanaryUrls(this X509Certificate2 cert)
     {
+        var urls = new List<string>();
         foreach (X509Extension ext in cert.Extensions)
         {
             if (ext.Oid?.Value == "1.3.6.1.5.5.7.1.1")
             {
-                string text = ext.Format(false);
-                foreach (string line in text.Split('\n'))
+                try
                 {
-                    string trimmed = line.Trim();
-                    if (trimmed.StartsWith("URL=", StringComparison.OrdinalIgnoreCase))
-                        yield return trimmed[4..];
+                    var reader = new AsnReader(ext.RawData, AsnEncodingRules.DER);
+                    var descriptions = reader.ReadSequence();
+                    while (descriptions.HasData)
+                    {
+                        var description = descriptions.ReadSequence();
+                        _ = description.ReadObjectIdentifier();
+                        urls.Add(description.ReadCharacterString(
+                            UniversalTagNumber.IA5String,
+                            new Asn1Tag(TagClass.ContextSpecific, 6)));
+                    }
+                }
+                catch (AsnContentException)
+                {
+                    // Ignore malformed test-only metadata.
                 }
             }
         }
+        return urls;
     }
 }

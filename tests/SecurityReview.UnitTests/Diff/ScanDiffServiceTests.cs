@@ -293,7 +293,8 @@ public sealed class ScanDiffServiceTests
         var currentScan = NewScanId();
         var previousScan = NewScanId();
 
-        var groupId = NewGroupId();
+        var currentGroupId = NewGroupId();
+        var previousGroupId = NewGroupId();
         var currentOccId = NewOccId();
         var prevOccId = NewOccId();
 
@@ -304,16 +305,16 @@ public sealed class ScanDiffServiceTests
 
         // Current has finding with a newly-enabled rule
         var newRuleId = new RuleId("RULE-NEW-001");
-        var currentOcc = CreateOccurrence(currentOccId, groupId, "secret", virtualPath,
+        var currentOcc = CreateOccurrence(currentOccId, currentGroupId, "secret", virtualPath,
             locator, fileSha256, newRuleId, new DetectorId("DET-001"));
-        var currentGroup = CreateGroup(groupId, fingerprint, currentOcc);
+        var currentGroup = CreateGroup(currentGroupId, fingerprint, currentOcc);
         findRepo.AddScan(currentScan, [currentGroup], [currentOcc]);
 
         // Previous has finding with the old rule at same location/value
         var oldRuleId = new RuleId("RULE-OLD-001");
-        var prevOcc = CreateOccurrence(prevOccId, groupId, "secret", virtualPath,
+        var prevOcc = CreateOccurrence(prevOccId, previousGroupId, "secret", virtualPath,
             locator, fileSha256, oldRuleId, new DetectorId("DET-001"));
-        var prevGroup = CreateGroup(groupId, fingerprint, prevOcc);
+        var prevGroup = CreateGroup(previousGroupId, fingerprint, prevOcc);
         findRepo.AddScan(previousScan, [prevGroup], [prevOcc]);
 
         var newlyEnabled = new HashSet<string> { "RULE-NEW-001" };
@@ -341,7 +342,8 @@ public sealed class ScanDiffServiceTests
         var currentScan = NewScanId();
         var previousScan = NewScanId();
 
-        var groupId = NewGroupId();
+        var currentGroupId = NewGroupId();
+        var previousGroupId = NewGroupId();
         var currentOccId = NewOccId();
         var prevOccId = NewOccId();
 
@@ -351,16 +353,16 @@ public sealed class ScanDiffServiceTests
 
         // Current has a different value at the same location
         var currentFingerprint = new ValueFingerprint("def456");
-        var currentOcc = CreateOccurrence(currentOccId, groupId, "newsecret", virtualPath,
+        var currentOcc = CreateOccurrence(currentOccId, currentGroupId, "newsecret", virtualPath,
             locator, fileSha256, new RuleId("RULE-001"), new DetectorId("DET-001"));
-        var currentGroup = CreateGroup(groupId, currentFingerprint, currentOcc);
+        var currentGroup = CreateGroup(currentGroupId, currentFingerprint, currentOcc);
         findRepo.AddScan(currentScan, [currentGroup], [currentOcc]);
 
         // Previous has old value
         var prevFingerprint = new ValueFingerprint("abc123");
-        var prevOcc = CreateOccurrence(prevOccId, groupId, "oldsecret", virtualPath,
+        var prevOcc = CreateOccurrence(prevOccId, previousGroupId, "oldsecret", virtualPath,
             locator, fileSha256, new RuleId("RULE-001"), new DetectorId("DET-001"));
-        var prevGroup = CreateGroup(groupId, prevFingerprint, prevOcc);
+        var prevGroup = CreateGroup(previousGroupId, prevFingerprint, prevOcc);
         findRepo.AddScan(previousScan, [prevGroup], [prevOcc]);
 
         var diffs = await service.ComputeDiffAsync(

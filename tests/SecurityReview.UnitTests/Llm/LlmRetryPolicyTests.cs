@@ -258,10 +258,6 @@ public sealed class LlmRetryPolicyTests
             cancellationToken: cts.Token));
 
         Assert.Equal(1, sendCalls);
-        Assert.False(resultAfter(policy, sendCalls));
-        return;
-
-        static bool resultAfter(LlmRetryPolicy _, int calls) => calls == 1;
     }
 
     // ---------- Retry-After parsing ----------

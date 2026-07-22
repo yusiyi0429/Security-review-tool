@@ -63,7 +63,9 @@ public sealed class RulePackageSignatureTests
 
         byte[] signature = EcdsaRulePackSigner.SignManifest(manifestBytes, privateKey);
         byte[] signatureJson = EcdsaRulePackSigner.WriteSignatureJson(
-            signature, EcdsaRulePackSigner.DefaultSignerKeyId);
+            signature,
+            EcdsaRulePackSigner.DefaultSignerKeyId,
+            EcdsaRulePackSigner.GetPublicKeyBase64(privateKey));
 
         // Replace signature.json in ZIP
         using var outputStream = new MemoryStream();
@@ -181,9 +183,9 @@ public sealed class RulePackageSignatureTests
 
         // Rename an entry inside the ZIP
         byte[] tampered;
+        using var outputStream = new MemoryStream();
         using (var readStream = new MemoryStream(signed))
         using (var archive = new ZipArchive(readStream, ZipArchiveMode.Read))
-        using (var outputStream = new MemoryStream())
         using (var newArchive = new ZipArchive(outputStream, ZipArchiveMode.Create, leaveOpen: true))
         {
             foreach (var entry in archive.Entries)
@@ -202,8 +204,8 @@ public sealed class RulePackageSignatureTests
                 newEntryStream.Write(content, 0, content.Length);
             }
 
-            tampered = outputStream.ToArray();
         }
+        tampered = outputStream.ToArray();
 
         var result = EcdsaRulePackSigner.VerifyPackage(
             tampered, EcdsaRulePackSigner.DefaultSignerKeyId);
@@ -235,9 +237,9 @@ public sealed class RulePackageSignatureTests
 
         // Add an extra entry
         byte[] tampered;
+        using var outputStream = new MemoryStream();
         using (var readStream = new MemoryStream(signed))
         using (var archive = new ZipArchive(readStream, ZipArchiveMode.Read))
-        using (var outputStream = new MemoryStream())
         using (var newArchive = new ZipArchive(outputStream, ZipArchiveMode.Create, leaveOpen: true))
         {
             foreach (var entry in archive.Entries)
@@ -257,8 +259,8 @@ public sealed class RulePackageSignatureTests
             using var extraStream = extra.Open();
             extraStream.Write("extra"u8);
 
-            tampered = outputStream.ToArray();
         }
+        tampered = outputStream.ToArray();
 
         var result = EcdsaRulePackSigner.VerifyPackage(
             tampered, EcdsaRulePackSigner.DefaultSignerKeyId);
@@ -283,14 +285,15 @@ public sealed class RulePackageSignatureTests
             Categories = new List<CategoryDefinition> { cat },
         };
 
+        var createdAt = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
         byte[] first = RulePackWriter.Write(
             RulePackManifest.Create("test-pack", "1.0.0", "1.0.0",
-                EcdsaRulePackSigner.DefaultSignerKeyId, 1, []),
+                EcdsaRulePackSigner.DefaultSignerKeyId, 1, [], createdAt),
             doc, [], [], []);
 
         byte[] second = RulePackWriter.Write(
             RulePackManifest.Create("test-pack", "1.0.0", "1.0.0",
-                EcdsaRulePackSigner.DefaultSignerKeyId, 1, []),
+                EcdsaRulePackSigner.DefaultSignerKeyId, 1, [], createdAt),
             doc, [], [], []);
 
         // Manifest.json bytes should be identical
@@ -305,30 +308,31 @@ public sealed class RulePackageSignatureTests
 
     private static byte[] TamperEntry(byte[] zipBytes, string entryName, Func<byte[], byte[]> tamper)
     {
-        using var readStream = new MemoryStream(zipBytes);
-        using var archive = new ZipArchive(readStream, ZipArchiveMode.Read);
         using var outputStream = new MemoryStream();
-        using var newArchive = new ZipArchive(outputStream, ZipArchiveMode.Create, leaveOpen: true);
-
-        foreach (var entry in archive.Entries)
+        using (var readStream = new MemoryStream(zipBytes))
+        using (var archive = new ZipArchive(readStream, ZipArchiveMode.Read))
+        using (var newArchive = new ZipArchive(outputStream, ZipArchiveMode.Create, leaveOpen: true))
         {
-            string name = entry.FullName.Replace('\\', '/');
-            byte[] content;
-            using (var es = entry.Open())
-            using (var ms = new MemoryStream())
+            foreach (var entry in archive.Entries)
             {
-                es.CopyTo(ms);
-                content = ms.ToArray();
-            }
+                string name = entry.FullName.Replace('\\', '/');
+                byte[] content;
+                using (var es = entry.Open())
+                using (var ms = new MemoryStream())
+                {
+                    es.CopyTo(ms);
+                    content = ms.ToArray();
+                }
 
-            if (name == entryName)
-            {
-                content = tamper(content);
-            }
+                if (name == entryName)
+                {
+                    content = tamper(content);
+                }
 
-            var newEntry = newArchive.CreateEntry(entry.FullName, CompressionLevel.Optimal);
-            using var newEntryStream = newEntry.Open();
-            newEntryStream.Write(content, 0, content.Length);
+                var newEntry = newArchive.CreateEntry(entry.FullName, CompressionLevel.Optimal);
+                using var newEntryStream = newEntry.Open();
+                newEntryStream.Write(content, 0, content.Length);
+            }
         }
 
         return outputStream.ToArray();

@@ -41,8 +41,16 @@ public sealed class AdversarialLlmInjectionTests
 
     private static LlmEndpointOptions BuildOptions(string origin, string? path = "/v1/chat/completions")
     {
-        return LlmEndpointOptions.Create(
-            baseUri: new Uri(origin + "/"),
+        var baseUri = new Uri(origin + "/");
+        return baseUri.Scheme == Uri.UriSchemeHttp
+            ? LlmEndpointOptions.CreateForLoopbackTesting(
+                baseUri: baseUri,
+                chatCompletionsPath: path,
+                model: "test-model",
+                reference: "Llm.Endpoint.Default",
+                authMode: LlmAuthMode.None)
+            : LlmEndpointOptions.Create(
+            baseUri: baseUri,
             chatCompletionsPath: path,
             model: "test-model",
             reference: "Llm.Endpoint.Default",
@@ -56,6 +64,11 @@ public sealed class AdversarialLlmInjectionTests
         {
             secrets.Add(new DeterministicSecretSpan(start, length, cat));
         }
+        int candidateStart = c.UntrustedContext.IndexOf(c.CandidateValue, StringComparison.Ordinal);
+        long candidateByteStart = candidateStart < 0
+            ? 0
+            : Encoding.UTF8.GetByteCount(c.UntrustedContext.AsSpan(0, candidateStart));
+        long candidateByteLength = Encoding.UTF8.GetByteCount(c.CandidateValue);
         return new SemanticReviewRequest(
             CandidateId: FixedId,
             CategoryHint: CategoryId.Parse(c.CategoryHint),
@@ -64,7 +77,8 @@ public sealed class AdversarialLlmInjectionTests
             VirtualPath: "docs/example.txt",
             FullContext: c.UntrustedContext,
             CandidateValue: c.CandidateValue,
-            CandidateLocator: new SourceLocator.TextLocator(1, 1, 0, c.CandidateValue.Length),
+            CandidateLocator: new SourceLocator.TextLocator(
+                1, 1, candidateByteStart, candidateByteLength),
             DeterministicSecrets: secrets);
     }
 

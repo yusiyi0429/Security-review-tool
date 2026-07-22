@@ -106,11 +106,11 @@ public sealed class ExactOriginHttpMessageHandler : DelegatingHandler
 
     private static bool ShouldAllowLoopback(LlmEndpointOptions options)
     {
+        if (options.AllowLoopbackHttpForTesting)
+            return true;
 #if !DEBUG
-        _ = options;
         return false;
 #else
-        _ = options;
         return AllowLoopbackHttp;
 #endif
     }
@@ -146,6 +146,16 @@ public sealed class ExactOriginHttpMessageHandler : DelegatingHandler
         ValidateRequest(request);
         HttpResponseMessage response = await base.SendAsync(request, cancellationToken)
             .ConfigureAwait(false);
+        ValidateResponse(response);
+        return response;
+    }
+
+    protected override HttpResponseMessage Send(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateRequest(request);
+        HttpResponseMessage response = base.Send(request, cancellationToken);
         ValidateResponse(response);
         return response;
     }
@@ -202,7 +212,7 @@ public sealed class ExactOriginHttpMessageHandler : DelegatingHandler
 
     private static void ValidateNoControlChars(HttpRequestMessage request)
     {
-        string url = request.RequestUri?.ToString() ?? string.Empty;
+        string url = request.RequestUri?.OriginalString ?? string.Empty;
         if (url.Contains('\r') || url.Contains('\n'))
             throw new InvalidOperationException(
                 "Request URL contains CR/LF characters.");

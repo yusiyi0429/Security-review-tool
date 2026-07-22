@@ -69,6 +69,7 @@ public sealed class LlmConnectionTestService : ILlmConnectionTestService
         try
         {
             using var request = BuildRequest(options, command.CorrelationId);
+            OpenAiHttpClientFactory.ApplyAuthentication(request, options, _credentials);
 
             HttpResponseMessage response;
             try
@@ -87,7 +88,8 @@ public sealed class LlmConnectionTestService : ILlmConnectionTestService
                     stopwatch.Elapsed, fingerprint);
             }
             catch (HttpRequestException ex)
-                when (ex.InnerException is System.Security.Authentication.AuthenticationException)
+                when (ex.HttpRequestError == HttpRequestError.SecureConnectionError ||
+                      ex.InnerException is System.Security.Authentication.AuthenticationException)
             {
                 stopwatch.Stop();
                 Publish(DiagnosticCode.LlmConnectionTestCertificateUntrusted, fingerprint,

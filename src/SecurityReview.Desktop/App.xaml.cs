@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using SecurityReview.Desktop.Services;
 
@@ -12,6 +13,34 @@ public partial class App : global::System.Windows.Application, IDisposable
 {
     private CompositionRoot? _root;
     private bool _disposed;
+
+    public App()
+    {
+        EnsureWindowsDirectoryEnvironment();
+    }
+
+    internal static void EnsureWindowsDirectoryEnvironment()
+    {
+        if (!string.IsNullOrWhiteSpace(
+                Environment.GetEnvironmentVariable("windir", EnvironmentVariableTarget.Process)))
+        {
+            return;
+        }
+
+        string? windowsDirectory = Environment.GetEnvironmentVariable(
+            "SystemRoot", EnvironmentVariableTarget.Process);
+        if (string.IsNullOrWhiteSpace(windowsDirectory))
+        {
+            windowsDirectory = Path.GetDirectoryName(Environment.SystemDirectory);
+        }
+
+        if (!string.IsNullOrWhiteSpace(windowsDirectory) &&
+            Path.IsPathFullyQualified(windowsDirectory))
+        {
+            Environment.SetEnvironmentVariable(
+                "windir", windowsDirectory, EnvironmentVariableTarget.Process);
+        }
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {

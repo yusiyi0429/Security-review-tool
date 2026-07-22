@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="SecurityReview.Infrastructure" />
+    <InternalsVisibleTo Include="SecurityReview.ContractTests" />
+  </ItemGroup>
+
 </Project>

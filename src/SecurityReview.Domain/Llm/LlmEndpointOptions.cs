@@ -72,6 +72,8 @@ public sealed record LlmEndpointOptions
     /// <summary>Maximum concurrent in-flight requests. Bounded 1–4.</summary>
     public int MaxConcurrency { get; }
 
+    internal bool AllowLoopbackHttpForTesting { get; }
+
     private LlmEndpointOptions(
         Uri baseUri,
         string chatCompletionsPath,
@@ -82,7 +84,8 @@ public sealed record LlmEndpointOptions
         string? customHeaderName,
         string? credentialReference,
         TimeSpan timeout,
-        int maxConcurrency)
+        int maxConcurrency,
+        bool allowLoopbackHttpForTesting)
     {
         BaseUri = baseUri;
         ChatCompletionsPath = chatCompletionsPath;
@@ -94,6 +97,7 @@ public sealed record LlmEndpointOptions
         CredentialReference = credentialReference;
         Timeout = timeout;
         MaxConcurrency = maxConcurrency;
+        AllowLoopbackHttpForTesting = allowLoopbackHttpForTesting;
     }
 
     /// <summary>
@@ -123,6 +127,48 @@ public sealed record LlmEndpointOptions
         int? maxConcurrency = null,
         bool allowLoopbackHttp = false)
     {
+        return CreateCore(
+            baseUri, chatCompletionsPath, model, reference, authMode,
+            responseFormatMode, sendTemperatureZero, customHeaderName,
+            credentialReference, timeout, maxConcurrency, allowLoopbackHttp,
+            allowLoopbackHttpForTesting: false);
+    }
+
+    internal static LlmEndpointOptions CreateForLoopbackTesting(
+        Uri baseUri,
+        string? chatCompletionsPath = null,
+        string? model = null,
+        string? reference = null,
+        LlmAuthMode authMode = LlmAuthMode.None,
+        LlmResponseFormatMode responseFormatMode = LlmResponseFormatMode.JsonSchema,
+        bool sendTemperatureZero = true,
+        string? customHeaderName = null,
+        string? credentialReference = null,
+        TimeSpan? timeout = null,
+        int? maxConcurrency = null)
+    {
+        return CreateCore(
+            baseUri, chatCompletionsPath, model, reference, authMode,
+            responseFormatMode, sendTemperatureZero, customHeaderName,
+            credentialReference, timeout, maxConcurrency, allowLoopbackHttp: true,
+            allowLoopbackHttpForTesting: true);
+    }
+
+    private static LlmEndpointOptions CreateCore(
+        Uri baseUri,
+        string? chatCompletionsPath,
+        string? model,
+        string? reference,
+        LlmAuthMode authMode,
+        LlmResponseFormatMode responseFormatMode,
+        bool sendTemperatureZero,
+        string? customHeaderName,
+        string? credentialReference,
+        TimeSpan? timeout,
+        int? maxConcurrency,
+        bool allowLoopbackHttp,
+        bool allowLoopbackHttpForTesting)
+    {
         ArgumentNullException.ThrowIfNull(baseUri);
         if (!baseUri.IsAbsoluteUri)
             throw new ArgumentException("Base URI must be absolute.", nameof(baseUri));
@@ -144,7 +190,7 @@ public sealed record LlmEndpointOptions
             throw new ArgumentException(
                 "Base URI host must not contain wildcards.", nameof(baseUri));
 
-        ValidateScheme(baseUri, allowLoopbackHttp);
+        ValidateScheme(baseUri, allowLoopbackHttp, allowLoopbackHttpForTesting);
 
         string path = chatCompletionsPath ?? DefaultChatCompletionsPath;
         ValidateChatCompletionsPath(path, baseUri);
@@ -154,6 +200,12 @@ public sealed record LlmEndpointOptions
         ValidateModel(resolvedModel);
 
         ValidateAuth(authMode, customHeaderName);
+
+        if (!Enum.IsDefined(responseFormatMode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(responseFormatMode),
+                "Response format mode is not supported.");
+        }
 
         TimeSpan resolvedTimeout = timeout ?? TimeSpan.FromSeconds(DefaultTimeoutSeconds);
         if (resolvedTimeout < TimeSpan.FromSeconds(MinTimeoutSeconds) ||
@@ -175,10 +227,13 @@ public sealed record LlmEndpointOptions
         return new LlmEndpointOptions(
             baseUri, path, resolvedModel, authMode, responseFormatMode,
             sendTemperatureZero, customHeaderName, credentialReference,
-            resolvedTimeout, resolvedConcurrency);
+            resolvedTimeout, resolvedConcurrency, allowLoopbackHttpForTesting);
     }
 
-    private static void ValidateScheme(Uri baseUri, bool allowLoopbackHttp)
+    private static void ValidateScheme(
+        Uri baseUri,
+        bool allowLoopbackHttp,
+        bool allowLoopbackHttpForTesting)
     {
         if (string.Equals(baseUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
             return;
@@ -188,6 +243,9 @@ public sealed record LlmEndpointOptions
             throw new ArgumentException(
                 $"Base URI scheme '{baseUri.Scheme}' is not supported.", nameof(baseUri));
         }
+
+        if (allowLoopbackHttpForTesting && IsLoopbackHost(baseUri.Host))
+            return;
 
         // HTTP base URIs are loopback-only and only allowed in DEBUG builds.
 #if !DEBUG

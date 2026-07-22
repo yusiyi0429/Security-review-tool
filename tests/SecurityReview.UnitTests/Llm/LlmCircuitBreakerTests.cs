@@ -56,7 +56,7 @@ public sealed class LlmCircuitBreakerTests
     }
 
     [Fact]
-    public void Mixed_4xx_and_5xx_only_5xx_count()
+    public void Client_errors_reset_consecutive_availability_failure_count()
     {
         var cb = Build(new MockClock());
         for (int i = 0; i < 4; i++)
@@ -64,11 +64,10 @@ public sealed class LlmCircuitBreakerTests
             cb.RecordAvailabilityFailure();
             cb.RecordClientOrSchemaFailure();
         }
-        // 4 availability failures so far → still closed.
+        // Each client error proves reachability and resets the consecutive count.
         Assert.Equal(LlmCircuitState.Closed, cb.GetState());
         cb.RecordAvailabilityFailure();
-        // 5 consecutive availability failures (ignoring intervening 4xx) → open.
-        Assert.Equal(LlmCircuitState.Open, cb.GetState());
+        Assert.Equal(LlmCircuitState.Closed, cb.GetState());
     }
 
     [Fact]

@@ -42,10 +42,11 @@ public static class CandidateMinimizer
 
         string contentKind = NormalizeContentKind(request.ContentKind);
         string extension = NormalizeExtension(request.Extension);
-        string maskedContext = DeterministicSecretMasker.Mask(request.FullContext, request.DeterministicSecrets);
-        string redactedValue = ComputeRedactedCandidateValue(
+        string maskedContext = NormalizeUntrustedText(
+            DeterministicSecretMasker.Mask(request.FullContext, request.DeterministicSecrets));
+        string redactedValue = NormalizeUntrustedText(ComputeRedactedCandidateValue(
             request.CandidateValue, request.FullContext, request.CandidateLocator,
-            request.DeterministicSecrets);
+            request.DeterministicSecrets));
         long redactions = CountSecretRedactions(maskedContext);
 
         var (untrustedContext, leftTrunc, rightTrunc) =
@@ -306,5 +307,30 @@ public static class CandidateMinimizer
             sb.Append(c);
         }
         return sb.ToString();
+    }
+
+    private static string NormalizeUntrustedText(string value)
+    {
+        var builder = new StringBuilder(value.Length);
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+            if (char.IsControl(c))
+            {
+                builder.Append(' ');
+                continue;
+            }
+
+            if (c == '{' &&
+                value.AsSpan(i).StartsWith("{\"name\":", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.Append("{ \"name\":");
+                i += "{\"name\":".Length - 1;
+                continue;
+            }
+
+            builder.Append(c);
+        }
+        return builder.ToString();
     }
 }

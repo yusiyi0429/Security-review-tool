@@ -175,6 +175,7 @@ public sealed class DiagnosticFieldPolicy
             "review_reason", "stack_message",
             "command_line", @"\benvironment\b", @"\bcredential\b",
             "private_key", "api_key", "access_key",
+            @"\bselect\b", @"\binsert\b", @"\bupdate\b", @"\bdelete\b",
         ];
 
         return terms
@@ -184,7 +185,9 @@ public sealed class DiagnosticFieldPolicy
 
     private static string ToSnakeCase(string pascalCase)
     {
-        return System.Text.RegularExpressions.Regex.Replace(pascalCase, "([a-z])([A-Z])", "$1_$2").ToLowerInvariant();
+        string withAcronymBoundary = Regex.Replace(pascalCase, "([A-Z]+)([A-Z][a-z])", "$1_$2");
+        return Regex.Replace(withAcronymBoundary, "([a-z0-9])([A-Z])", "$1_$2")
+            .ToLowerInvariant();
     }
 }
 

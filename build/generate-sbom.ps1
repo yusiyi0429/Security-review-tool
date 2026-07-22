@@ -37,8 +37,19 @@ try {
         New-Item -ItemType Directory -Path $manifestDir -Force | Out-Null
     }
 
-    dotnet tool run @sbomArgs
-    if ($LASTEXITCODE -ne 0) { throw "sbom-tool generate failed." }
+    $previousRollForward = $env:DOTNET_ROLL_FORWARD
+    try {
+        # The locked SBOM tool targets .NET 8; permit it to run on a newer build-host runtime.
+        $env:DOTNET_ROLL_FORWARD = "Major"
+        dotnet tool run @sbomArgs
+        if ($LASTEXITCODE -ne 0) { throw "sbom-tool generate failed." }
+    } finally {
+        if ($null -eq $previousRollForward) {
+            Remove-Item Env:\DOTNET_ROLL_FORWARD -ErrorAction SilentlyContinue
+        } else {
+            $env:DOTNET_ROLL_FORWARD = $previousRollForward
+        }
+    }
 
     # Move generated SBOM into the output path if it landed elsewhere
     $generatedManifestDir = Join-Path $BuildPath "_manifest"

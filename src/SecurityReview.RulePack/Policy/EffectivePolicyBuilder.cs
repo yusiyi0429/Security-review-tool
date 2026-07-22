@@ -248,7 +248,7 @@ public static class EffectivePolicyBuilder
         }
 
         // Cannot lower severity
-        if (local.Severity < baseline.Severity)
+        if (local.Severity > baseline.Severity)
         {
             throw new InvalidOperationException(
                 $"Local supplement cannot lower severity of rule '{baseline.Id.Value}' " +

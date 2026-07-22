@@ -93,6 +93,13 @@ PresentationFramework-Classic.dll
 PresentationFramework-Fluent.dll
 PresentationFramework-Luna.dll
 PresentationFramework-Royale.dll
+PresentationFramework.Aero.dll
+PresentationFramework.Aero2.dll
+PresentationFramework.AeroLite.dll
+PresentationFramework.Classic.dll
+PresentationFramework.Fluent.dll
+PresentationFramework.Luna.dll
+PresentationFramework.Royale.dll
 PresentationFramework-SystemCore.dll
 PresentationFramework-SystemData.dll
 PresentationFramework-SystemDrawing.dll
@@ -360,4 +367,5 @@ LICENSES/*.md
 
 # --- Release metadata ---
 release-manifest.json
+release-manifest.schema.json
 _manifest/spdx_2.2/manifest.spdx.json

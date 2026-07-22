@@ -124,11 +124,7 @@ public sealed class LlmEndpointOptionsTests
     [Fact]
     public void Rejects_wildcard_host()
     {
-        Assert.Throws<ArgumentException>(() => LlmEndpointOptions.Create(
-            new Uri("https://*.internal.example/"),
-            chatCompletionsPath: "/v1/chat/completions",
-            model: Model,
-            reference: Reference));
+        Assert.Throws<UriFormatException>(() => new Uri("https://*.internal.example/"));
     }
 
     [Fact]
@@ -144,18 +140,13 @@ public sealed class LlmEndpointOptionsTests
     [Fact]
     public void Rejects_empty_host()
     {
-        Assert.Throws<ArgumentException>(() => LlmEndpointOptions.Create(
-            new Uri("https:///path"),
-            chatCompletionsPath: "/v1/chat/completions",
-            model: Model,
-            reference: Reference));
+        Assert.Throws<UriFormatException>(() => new Uri("https:///path"));
     }
 
     [Fact]
     public void Rejects_oversize_url_over_2048_chars()
     {
-        string host = new('a', 2100);
-        var uri = new Uri($"https://{host}/");
+        var uri = new Uri($"https://llm.internal.example/{new string('a', 2100)}");
         Assert.Throws<ArgumentException>(() => LlmEndpointOptions.Create(
             uri,
             chatCompletionsPath: "/v1/chat/completions",
@@ -512,6 +503,6 @@ public sealed class LlmEndpointOptionsTests
             model: Model,
             reference: Reference);
         Assert.Equal("llm.internal.example:8443", options.ApprovedOrigin.Authority);
-        Assert.Equal(string.Empty, options.ApprovedOrigin.AbsolutePath);
+        Assert.Equal("/", options.ApprovedOrigin.AbsolutePath);
     }
 }

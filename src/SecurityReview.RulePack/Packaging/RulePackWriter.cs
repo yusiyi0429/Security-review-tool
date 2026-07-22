@@ -65,7 +65,9 @@ public static class RulePackWriter
 
         // Compute file entries and populate manifest
         var fileEntries = new List<RulePackManifest.FileEntry>(entries.Count);
-        foreach (var (path, content) in entries.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+        foreach (var (path, content) in entries
+                     .Where(kv => kv.Key != "signature.json")
+                     .OrderBy(kv => kv.Key, StringComparer.Ordinal))
         {
             string sha256 = Convert.ToHexStringLower(SHA256.HashData(content));
             fileEntries.Add(RulePackManifest.FileEntry.Create(path, sha256, content.Length));

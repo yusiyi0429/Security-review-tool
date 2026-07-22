@@ -116,6 +116,6 @@ public sealed class DeterministicSecretMasker
         if (sliceEnd > sliceStart && char.IsHighSurrogate(text[sliceEnd - 1]))
             sliceEnd--;
         if (sliceStart >= sliceEnd) return;
-        sb.Append(text, sliceStart, sliceEnd);
+        sb.Append(text, sliceStart, sliceEnd - sliceStart);
     }
 }

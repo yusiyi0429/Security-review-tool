@@ -229,7 +229,10 @@ public sealed class LlmRetryPolicy
         double multiplier = 1.0 + (jitterValue - 0.5) * 0.2;
         long ticks = (long)(candidate.Ticks * multiplier);
         if (ticks < 0) ticks = 0;
-        return TimeSpan.FromTicks(ticks);
+        TimeSpan delay = TimeSpan.FromTicks(ticks);
+        if (deadline.HasValue && _clock() + delay > deadline.Value)
+            return TimeSpan.Zero;
+        return delay;
     }
 
     private TimeSpan? ParseRetryAfter(HttpResponseMessage response)

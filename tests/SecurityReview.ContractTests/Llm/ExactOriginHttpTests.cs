@@ -23,17 +23,29 @@ public sealed class ExactOriginHttpTests
 {
     private const string ModelName = "test-model";
     private const string CanaryAuth = "SYNTHETIC_AUTH_CANARY";
-    private const string CanaryBody = "SYNTHETIC_BODY_CANARY";
+    private const string CanaryBody = LlmConnectionTestService.SyntheticBodyText;
 
-    private static LlmEndpointOptions BuildOptions(string origin, string? path = "/v1/chat/completions") =>
-        LlmEndpointOptions.Create(
-            baseUri: new Uri(origin + "/"),
-            chatCompletionsPath: path,
-            model: ModelName,
-            reference: "Llm.Endpoint.Default",
-            authMode: LlmAuthMode.Bearer,
-            credentialReference: "Llm.Credential.Default",
-            maxConcurrency: 1);
+    private static LlmEndpointOptions BuildOptions(string origin, string? path = "/v1/chat/completions")
+    {
+        var baseUri = new Uri(origin + "/");
+        return baseUri.Scheme == Uri.UriSchemeHttp
+            ? LlmEndpointOptions.CreateForLoopbackTesting(
+                baseUri: baseUri,
+                chatCompletionsPath: path,
+                model: ModelName,
+                reference: "Llm.Endpoint.Default",
+                authMode: LlmAuthMode.Bearer,
+                credentialReference: "Llm.Credential.Default",
+                maxConcurrency: 1)
+            : LlmEndpointOptions.Create(
+                baseUri: baseUri,
+                chatCompletionsPath: path,
+                model: ModelName,
+                reference: "Llm.Endpoint.Default",
+                authMode: LlmAuthMode.Bearer,
+                credentialReference: "Llm.Credential.Default",
+                maxConcurrency: 1);
+    }
 
     private static LlmConnectionTestResult Run(
         LlmEndpointOptions options,
@@ -141,14 +153,14 @@ public sealed class ExactOriginHttpTests
             await Task.Delay(TimeSpan.FromSeconds(15), CancellationToken.None);
             return new HttpResponseDescriptor(200, "{}");
         });
-        var options = LlmEndpointOptions.Create(
+        var options = LlmEndpointOptions.CreateForLoopbackTesting(
             baseUri: new Uri(server.Origin + "/"),
             chatCompletionsPath: "/v1/chat/completions",
             model: ModelName,
             reference: "Llm.Endpoint.Default",
             authMode: LlmAuthMode.Bearer,
             credentialReference: "Llm.Credential.Default",
-            timeout: TimeSpan.FromMilliseconds(300),
+            timeout: TimeSpan.FromSeconds(1),
             maxConcurrency: 1);
         var result = Run(options, server);
         Assert.False(result.Succeeded);
@@ -312,7 +324,7 @@ public sealed class ExactOriginHttpTests
         // Use a credential-less options object so the client would
         // only default to system credentials. The custom handler
         // must still NOT auto-respond with the system credentials.
-        var options = LlmEndpointOptions.Create(
+        var options = LlmEndpointOptions.CreateForLoopbackTesting(
             baseUri: new Uri(server.Origin + "/"),
             chatCompletionsPath: "/v1/chat/completions",
             model: ModelName,
@@ -455,7 +467,7 @@ public sealed class ExactOriginHttpTests
             Assert.False(ctx.Headers.ContainsKey("Authorization"));
             return Task.FromResult(new HttpResponseDescriptor(200, "{}"));
         });
-        var options = LlmEndpointOptions.Create(
+        var options = LlmEndpointOptions.CreateForLoopbackTesting(
             baseUri: new Uri(server.Origin + "/"),
             chatCompletionsPath: "/v1/chat/completions",
             model: ModelName,

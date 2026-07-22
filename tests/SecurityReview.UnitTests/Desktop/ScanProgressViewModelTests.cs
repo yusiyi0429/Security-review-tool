@@ -220,7 +220,12 @@ public sealed class ScanProgressViewModelTests
                 changed.Add(e.PropertyName);
         };
 
-        vm.ApplyProgress(ScanProgress.Empty with { Stage = ScanStage.Running });
+        vm.ApplyProgress(ScanProgress.Empty with
+        {
+            Stage = ScanStage.Running,
+            DiscoveredFiles = 1,
+            ProcessedFiles = 1,
+        });
 
         Assert.Contains(nameof(ScanProgressViewModel.Stage), changed);
         Assert.Contains(nameof(ScanProgressViewModel.DiscoveredFiles), changed);

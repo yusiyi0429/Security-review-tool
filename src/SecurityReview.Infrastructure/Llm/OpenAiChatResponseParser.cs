@@ -117,6 +117,9 @@ public static class OpenAiChatResponseParser
                 AllowTrailingCommas = false,
             });
 
+        if (!reader.Read())
+            return Unresolved(expectedCandidateId, "response_body_empty");
+
         ParseOutcome outcome = ParseObject(
             ref reader, expectedCandidateId, out var parsed);
 
@@ -417,6 +420,9 @@ public static class OpenAiChatResponseParser
                     ms.Write(buffer, 0, read);
                     _consumed += read;
                 }
+
+                if (_consumed == _cap && _inner.ReadByte() >= 0)
+                    return Array.Empty<byte>();
             }
             finally
             {

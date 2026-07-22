@@ -78,11 +78,21 @@ public sealed class ScanDiffService
             .ToDictionary(g => g.Id, g => g.ValueFingerprint);
 
         var previousByKey = new Dictionary<string, FindingOccurrence>();
+        var previousByLocationValueKey = new Dictionary<string, List<FindingOccurrence>>();
         foreach (var prevOcc in previousOccurrences)
         {
             string key = BuildMatchingKey(
                 prevOcc, prevGroupValueFingerprints.GetValueOrDefault(prevOcc.GroupId));
             previousByKey[key] = prevOcc;
+
+            string locationValueKey = BuildLocationValueKey(
+                prevOcc, prevGroupValueFingerprints.GetValueOrDefault(prevOcc.GroupId));
+            if (!previousByLocationValueKey.TryGetValue(locationValueKey, out var matches))
+            {
+                matches = new List<FindingOccurrence>();
+                previousByLocationValueKey[locationValueKey] = matches;
+            }
+            matches.Add(prevOcc);
         }
 
         // Match current occurrences against previous.
@@ -115,8 +125,32 @@ public sealed class ScanDiffService
             }
             else
             {
-                diffs.Add(new FindingDiff(currentOcc.Id,
-                    ReviewDifferenceStatus.New, null));
+                string locationValueKey = BuildLocationValueKey(
+                    currentOcc, groupValueFingerprints.GetValueOrDefault(currentOcc.GroupId));
+                FindingOccurrence? reappeared = null;
+                if (rulePackChanged &&
+                    previousByLocationValueKey.TryGetValue(locationValueKey, out var candidates))
+                {
+                    reappeared = candidates.FirstOrDefault(previous =>
+                        IsReappearedAfterRuleChange(currentOcc, previous, newlyEnabledRuleIds));
+                }
+
+                if (reappeared is not null)
+                {
+                    string previousKey = BuildMatchingKey(
+                        reappeared,
+                        prevGroupValueFingerprints.GetValueOrDefault(reappeared.GroupId));
+                    matchedPreviousKeys.Add(previousKey);
+                    diffs.Add(new FindingDiff(
+                        currentOcc.Id,
+                        ReviewDifferenceStatus.ReappearedAfterRuleChange,
+                        reappeared.Id.Value.ToString()));
+                }
+                else
+                {
+                    diffs.Add(new FindingDiff(currentOcc.Id,
+                        ReviewDifferenceStatus.New, null));
+                }
             }
         }
 
@@ -150,22 +184,29 @@ public sealed class ScanDiffService
         FindingOccurrence occurrence,
         ValueFingerprint? valueFingerprint)
     {
+        string locationValueKey = BuildLocationValueKey(occurrence, valueFingerprint);
+
+        string ruleId = occurrence.Provenance.Count > 0
+            ? occurrence.Provenance[0].RuleId.Value
+            : "unknown-rule";
+
+        return ComputeSha256LowerHex($"{locationValueKey}|{ruleId}");
+    }
+
+    private static string BuildLocationValueKey(
+        FindingOccurrence occurrence,
+        ValueFingerprint? valueFingerprint)
+    {
         string pathHmac = ComputeSha256LowerHex(occurrence.VirtualPath);
         string locatorDisplay = occurrence.CanonicalLocator.ToCanonicalDisplay();
         string filePrefix = occurrence.FileSha256.Length >= 16
             ? occurrence.FileSha256[..16]
             : occurrence.FileSha256;
 
-        // Use the first provenance entry's RuleId; multi-provenance occurrences
-        // already represent the same location/value across detectors.
-        string ruleId = occurrence.Provenance.Count > 0
-            ? occurrence.Provenance[0].RuleId.Value
-            : "unknown-rule";
-
         string valueHmac = valueFingerprint?.HexString ?? string.Empty;
 
         string canonical = string.Create(System.Globalization.CultureInfo.InvariantCulture,
-            $"diff|{filePrefix}|{pathHmac}|{locatorDisplay}|{ruleId}|{valueHmac}");
+            $"diff-location-value|{filePrefix}|{pathHmac}|{locatorDisplay}|{valueHmac}");
         return ComputeSha256LowerHex(canonical);
     }
 

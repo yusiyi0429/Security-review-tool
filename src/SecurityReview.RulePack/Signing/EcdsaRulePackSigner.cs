@@ -14,6 +14,20 @@ public static class EcdsaRulePackSigner
     public const string AlgorithmName = "ECDSA_P256_SHA256_P1363";
     public const string DefaultSignerKeyId = "rules-team-prod-01";
 
+    private static readonly HashSet<string> ExpectedEntries = new(StringComparer.Ordinal)
+    {
+        "manifest.json",
+        "signature.json",
+        "categories.json",
+        "assets.json",
+        "rules.json",
+        "detectors.json",
+        "compliance.json",
+        "dictionaries/entities.json",
+        "placeholders.json",
+        "licenses.json",
+    };
+
     // ── Key management ────────────────────────────────────────────
 
     /// <summary>
@@ -99,14 +113,19 @@ public static class EcdsaRulePackSigner
     /// <summary>
     /// Writes the signature.json payload as UTF-8 bytes.
     /// </summary>
-    public static byte[] WriteSignatureJson(byte[] signature, string signerKeyId)
+    public static byte[] WriteSignatureJson(
+        byte[] signature,
+        string signerKeyId,
+        string? signerPublicKeyBase64 = null)
     {
         ArgumentNullException.ThrowIfNull(signature);
         ArgumentNullException.ThrowIfNull(signerKeyId);
 
         string signatureBase64 = Convert.ToBase64String(signature);
 
-        var json = $$"""{"algorithm":"{{AlgorithmName}}","signer_key_id":"{{EscapeJson(signerKeyId)}}","signature_base64":"{{signatureBase64}}"}""";
+        string json = string.IsNullOrWhiteSpace(signerPublicKeyBase64)
+            ? $$"""{"algorithm":"{{AlgorithmName}}","signer_key_id":"{{EscapeJson(signerKeyId)}}","signature_base64":"{{signatureBase64}}"}"""
+            : $$"""{"algorithm":"{{AlgorithmName}}","signer_key_id":"{{EscapeJson(signerKeyId)}}","signature_base64":"{{signatureBase64}}","signer_public_key_base64":"{{EscapeJson(signerPublicKeyBase64)}}"}""";
 
         return Encoding.UTF8.GetBytes(json);
     }
@@ -135,10 +154,19 @@ public static class EcdsaRulePackSigner
 
         using (archive)
         {
-            // Validate entry count: exactly 9 expected
-            if (archive.Entries.Count != 9)
+            if (archive.Entries.Count != ExpectedEntries.Count)
             {
-                return new VerifyResult(false, archive.Entries.Count > 9 ? "EXTRA_ENTRY" : "INVALID_ZIP");
+                return new VerifyResult(
+                    false,
+                    archive.Entries.Count > ExpectedEntries.Count ? "EXTRA_ENTRY" : "INVALID_ZIP");
+            }
+
+            var seenEntries = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var entry in archive.Entries)
+            {
+                string name = entry.FullName.Replace('\\', '/');
+                if (!ExpectedEntries.Contains(name) || !seenEntries.Add(name))
+                    return new VerifyResult(false, "EXTRA_ENTRY");
             }
 
             // Read manifest.json
@@ -165,6 +193,9 @@ public static class EcdsaRulePackSigner
                 return new VerifyResult(false, "MISSING_SIGNATURE");
             }
 
+            if (!string.Equals(sigData.Algorithm, AlgorithmName, StringComparison.Ordinal))
+                return new VerifyResult(false, "SIGNATURE_INVALID");
+
             // Check signer key ID
             if (!string.Equals(sigData.SignerKeyId, expectedSignerKeyId, StringComparison.Ordinal))
             {
@@ -181,7 +212,7 @@ public static class EcdsaRulePackSigner
             foreach (var entry in archive.Entries)
             {
                 string entryName = entry.FullName.Replace('\\', '/');
-                if (entryName == "manifest.json")
+                if (entryName is "manifest.json" or "signature.json")
                     continue;
 
                 var expected = manifest.Files

@@ -147,6 +147,7 @@ public sealed class ScanScheduler : IDisposable
         }
 
         cts?.Cancel();
+        _workChannel.Writer.TryComplete();
 
         // Drain remaining channel items as cancelled to unblock result channel
         try
@@ -177,12 +178,10 @@ public sealed class ScanScheduler : IDisposable
 
     private async Task DispatchLoopAsync(CancellationToken ct)
     {
+        var activeTasks = new List<Task>();
+        using var semaphore = new SemaphoreSlim(_maxWorkers, _maxWorkers);
         try
         {
-            // Track dispatch tasks so we can enforce max worker count.
-            var activeTasks = new List<Task>();
-            var semaphore = new SemaphoreSlim(_maxWorkers, _maxWorkers);
-
             await foreach (ScanWorkItem item in _workChannel.Reader.ReadAllAsync(ct)
                .ConfigureAwait(false))
             {
@@ -197,7 +196,15 @@ public sealed class ScanScheduler : IDisposable
                     }
                 }
 
-                await semaphore.WaitAsync(ct).ConfigureAwait(false);
+                try
+                {
+                    await semaphore.WaitAsync(ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    WriteCancelledResult(item);
+                    throw;
+                }
 
                 lock (_lock)
                 {
@@ -210,16 +217,21 @@ public sealed class ScanScheduler : IDisposable
                 // Clean up completed tasks.
                 activeTasks.RemoveAll(t => t.IsCompleted);
             }
-
-            // Wait for all remaining workers to finish.
-            await Task.WhenAll(activeTasks).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            // Scan cancelled — let dispatch drain.
+            // Active workers still publish a terminal result in the finally block below.
         }
         finally
         {
+            try
+            {
+                await Task.WhenAll(activeTasks).ConfigureAwait(false);
+            }
+            catch
+            {
+                // ProcessItemAsync maps worker failures to terminal results.
+            }
             _resultChannel.Writer.TryComplete();
         }
     }
@@ -231,22 +243,18 @@ public sealed class ScanScheduler : IDisposable
             await foreach (WorkerJobResult result in _processor.ProcessAsync(item, ct)
                .ConfigureAwait(false))
             {
-                await _resultChannel.Writer.WriteAsync(result, ct).ConfigureAwait(false);
+                _resultChannel.Writer.TryWrite(result);
             }
         }
         catch (OperationCanceledException)
         {
-            await _resultChannel.Writer.WriteAsync(
-                new WorkerJobResult(item.JobId, item.FileId, WorkerResultKind.Cancelled,
-                    null, null, null, null, WorkerFailure.Cancelled), ct)
-                .ConfigureAwait(false);
+            WriteCancelledResult(item);
         }
         catch (Exception)
         {
-            await _resultChannel.Writer.WriteAsync(
+            _resultChannel.Writer.TryWrite(
                 new WorkerJobResult(item.JobId, item.FileId, WorkerResultKind.Failed,
-                    null, null, null, null, WorkerFailure.Crash), ct)
-                .ConfigureAwait(false);
+                    null, null, null, null, WorkerFailure.Crash));
         }
         finally
         {
@@ -257,6 +265,13 @@ public sealed class ScanScheduler : IDisposable
 
             semaphore.Release();
         }
+    }
+
+    private void WriteCancelledResult(ScanWorkItem item)
+    {
+        _resultChannel.Writer.TryWrite(new WorkerJobResult(
+            item.JobId, item.FileId, WorkerResultKind.Cancelled,
+            null, null, null, null, WorkerFailure.Cancelled));
     }
 
     public void Dispose()
