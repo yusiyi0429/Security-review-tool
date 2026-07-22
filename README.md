@@ -83,8 +83,8 @@ dotnet build SecurityReviewTool.sln -c Release
 dotnet test SecurityReviewTool.sln -c Release
 
 # 试点发布：生成便携 ZIP 和单文件安装器
-pwsh ./build/package.ps1 -Version 1.0.1 -AllowUnsignedPilot
-pwsh ./build/package-installer.ps1 -Version 1.0.1 -AllowUnsignedPilot
+pwsh ./build/package.ps1 -Version 1.0.2 -AllowUnsignedPilot
+pwsh ./build/package-installer.ps1 -Version 1.0.2 -AllowUnsignedPilot
 ```
 
 ## 发布流程

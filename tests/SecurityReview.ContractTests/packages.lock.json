@@ -196,10 +196,10 @@
       "securityreview.application": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.1, )",
-          "SecurityReview.ParserContracts": "[1.0.1, )",
-          "SecurityReview.Parsers": "[1.0.1, )",
-          "SecurityReview.RulePack": "[1.0.1, )"
+          "SecurityReview.Domain": "[1.0.2, )",
+          "SecurityReview.ParserContracts": "[1.0.2, )",
+          "SecurityReview.Parsers": "[1.0.2, )",
+          "SecurityReview.RulePack": "[1.0.2, )"
         }
       },
       "securityreview.domain": {
@@ -210,17 +210,17 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, )",
           "Microsoft.Data.Sqlite": "[10.0.10, )",
-          "SecurityReview.Application": "[1.0.1, )",
-          "SecurityReview.Domain": "[1.0.1, )",
-          "SecurityReview.ParserContracts": "[1.0.1, )",
-          "SecurityReview.RulePack": "[1.0.1, )",
+          "SecurityReview.Application": "[1.0.2, )",
+          "SecurityReview.Domain": "[1.0.2, )",
+          "SecurityReview.ParserContracts": "[1.0.2, )",
+          "SecurityReview.RulePack": "[1.0.2, )",
           "System.Security.Cryptography.ProtectedData": "[10.0.10, )"
         }
       },
       "securityreview.parsercontracts": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.1, )"
+          "SecurityReview.Domain": "[1.0.2, )"
         }
       },
       "securityreview.parsers": {
@@ -228,24 +228,24 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, )",
           "PdfPig": "[0.1.14, )",
-          "SecurityReview.Domain": "[1.0.1, )",
-          "SecurityReview.ParserContracts": "[1.0.1, )",
+          "SecurityReview.Domain": "[1.0.2, )",
+          "SecurityReview.ParserContracts": "[1.0.2, )",
           "YamlDotNet": "[18.1.0, )"
         }
       },
       "securityreview.rulepack": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.1, )",
-          "SecurityReview.ParserContracts": "[1.0.1, )"
+          "SecurityReview.Domain": "[1.0.2, )",
+          "SecurityReview.ParserContracts": "[1.0.2, )"
         }
       },
       "securityreview.rulepackbuilder": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, )",
-          "SecurityReview.Domain": "[1.0.1, )",
-          "SecurityReview.RulePack": "[1.0.1, )"
+          "SecurityReview.Domain": "[1.0.2, )",
+          "SecurityReview.RulePack": "[1.0.2, )"
         }
       },
       "Microsoft.Data.Sqlite": {

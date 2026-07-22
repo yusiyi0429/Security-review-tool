@@ -8,7 +8,7 @@
       "securityreview.parsercontracts": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.1, )"
+          "SecurityReview.Domain": "[1.0.2, )"
         }
       }
     },

@@ -16,14 +16,14 @@ Obtain the installer and its SHA-256 sidecar from an approved distribution
 channel (internal file share, release portal, or secure transfer):
 
 ```
-SecurityReviewTool-1.0.1-win-x64-setup.exe
-SecurityReviewTool-1.0.1-win-x64-setup.exe.sha256
+SecurityReviewTool-1.0.2-win-x64-setup.exe
+SecurityReviewTool-1.0.2-win-x64-setup.exe.sha256
 ```
 
 Verify the installer hash before running it:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 SecurityReviewTool-1.0.1-win-x64-setup.exe
+Get-FileHash -Algorithm SHA256 SecurityReviewTool-1.0.2-win-x64-setup.exe
 ```
 
 Compare the output against the published hash in the `.sha256` sidecar or the
@@ -32,7 +32,7 @@ release announcement. **Do not use the tool if the hashes do not match.**
 If the release is Authenticode-signed, also check the signature:
 
 ```powershell
-Get-AuthenticodeSignature SecurityReviewTool-1.0.1-win-x64-setup.exe
+Get-AuthenticodeSignature SecurityReviewTool-1.0.2-win-x64-setup.exe
 ```
 
 The `Status` must be `Valid`. An unsigned pilot build carries a prominent
@@ -62,7 +62,7 @@ Extract the ZIP to **any user-writable directory** (Desktop, Documents, or a
 dedicated tools folder all work):
 
 ```powershell
-Expand-Archive -LiteralPath SecurityReviewTool-1.0.1-win-x64.zip -DestinationPath C:\Tools\SecurityReviewTool
+Expand-Archive -LiteralPath SecurityReviewTool-1.0.2-win-x64.zip -DestinationPath C:\Tools\SecurityReviewTool
 ```
 
 **Long, spaced, and Chinese-character paths are supported.** For example,
