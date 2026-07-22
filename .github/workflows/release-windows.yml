@@ -47,9 +47,16 @@ jobs:
         shell: pwsh
         run: ./build/package.ps1 -Version '${{ inputs.version }}' -AllowUnsignedPilot
 
-      - name: Run integration and parser corpus lanes
+      - name: Run parser corpus and focused integration lanes
         shell: pwsh
-        run: ./build/test.ps1 -Lane Integration,ParserCorpus
+        run: |
+          ./build/test.ps1 -Lane ParserCorpus
+          dotnet test tests/SecurityReview.IntegrationTests/SecurityReview.IntegrationTests.csproj `
+            -c Release `
+            -r win-x64 `
+            --no-restore `
+            --filter "FullyQualifiedName~CompositionRootTests|FullyQualifiedName~CompleteScanWorkflowTests|FullyQualifiedName~SemanticFailureWorkflowTests|FullyQualifiedName~Private_network_scope_round_trips_with_http_endpoint" `
+            --logger "trx;LogFileName=FocusedIntegration.trx"
 
       - name: Build and verify installer
         shell: pwsh

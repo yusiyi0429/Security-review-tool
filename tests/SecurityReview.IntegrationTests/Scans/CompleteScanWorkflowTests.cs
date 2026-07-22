@@ -58,8 +58,11 @@ public sealed class CompleteScanWorkflowTests : IAsyncDisposable
 
         using var init = new SqliteConnection($"Data Source={_databasePath};Mode=ReadWriteCreate");
         init.Open();
-        new Migration001Initial().ApplyAsync(init, "test-integration", CancellationToken.None)
-            .GetAwaiter().GetResult();
+        foreach (IMigration migration in DefaultMigrations.Create())
+        {
+            migration.ApplyAsync(init, "test-integration", CancellationToken.None)
+                .GetAwaiter().GetResult();
+        }
         init.Close();
     }
 

@@ -23,7 +23,7 @@
 ### 验证
 
 - Debug 与 Release 全解决方案构建均为 0 警告、0 错误。
-- macOS 可执行的 LLM exact-origin 合约测试 20/20 通过；Windows 发布流水线继续运行 Unit、Contract、Integration 和 ParserCorpus 验证。
+- macOS 可执行的 LLM exact-origin 合约测试 20/20 通过；Windows 发布流水线继续运行 Unit、Contract、ParserCorpus 和扫描/LLM 相关 Integration 验证。
 
 ### 发布说明
 

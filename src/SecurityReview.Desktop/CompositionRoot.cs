@@ -14,6 +14,7 @@ using SecurityReview.Infrastructure.Cryptography;
 using SecurityReview.Infrastructure.Diagnostics;
 using SecurityReview.Infrastructure.Llm;
 using SecurityReview.Infrastructure.Persistence;
+using SecurityReview.Infrastructure.Persistence.Migrations;
 using SecurityReview.Infrastructure.Persistence.Repositories;
 using SecurityReview.Infrastructure.Rules;
 using SecurityReview.Infrastructure.Windows.Sandbox;
@@ -93,6 +94,25 @@ public sealed class CompositionRoot : IDisposable
         Register<ISqliteConnectionFactory>(connectionFactory);
         RegisterConcrete(connectionFactory);
 
+        bool databaseOk;
+        try
+        {
+            var migrations = new MigrationRunner(
+                connectionFactory,
+                DefaultMigrations.Create(),
+                paths);
+            MigrationResult result = migrations.MigrateAsync()
+                .GetAwaiter().GetResult();
+            databaseOk = result.Success;
+            if (!databaseOk)
+                Health.MarkBlocked("database_migration_failed");
+        }
+        catch
+        {
+            databaseOk = false;
+            Health.MarkBlocked("database_migration_failed");
+        }
+
         // --- Step 3: Keyring / crypto ---
         WindowsDpapiKeyRing? keyring = null;
         HkdfSha256? hkdf = null;
@@ -145,7 +165,7 @@ public sealed class CompositionRoot : IDisposable
         IPayloadProtector? protector = TryGet<IPayloadProtector>();
         IValueFingerprintService? fp = TryGet<IValueFingerprintService>();
 
-        if (protector is not null && fp is not null)
+        if (databaseOk && protector is not null && fp is not null)
         {
             // SqliteScanRepository(ISqliteConnectionFactory, IPayloadProtector)
             Register<IScanRepository>(
