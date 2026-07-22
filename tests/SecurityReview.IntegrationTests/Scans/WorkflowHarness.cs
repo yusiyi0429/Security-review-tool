@@ -84,6 +84,7 @@ internal sealed class WorkflowHarness
         _scans = new SqliteScanRepository(factory, protector);
         _findings = new SqliteFindingRepository(factory, protector, fingerprint);
         _coverage = new SqliteCoverageRepository(factory, protector);
+        var files = new SqliteFileRepository(factory, protector, fingerprint);
         _snapshots = new SqliteScanSnapshotRepository(factory);
         _snapshotCodec = new ScanConfigurationSnapshotCodec(protector);
 
@@ -112,7 +113,7 @@ internal sealed class WorkflowHarness
             _detection,
             _findings,
             _coverage,
-            new NullFileRepository(),
+            files,
             _semanticQueue,
             new NullDiagnosticSink(),
             state);

@@ -296,6 +296,13 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                 Method = "RunPipelineAsync",
             }));
 
+        // Findings and coverage gaps reference file_records through foreign
+        // keys, so the inventory must be durable before parse/detect starts.
+        // Persisting it as a batch also ensures a completed scan retains the
+        // exact file set that was evaluated.
+        await _fileRepository.InsertBatchAsync(scanId, inventory.Files, cancellationToken)
+            .ConfigureAwait(false);
+
         var ledger = new InMemoryCoverageLedger(scanId);
         foreach (FileRecord file in inventory.Files)
         {
