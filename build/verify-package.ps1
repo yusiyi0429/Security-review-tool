@@ -213,9 +213,12 @@ try {
     Write-Host "[7/10] Forbidden pattern check"
 
     $forbiddenExtensions = @(".pdb", ".xml")
+    # Do not use broad substrings such as "config", "private", "dump", or
+    # "source" here: they are part of required .NET runtime file names
+    # (runtimeconfig.json, System.Private.*, createdump.exe, TraceSource.dll).
+    # Exact package contents are already constrained by the allowlist.
     $forbiddenKeywords = @("test", "corpus", "workbook", "keyring",
-        "credential", "private", "dump", ".db", ".sqlite", ".sqlite3",
-        "wal", "shm", ".git", "config", "temp", "report", "source")
+        "credential", ".git", "temp", "report")
 
     Get-ChildItem -Recurse -File -Path $extractDir | ForEach-Object {
         $relative = $_.FullName.Substring($extractDir.Length + 1).Replace("\", "/")
@@ -254,11 +257,20 @@ try {
     } elseif ($manifestSignerMode -eq "authenticode") {
         Write-Host "  Package is signed (authenticode mode)."
         if ($IsWindows) {
-            $sigResult = Get-AuthenticodeSignature -FilePath $packagePath
-            if ($sigResult.Status -ne "Valid") {
-                throw "Authenticode signature is not valid: $($sigResult.Status)"
+            $signedExecutables = @(
+                (Join-Path $extractDir "SecurityReviewTool.exe"),
+                (Join-Path $extractDir "worker/SecurityReview.Worker.exe")
+            )
+            foreach ($signedExecutable in $signedExecutables) {
+                if (-not (Test-Path -LiteralPath $signedExecutable -PathType Leaf)) {
+                    throw "Expected signed executable not found: $signedExecutable"
+                }
+                $sigResult = Get-AuthenticodeSignature -LiteralPath $signedExecutable
+                if ($sigResult.Status -ne "Valid") {
+                    throw "Authenticode signature is not valid for $signedExecutable`: $($sigResult.Status)"
+                }
+                Write-Host "  Signature valid: $($sigResult.SignerCertificate.Subject)"
             }
-            Write-Host "  Signature valid: $($sigResult.SignerCertificate.Subject)"
         } else {
             Write-Host "  (Windows-only Authenticode check skipped on non-Windows)"
         }

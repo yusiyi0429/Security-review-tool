@@ -17,6 +17,16 @@ $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot | Split-Path -Parent
 Push-Location $root
 try {
+    $versionFile = Join-Path $root "VERSION"
+    if (-not (Test-Path -LiteralPath $versionFile -PathType Leaf)) {
+        throw "Version file not found: $versionFile"
+    }
+    $repositoryVersion = (Get-Content -LiteralPath $versionFile -Raw -Encoding UTF8).Trim()
+    $allowedVersionPattern = '^' + [regex]::Escape($repositoryVersion) + '(?:[-+][0-9A-Za-z.-]+)?$'
+    if ($Version -notmatch $allowedVersionPattern) {
+        throw "Requested package version '$Version' does not match repository version '$repositoryVersion'."
+    }
+
     # ------------------------------------------------------------------
     # 0. Validate signing mode
     # ------------------------------------------------------------------
@@ -37,7 +47,12 @@ try {
     dotnet tool restore
     if ($LASTEXITCODE -ne 0) { throw "dotnet tool restore failed." }
 
-    $restoreArgs = @("restore", "SecurityReviewTool.sln", "--locked-mode", "--verbosity", "minimal")
+    $restoreArgs = @(
+        "restore", "SecurityReviewTool.sln",
+        "--locked-mode",
+        "-r", $RuntimeIdentifier,
+        "--verbosity", "minimal"
+    )
     if ($env:SECURITY_REVIEW_NUGET_CONFIG) {
         if (-not (Test-Path -LiteralPath $env:SECURITY_REVIEW_NUGET_CONFIG -PathType Leaf)) {
             throw "External NuGet config not found."
@@ -229,7 +244,7 @@ try {
         foreach ($file in $signables) {
             if (Test-Path $file) {
                 $signArgs = @(
-                    "signtool", "sign",
+                    "sign",
                     "/sha1", $SigningCertificateThumbprint,
                     "/fd", "SHA256",
                     "/tr", "http://timestamp.digicert.com",
@@ -348,8 +363,11 @@ try {
             $entry.LastWriteTime = $fixedDate
 
             $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
-            using ($stream = $entry.Open()) {
+            $stream = $entry.Open()
+            try {
                 $stream.Write($bytes, 0, $bytes.Length)
+            } finally {
+                $stream.Dispose()
             }
         }
     } finally {

@@ -112,52 +112,59 @@
                 BorderBrush="{StaticResource BrushSurface2}"
                 BorderThickness="0,1,0,0"
                 Padding="10,6">
-            <StackPanel Orientation="Horizontal">
-                <!-- Rule version -->
-                <TextBlock Style="{StaticResource StatusBarLabelStyle}"
-                           Text="{StaticResource StatusRuleVersion}" />
-                <TextBlock Style="{StaticResource StatusBarItemStyle}"
-                           Text="{Binding RulePackageVersion}" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <!-- Rule version -->
+                    <TextBlock Style="{StaticResource StatusBarLabelStyle}"
+                               Text="{StaticResource StatusRuleVersion}" />
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}"
+                               Text="{Binding RulePackageVersion}" />
 
-                <!-- Sandbox health -->
-                <TextBlock Style="{StaticResource StatusBarLabelStyle}"
-                           Text="{StaticResource StatusSandbox}" />
-                <TextBlock Style="{StaticResource StatusBarItemStyle}"
-                           Text="{Binding SandboxHealth}" />
+                    <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
 
-                <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
+                    <!-- Sandbox health -->
+                    <TextBlock Style="{StaticResource StatusBarLabelStyle}"
+                               Text="{StaticResource StatusSandbox}" />
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}"
+                               Text="{Binding SandboxHealth}" />
 
-                <!-- LLM state -->
-                <TextBlock Style="{StaticResource StatusBarLabelStyle}"
-                           Text="{StaticResource StatusLlm}" />
-                <TextBlock Style="{StaticResource StatusBarItemStyle}"
-                           Text="{Binding LlmState}" />
+                    <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
 
-                <!-- Spacer pushes version to the right -->
-                <Grid Width="*" />
+                    <!-- LLM state -->
+                    <TextBlock Style="{StaticResource StatusBarLabelStyle}"
+                               Text="{StaticResource StatusLlm}" />
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}"
+                               Text="{Binding LlmState}" />
+                </StackPanel>
 
-                <!-- Non-latest rule warning -->
-                <TextBlock x:Name="WarningRule"
-                           Style="{StaticResource StatusBarItemStyle}"
-                           Foreground="{StaticResource BrushWarn}"
-                           Text="{StaticResource WarningNonLatestRule}"
-                           Visibility="{Binding NonLatestRuleWarning,
-                               Converter={StaticResource BooleanToVisibility}}">
-                    <TextBlock.Resources>
-                        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
-                    </TextBlock.Resources>
-                </TextBlock>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <!-- Non-latest rule warning -->
+                    <TextBlock x:Name="WarningRule"
+                               Style="{StaticResource StatusBarItemStyle}"
+                               Foreground="{StaticResource BrushWarn}"
+                               Text="{StaticResource WarningNonLatestRule}"
+                               Visibility="{Binding NonLatestRuleWarning,
+                                   Converter={StaticResource BooleanToVisibility}}">
+                        <TextBlock.Resources>
+                            <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+                        </TextBlock.Resources>
+                    </TextBlock>
 
-                <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
+                    <Separator Width="1" Margin="8,2" Background="{StaticResource BrushSurface3}" />
 
-                <!-- App version -->
-                <TextBlock Style="{StaticResource StatusBarLabelStyle}"
-                           Text="{StaticResource StatusAppVersion}" />
-                <TextBlock Style="{StaticResource StatusBarItemStyle}"
-                           Text="{Binding AppVersion}" />
-            </StackPanel>
+                    <!-- App version -->
+                    <TextBlock Style="{StaticResource StatusBarLabelStyle}"
+                               Text="{StaticResource StatusAppVersion}" />
+                    <TextBlock Style="{StaticResource StatusBarItemStyle}"
+                               Text="{Binding AppVersion}" />
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>

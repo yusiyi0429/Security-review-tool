@@ -42,7 +42,7 @@
       "securityreview.parsercontracts": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.0, )"
+          "SecurityReview.Domain": "[1.0.1, )"
         }
       }
     },

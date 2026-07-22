@@ -1,6 +1,6 @@
-# Release Checklist — SecurityReviewTool v1.0.0
+# Release Checklist — SecurityReviewTool v1.0.1
 
-This checklist defines every required gate for the v1.0.0 release. Every item
+This checklist defines every required gate for the v1.0.1 release. Every item
 must pass or have a documented, approved exception **before** the release is
 declared complete. Partial or skipped items block the release.
 
@@ -21,7 +21,7 @@ cannot also be the Product Owner.
 
 ## Gate 1: Source and Build Integrity
 
-- [ ] **1.1** Source is at a tagged commit (`v1.0.0`) with a clean working
+- [ ] **1.1** Source is at a tagged commit (`v1.0.1`) with a clean working
   tree (`git status --porcelain` is empty).
 - [ ] **1.2** Locked restore succeeds (`dotnet restore --locked-mode`).
 - [ ] **1.3** All projects build in Release configuration.
@@ -84,8 +84,8 @@ pwsh ./build/test.ps1 -Lane Performance -RequirePerformanceHost
 ## Gate 6: Package Integrity
 
 - [ ] **6.1** Package build succeeds.
-- [ ] **6.2** `pwsh ./build/verify-package.ps1 -Package <zip> -RequireSignature`
-  exits 0.
+- [ ] **6.2** `pwsh ./build/verify-package.ps1 -Package <zip>` exits 0; pilot
+  releases additionally pass `-RequireUnsignedPilotWarning`.
 - [ ] **6.3** Allowlist compliance: every file in ZIP matches
   `build/package-file-allowlist.txt`.
 - [ ] **6.4** No `.pdb`, `.xml` doc, test, corpus, source, workbook, `.db`,
@@ -93,6 +93,8 @@ pwsh ./build/test.ps1 -Lane Performance -RequirePerformanceHost
 - [ ] **6.5** SHA-256 sidecar published and verified.
 - [ ] **6.6** Authenticode signature valid (production) or unsigned-pilot
   warning displayed (pilot).
+- [ ] **6.7** Installer is built from the verified ZIP; installer SHA-256 is
+  published and its Authenticode signature is valid for production.
 
 ## Gate 7: Reproducibility
 
@@ -115,6 +117,8 @@ pwsh ./build/test.ps1 -Lane Performance -RequirePerformanceHost
 - [ ] **8.9** Zero startup telemetry.
 - [ ] **8.10** pktmon/firewall log confirms DNS+TLS only to configured LLM
   host; no other connections.
+- [ ] **8.11** Installer install, final-page launch, in-place upgrade, and
+  uninstall pass; uninstall retains `%LOCALAPPDATA%\SecurityReviewTool`.
 
 ## Gate 9: Vulnerability and SBOM
 

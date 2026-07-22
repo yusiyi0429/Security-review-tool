@@ -1,23 +1,25 @@
 # Uninstall and Clear Data
 
-SecurityReviewTool is a portable application — there is no installer, no
-Windows service, and no scheduled task. Uninstallation is manual but must
-follow the procedure below to remove all local data and the AppContainer
-isolation profile.
+SecurityReviewTool is available as a per-user installation and as a portable
+ZIP. Neither delivery mode installs a Windows service or scheduled task. The
+application uninstall intentionally keeps local scan history and settings;
+clearing that data is a separate, irreversible operation.
 
 ## What the Tool Writes
 
 | Location | Content | Created |
 |----------|---------|---------|
-| `<extract-dir>/` | Application files (ZIP contents) | At extract time |
+| `%LOCALAPPDATA%\Programs\SecurityReviewTool\` | Installed application files | At install time |
+| Start Menu / optional desktop shortcut and current-user uninstall entry | Installed application registration | At install time |
+| `<extract-dir>/` | Portable application files (ZIP contents) | At extract time |
 | `%LOCALAPPDATA%\SecurityReviewTool\` | Configuration, history, rules, temp, diagnostics | On first launch |
 | AppContainer profile (system-managed) | Worker sandbox isolation object | On first launch |
 
-The tool writes **nothing** to:
+The tool writes **nothing** to these machine-wide locations:
 
 - `Program Files` or `Program Files (x86)`.
-- The Windows registry (except what the OS creates automatically for
-  AppContainer profile tracking).
+- `HKEY_LOCAL_MACHINE` registry keys. The installer creates only the standard
+  current-user uninstall registration under `HKEY_CURRENT_USER`.
 - ProgramData.
 - Startup folder.
 - Windows firewall rules (worker has no network; main process uses standard
@@ -36,7 +38,13 @@ Before clearing, export scan history if needed:
 3. Note any custom LLM configuration (endpoint, model, prompt) — you will
    need to re-enter it after reinstall.
 
-### 2. Delete the application directory
+### 2. Remove the application
+
+For the installed version, open **Settings → Apps → Installed apps**, find
+**安全审查工具**, and select **Uninstall**. This removes program files,
+shortcuts, and the current-user uninstall entry without deleting scan data.
+
+For the portable version, delete the entire extracted directory. For example:
 
 Delete the entire extracted directory. For example:
 
@@ -44,8 +52,8 @@ Delete the entire extracted directory. For example:
 Remove-Item -Recurse -Force "C:\Tools\SecurityReviewTool"
 ```
 
-The application does not register itself anywhere — deleting the directory
-removes the executable and all shipped assets.
+Do not manually delete the installed directory before running the uninstaller,
+or the uninstall registration and shortcuts may be left behind.
 
 ### 3. Clear LocalAppData
 
@@ -110,6 +118,7 @@ Confirm the following directories no longer exist:
 
 ```powershell
 Test-Path "$env:LOCALAPPDATA\SecurityReviewTool"   # Should be False
+Test-Path "$env:LOCALAPPDATA\Programs\SecurityReviewTool" # Should be False
 Test-Path "C:\Tools\SecurityReviewTool"             # Should be False
 ```
 
@@ -120,7 +129,7 @@ deleted.
 
 To remove only the application while keeping configuration and history:
 
-1. Delete the extracted application directory.
+1. Uninstall the installed version, or delete the portable application directory.
 2. **Do not** delete `%LOCALAPPDATA%\SecurityReviewTool\`.
 
 When you re-extract a new version, it will use the existing data directory.
@@ -151,14 +160,15 @@ For enterprise deployment where multiple user profiles may have run the tool:
 
 The application leaves **no machine-wide artifacts** — no `HKLM` registry
 keys, no `ProgramData` files, no services, no scheduled tasks, no firewall
-rules.
+rules. Per-user shortcuts and uninstall registration are removed by the
+installer's uninstaller.
 
 ## Reinstallation
 
 After a complete uninstall:
 
-1. Extract the release ZIP to a fresh directory.
-2. Double-click `SecurityReviewTool.exe`.
+1. Run the release installer, or extract the release ZIP to a fresh directory.
+2. Launch from the Start Menu, or double-click the portable `SecurityReviewTool.exe`.
 3. Reconfigure LLM settings (endpoint, model, API key).
 4. Import any updated rule packs.
 

@@ -31,9 +31,23 @@ public partial class App : global::System.Windows.Application, IDisposable
             });
         boundary.Install(this);
 
-        // Open the main shell with its composed view model.
-        var mainWindow = new MainWindow(_root.MainWindowViewModel, _root);
-        mainWindow.Show();
+        try
+        {
+            // Open the main shell with its composed view model.
+            var mainWindow = new MainWindow(_root.MainWindowViewModel, _root);
+            MainWindow = mainWindow;
+            mainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            boundary.ReportStartupFailure(ex);
+            MessageBox.Show(
+                UiExceptionBoundary.StartupFailureMessage,
+                "安全审查工具",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(-1);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

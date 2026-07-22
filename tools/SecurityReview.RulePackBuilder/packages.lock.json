@@ -30,16 +30,17 @@
       "securityreview.parsercontracts": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.0, )"
+          "SecurityReview.Domain": "[1.0.1, )"
         }
       },
       "securityreview.rulepack": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.0, )",
-          "SecurityReview.ParserContracts": "[1.0.0, )"
+          "SecurityReview.Domain": "[1.0.1, )",
+          "SecurityReview.ParserContracts": "[1.0.1, )"
         }
       }
-    }
+    },
+    "net10.0/win-x64": {}
   }
 }

@@ -12,18 +12,18 @@ and running SecurityReviewTool for the first time.
 
 ## 1. Download and Verify
 
-Obtain the release ZIP and its SHA-256 sidecar from an approved distribution
+Obtain the installer and its SHA-256 sidecar from an approved distribution
 channel (internal file share, release portal, or secure transfer):
 
 ```
-SecurityReviewTool-1.0.0-win-x64.zip
-SecurityReviewTool-1.0.0-win-x64.zip.sha256
+SecurityReviewTool-1.0.1-win-x64-setup.exe
+SecurityReviewTool-1.0.1-win-x64-setup.exe.sha256
 ```
 
-Verify the package hash before extraction:
+Verify the installer hash before running it:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 SecurityReviewTool-1.0.0-win-x64.zip
+Get-FileHash -Algorithm SHA256 SecurityReviewTool-1.0.1-win-x64-setup.exe
 ```
 
 Compare the output against the published hash in the `.sha256` sidecar or the
@@ -32,20 +32,37 @@ release announcement. **Do not use the tool if the hashes do not match.**
 If the release is Authenticode-signed, also check the signature:
 
 ```powershell
-Get-AuthenticodeSignature SecurityReviewTool-1.0.0-win-x64.zip
+Get-AuthenticodeSignature SecurityReviewTool-1.0.1-win-x64-setup.exe
 ```
 
 The `Status` must be `Valid`. An unsigned pilot build carries a prominent
 **UNSIGNED PILOT** warning and should only be used in authorized test
 environments.
 
-## 2. Extract
+## 2. Install
+
+Double-click the installer. It installs for the current user under:
+
+```
+%LOCALAPPDATA%\Programs\SecurityReviewTool\
+```
+
+No administrator rights are requested. A Start Menu shortcut is created, and
+you may optionally create a desktop shortcut. Keep **Launch SecurityReviewTool**
+selected on the final page to open the application immediately.
+
+The installer upgrades an existing installation in place. Uninstalling the
+application does not automatically delete scan history or settings under
+`%LOCALAPPDATA%\SecurityReviewTool`; see
+[Uninstall and Clear Data](uninstall-and-clear-data.md).
+
+### Portable ZIP (optional)
 
 Extract the ZIP to **any user-writable directory** (Desktop, Documents, or a
 dedicated tools folder all work):
 
 ```powershell
-Expand-Archive -LiteralPath SecurityReviewTool-1.0.0-win-x64.zip -DestinationPath C:\Tools\SecurityReviewTool
+Expand-Archive -LiteralPath SecurityReviewTool-1.0.1-win-x64.zip -DestinationPath C:\Tools\SecurityReviewTool
 ```
 
 **Long, spaced, and Chinese-character paths are supported.** For example,
@@ -63,8 +80,9 @@ README*.md                      ← release notes
 
 ## 3. Start the Tool
 
-Double-click `SecurityReviewTool.exe`. No installation, service registration,
-or scheduled task is created.
+Open **安全审查工具** from the Start Menu. Portable users can double-click
+`SecurityReviewTool.exe` in the extracted directory. No service or scheduled
+task is created.
 
 The main window should appear **within 5 seconds** of launch. If it does not,
 see [Diagnostics and Support](diagnostics-and-support.md).

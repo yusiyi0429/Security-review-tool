@@ -1,7 +1,7 @@
-# Portable Release Process
+# Windows Release Process
 
 This document defines the release procedure for the portable Windows x64
-package of SecurityReviewTool. Every release MUST follow these steps in
+package and per-user installer of SecurityReviewTool. Every release MUST follow these steps in
 order. Any deviation requires documented approval.
 
 ## Preconditions
@@ -13,6 +13,7 @@ order. Any deviation requires documented approval.
   store if Authenticode signing is required.
 - `pwsh` (PowerShell 7+) is installed.
 - .NET SDK version in `global.json` is installed.
+- Inno Setup 6 or 7 is installed when producing the installer.
 - NuGet sources are configured and accessible.
 
 ## Release Checklist
@@ -51,17 +52,17 @@ compensating controls, owner, and expiry date.
 For development / pre-release / pilot builds:
 
 ```powershell
-pwsh build/package.ps1 -Version 1.0.0-pilot.1 -AllowUnsignedPilot
+pwsh build/package.ps1 -Version 1.0.1 -AllowUnsignedPilot
 ```
 
-This produces `artifacts/release/SecurityReviewTool-1.0.0-pilot.1-win-x64.zip`
+This produces `artifacts/release/SecurityReviewTool-1.0.1-win-x64.zip`
 and its `.sha256` sidecar.
 
 ### 5. Verify Package
 
 ```powershell
 pwsh build/verify-package.ps1 `
-  -Package artifacts/release/SecurityReviewTool-1.0.0-pilot.1-win-x64.zip `
+  -Package artifacts/release/SecurityReviewTool-1.0.1-win-x64.zip `
   -RequireUnsignedPilotWarning
 ```
 
@@ -78,18 +79,38 @@ Must exit 0. The verifier checks:
 9. **PE architecture** — main executable is x64 (AMD64).
 10. **No stateful files** — no `.db`, `.sqlite`, `.wal`, `.shm`, `.log`, `.config` files.
 
-### 6. Reproducibility Build
+### 6. Build Installer (Unsigned Pilot)
+
+```powershell
+pwsh build/package-installer.ps1 `
+  -Version 1.0.1 `
+  -PortablePackage artifacts/release/SecurityReviewTool-1.0.1-win-x64.zip `
+  -AllowUnsignedPilot
+```
+
+This command verifies the portable ZIP again, builds a per-user installer, and
+generates:
+
+```text
+artifacts/release/SecurityReviewTool-1.0.1-win-x64-setup.exe
+artifacts/release/SecurityReviewTool-1.0.1-win-x64-setup.exe.sha256
+```
+
+The installer must be smoke-tested on a clean Windows 11 VM: install, launch,
+upgrade in place, uninstall, and confirm that user data is retained.
+
+### 7. Reproducibility Build
 
 Build twice with the same source, version, SDK, and package lock:
 
 ```powershell
-pwsh build/package.ps1 -Version 1.0.0-repro.1 -AllowUnsignedPilot
+pwsh build/package.ps1 -Version 1.0.1-repro.1 -AllowUnsignedPilot
 # Rename output
-Move-Item artifacts/release/SecurityReviewTool-1.0.0-repro.1-win-x64.zip `
+Move-Item artifacts/release/SecurityReviewTool-1.0.1-repro.1-win-x64.zip `
   artifacts/release/build-1.zip
 
-pwsh build/package.ps1 -Version 1.0.0-repro.1 -AllowUnsignedPilot
-Move-Item artifacts/release/SecurityReviewTool-1.0.0-repro.1-win-x64.zip `
+pwsh build/package.ps1 -Version 1.0.1-repro.1 -AllowUnsignedPilot
+Move-Item artifacts/release/SecurityReviewTool-1.0.1-repro.1-win-x64.zip `
   artifacts/release/build-2.zip
 ```
 
@@ -117,34 +138,38 @@ builds:
 No other file content difference is acceptable. Record both deterministic
 and expected-volatile sets in release evidence.
 
-### 7. Package (Authenticode Signed)
+### 8. Package and Installer (Authenticode Signed)
 
 For production releases:
 
 ```powershell
-pwsh build/package.ps1 -Version 1.0.0 -SigningCertificateThumbprint "A1B2C3D4E5F6..."
+pwsh build/package.ps1 -Version 1.0.1 -SigningCertificateThumbprint "A1B2C3D4E5F6..."
+pwsh build/package-installer.ps1 `
+  -Version 1.0.1 `
+  -PortablePackage artifacts/release/SecurityReviewTool-1.0.1-win-x64.zip `
+  -SigningCertificateThumbprint "A1B2C3D4E5F6..."
 ```
 
 The signing certificate thumbprint must be obtained from a secure,
 out-of-band source. **NEVER** store private keys in environment files
 (`.env`, `.env.local`) under the repository.
 
-### 8. Publish SHA-256
+### 9. Publish SHA-256
 
 Publish the SHA-256 hash of the release ZIP through an authenticated,
 out-of-band channel:
 
 ```powershell
-Get-Content artifacts/release/SecurityReviewTool-1.0.0-win-x64.zip.sha256
+Get-Content artifacts/release/SecurityReviewTool-1.0.1-win-x64.zip.sha256
 ```
 
 Users verify with:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 SecurityReviewTool-1.0.0-win-x64.zip
+Get-FileHash -Algorithm SHA256 SecurityReviewTool-1.0.1-win-x64.zip
 ```
 
-### 9. Run Contract Tests
+### 10. Run Contract Tests
 
 ```powershell
 dotnet test tests/SecurityReview.ContractTests/SecurityReview.ContractTests.csproj `
@@ -154,10 +179,11 @@ dotnet test tests/SecurityReview.ContractTests/SecurityReview.ContractTests.cspr
 Must exit 0. Package manifest and content contract tests verify the
 allowlist structure and schema conformance.
 
-### 10. Commit
+### 11. Commit
 
 ```powershell
-git add build/package.ps1 build/verify-package.ps1 build/generate-sbom.ps1 `
+git add build/package.ps1 build/package-installer.ps1 build/installer.iss `
+  build/verify-package.ps1 build/generate-sbom.ps1 `
   build/package-file-allowlist.txt `
   src/SecurityReview.Desktop/Assets/release-manifest.schema.json `
   docs/operations/release-process.md `
@@ -191,6 +217,8 @@ If a released package is found to have issues:
 |---|---|
 | `SecurityReviewTool-<version>-win-x64.zip` | Portable Windows x64 release package |
 | `SecurityReviewTool-<version>-win-x64.zip.sha256` | SHA-256 sidecar |
+| `SecurityReviewTool-<version>-win-x64-setup.exe` | Per-user Windows x64 installer |
+| `SecurityReviewTool-<version>-win-x64-setup.exe.sha256` | Installer SHA-256 sidecar |
 | `artifacts/release/evidence/vulnerabilities.txt` | Dependency vulnerability report |
 | `artifacts/release/evidence/deprecated.txt` | Deprecated dependency report |
 | `artifacts/release/stage/sbom-out/_manifest/spdx_2.2/manifest.spdx.json` | SPDX SBOM |

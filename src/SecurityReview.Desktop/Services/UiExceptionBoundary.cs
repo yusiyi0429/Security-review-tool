@@ -16,6 +16,10 @@ namespace SecurityReview.Desktop.Services;
 /// </summary>
 public class UiExceptionBoundary
 {
+    public const string StartupFailureCode = "ui_startup_failed";
+    public const string StartupFailureMessage =
+        "应用主窗口初始化失败，程序将退出。请重新安装最新版本；如问题持续，请联系管理员并提供诊断日志。";
+
     private readonly IUiErrorSink _errorSink;
     private readonly Func<Exception, Task> _logDiagnostic;
 
@@ -46,6 +50,19 @@ public class UiExceptionBoundary
 
         application.DispatcherUnhandledException += OnDispatcherException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+    }
+
+    /// <summary>
+    /// Reports a failure that occurred before the main window was shown.
+    /// The message is stable and sanitized so XAML paths and exception details
+    /// are never exposed to the user.
+    /// </summary>
+    public void ReportStartupFailure(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+
+        _errorSink.Report(StartupFailureCode, StartupFailureMessage);
+        _ = _logDiagnostic(exception);
     }
 
     private void OnDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)

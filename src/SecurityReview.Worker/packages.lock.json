@@ -27,7 +27,7 @@
       "securityreview.parsercontracts": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.0, )"
+          "SecurityReview.Domain": "[1.0.1, )"
         }
       },
       "securityreview.parsers": {
@@ -35,8 +35,8 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, )",
           "PdfPig": "[0.1.14, )",
-          "SecurityReview.Domain": "[1.0.0, )",
-          "SecurityReview.ParserContracts": "[1.0.0, )",
+          "SecurityReview.Domain": "[1.0.1, )",
+          "SecurityReview.ParserContracts": "[1.0.1, )",
           "YamlDotNet": "[18.1.0, )"
         }
       },

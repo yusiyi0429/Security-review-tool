@@ -12,11 +12,13 @@ A portable Windows desktop client that statically scans release assets, locates 
 
 ## 快速开始
 
-1. 下载 `SecurityReviewTool-<version>-win-x64.zip`
+1. 下载 `SecurityReviewTool-<version>-win-x64-setup.exe`
 2. 验证 SHA-256 和 Authenticode 签名
-3. 解压到本地目录
-4. 运行 `SecurityReviewTool.exe`
-5. 选择扫描根目录、导入规则包、开始扫描
+3. 双击安装；安装完成后可直接启动
+4. 选择扫描根目录、导入规则包、开始扫描
+
+安装器按当前用户安装到 `%LOCALAPPDATA%\Programs\SecurityReviewTool`，无需管理员权限。
+如需免安装使用，仍可下载 ZIP 便携版并解压运行。
 
 详细说明见 [`docs/operations/quick-start.md`](docs/operations/quick-start.md)
 
@@ -76,12 +78,13 @@ docs/                             文档/ADR/PRD/SRS/运维
 
 ```powershell
 # 环境需求：.NET SDK 10.0.302、PowerShell 7
-dotnet restore SecurityReviewTool.sln --locked-mode
+dotnet restore SecurityReviewTool.sln --locked-mode -r win-x64
 dotnet build SecurityReviewTool.sln -c Release
 dotnet test SecurityReviewTool.sln -c Release
 
-# 发布
-pwsh ./build/package.ps1 -Version 1.0.0
+# 试点发布：生成便携 ZIP 和单文件安装器
+pwsh ./build/package.ps1 -Version 1.0.1 -AllowUnsignedPilot
+pwsh ./build/package-installer.ps1 -Version 1.0.1 -AllowUnsignedPilot
 ```
 
 ## 发布流程

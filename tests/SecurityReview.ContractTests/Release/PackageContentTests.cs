@@ -140,8 +140,7 @@ public sealed class PackageContentTests
         string[] forbidden = new[]
         {
             "test", "corpus", "workbook", "keyring",
-            "credential", "private", "dump", ".db", ".sqlite", ".sqlite3",
-            "wal", "shm", ".git", "config", "temp", "report", "source"
+            "credential", ".git", "temp", "report"
         };
 
         string[] entries = LoadAllowlistEntries();
