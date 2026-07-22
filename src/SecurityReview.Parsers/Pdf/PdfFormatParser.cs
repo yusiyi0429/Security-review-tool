@@ -192,8 +192,8 @@ public sealed class PdfFormatParser : IFormatParser
                 foreach (var a in annotations)
                 {
                     if (!string.IsNullOrEmpty(a.Contents))
-                        sb.AppendLine(CultureInfo.InvariantCulture,
-                            $"Annotation[{a.Subtype}]: {a.Contents}");
+                        sb.Append(CultureInfo.InvariantCulture,
+                            $"Annotation[{a.Subtype}]: {a.Contents}\n");
                 }
 
                 if (sb.Length > 0)
@@ -232,8 +232,8 @@ public sealed class PdfFormatParser : IFormatParser
                 var sb = new System.Text.StringBuilder();
                 foreach (var f in formFields)
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture,
-                        $"FormField[{f.FieldType}]({f.Name}): {f.Value}");
+                    sb.Append(CultureInfo.InvariantCulture,
+                        $"FormField[{f.FieldType}]({f.Name}): {f.Value}\n");
                 }
 
                 if (sb.Length > 0)
@@ -272,7 +272,7 @@ public sealed class PdfFormatParser : IFormatParser
                 var sb = new System.Text.StringBuilder();
                 foreach (var b in bookmarks)
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"Bookmark: {b.Title}");
+                    sb.Append(CultureInfo.InvariantCulture, $"Bookmark: {b.Title}\n");
                 }
 
                 if (sb.Length > 0)
@@ -391,17 +391,17 @@ public sealed class PdfFormatParser : IFormatParser
     {
         var sb = new System.Text.StringBuilder();
         if (info.Title != null)
-            sb.AppendLine(CultureInfo.InvariantCulture, $"Title: {info.Title}");
+            sb.Append(CultureInfo.InvariantCulture, $"Title: {info.Title}\n");
         if (info.Author != null)
-            sb.AppendLine(CultureInfo.InvariantCulture, $"Author: {info.Author}");
+            sb.Append(CultureInfo.InvariantCulture, $"Author: {info.Author}\n");
         if (info.Subject != null)
-            sb.AppendLine(CultureInfo.InvariantCulture, $"Subject: {info.Subject}");
+            sb.Append(CultureInfo.InvariantCulture, $"Subject: {info.Subject}\n");
         if (info.Keywords != null)
-            sb.AppendLine(CultureInfo.InvariantCulture, $"Keywords: {info.Keywords}");
+            sb.Append(CultureInfo.InvariantCulture, $"Keywords: {info.Keywords}\n");
         if (info.Creator != null)
-            sb.AppendLine(CultureInfo.InvariantCulture, $"Creator: {info.Creator}");
+            sb.Append(CultureInfo.InvariantCulture, $"Creator: {info.Creator}\n");
         if (info.Producer != null)
-            sb.AppendLine(CultureInfo.InvariantCulture, $"Producer: {info.Producer}");
+            sb.Append(CultureInfo.InvariantCulture, $"Producer: {info.Producer}\n");
         return sb.ToString();
     }
 }

@@ -131,18 +131,18 @@ public sealed class ModelFormatParser : IFormatParser
             if (dangerClass.ArchiveMembers.Count > 0)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine(CultureInfo.InvariantCulture, $"archive_members:");
+                sb.Append(CultureInfo.InvariantCulture, $"archive_members:\n");
                 foreach (var m in dangerClass.ArchiveMembers)
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  {m}");
+                    sb.Append(CultureInfo.InvariantCulture, $"  {m}\n");
                 events.Add(MakeChunk(context, "archive_members", sb.ToString(), 0, sb.Length));
             }
 
             if (dangerClass.DetectedProtocols.Count > 0)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine(CultureInfo.InvariantCulture, $"detected_protocols:");
+                sb.Append(CultureInfo.InvariantCulture, $"detected_protocols:\n");
                 foreach (var p in dangerClass.DetectedProtocols)
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  {p}");
+                    sb.Append(CultureInfo.InvariantCulture, $"  {p}\n");
                 events.Add(MakeChunk(context, "detected_protocols", sb.ToString(), 0, sb.Length));
             }
 
@@ -159,18 +159,18 @@ public sealed class ModelFormatParser : IFormatParser
                     if (result.IsValid)
                     {
                         var sb = new StringBuilder();
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"header_length: {result.HeaderLength}");
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"total_file_length: {result.TotalFileLength}");
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"tensor_count: {result.Tensors.Count}");
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"tensors:");
+                        sb.Append(CultureInfo.InvariantCulture, $"header_length: {result.HeaderLength}\n");
+                        sb.Append(CultureInfo.InvariantCulture, $"total_file_length: {result.TotalFileLength}\n");
+                        sb.Append(CultureInfo.InvariantCulture, $"tensor_count: {result.Tensors.Count}\n");
+                        sb.Append(CultureInfo.InvariantCulture, $"tensors:\n");
                         foreach (var t in result.Tensors)
-                            sb.AppendLine(CultureInfo.InvariantCulture,
-                                $"  {t.Name}: dtype={t.Dtype} shape=[{string.Join(",", t.Shape)}] offsets=[{t.DataOffsetStart},{t.DataOffsetEnd}]");
+                            sb.Append(CultureInfo.InvariantCulture,
+                                $"  {t.Name}: dtype={t.Dtype} shape=[{string.Join(",", t.Shape)}] offsets=[{t.DataOffsetStart},{t.DataOffsetEnd}]\n");
                         if (result.Metadata.Count > 0)
                         {
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"metadata:");
+                            sb.Append(CultureInfo.InvariantCulture, $"metadata:\n");
                             foreach (var kvp in result.Metadata)
-                                sb.AppendLine(CultureInfo.InvariantCulture, $"  {kvp.Key}: {kvp.Value}");
+                                sb.Append(CultureInfo.InvariantCulture, $"  {kvp.Key}: {kvp.Value}\n");
                         }
 
                         events.Add(MakeChunk(context, "safetensors_header", sb.ToString(), 0, (int)result.TotalFileLength));
@@ -200,21 +200,21 @@ public sealed class ModelFormatParser : IFormatParser
                     if (result.IsValid)
                     {
                         var sb = new StringBuilder();
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"version: {result.Version}");
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"kv_count: {result.Entries.Count}");
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"metadata:");
+                        sb.Append(CultureInfo.InvariantCulture, $"version: {result.Version}\n");
+                        sb.Append(CultureInfo.InvariantCulture, $"kv_count: {result.Entries.Count}\n");
+                        sb.Append(CultureInfo.InvariantCulture, $"metadata:\n");
                         foreach (var e in result.Entries)
                         {
                             string val = e.StringValue ?? e.IntValue?.ToString(CultureInfo.InvariantCulture)
                                 ?? e.FloatValue?.ToString(CultureInfo.InvariantCulture) ?? "(null)";
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"  {e.Key}: {val}");
+                            sb.Append(CultureInfo.InvariantCulture, $"  {e.Key}: {val}\n");
                         }
 
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"tensor_count: {result.Tensors.Count}");
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"tensors:");
+                        sb.Append(CultureInfo.InvariantCulture, $"tensor_count: {result.Tensors.Count}\n");
+                        sb.Append(CultureInfo.InvariantCulture, $"tensors:\n");
                         foreach (var t in result.Tensors)
-                            sb.AppendLine(CultureInfo.InvariantCulture,
-                                $"  {t.Name}: dtype={t.Dtype} ndims={t.NDims} shape=[{string.Join(",", t.Shape)}] offset={t.Offset}");
+                            sb.Append(CultureInfo.InvariantCulture,
+                                $"  {t.Name}: dtype={t.Dtype} ndims={t.NDims} shape=[{string.Join(",", t.Shape)}] offset={t.Offset}\n");
 
                         events.Add(MakeChunk(context, "gguf_metadata", sb.ToString(), 0, sb.Length));
 
@@ -241,35 +241,35 @@ public sealed class ModelFormatParser : IFormatParser
                     if (result.IsValid)
                     {
                         var sb = new StringBuilder();
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"ir_version: {result.IrVersion}");
+                        sb.Append(CultureInfo.InvariantCulture, $"ir_version: {result.IrVersion}\n");
                         if (result.ProducerName != null)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"producer: {result.ProducerName}");
+                            sb.Append(CultureInfo.InvariantCulture, $"producer: {result.ProducerName}\n");
                         if (result.ProducerVersion != null)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"producer_version: {result.ProducerVersion}");
+                            sb.Append(CultureInfo.InvariantCulture, $"producer_version: {result.ProducerVersion}\n");
                         if (result.Domain != null)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"domain: {result.Domain}");
+                            sb.Append(CultureInfo.InvariantCulture, $"domain: {result.Domain}\n");
                         if (result.DocString != null)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"doc_string: {result.DocString}");
+                            sb.Append(CultureInfo.InvariantCulture, $"doc_string: {result.DocString}\n");
                         if (result.GraphNames.Count > 0)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"graph_names: [{string.Join(",", result.GraphNames)}]");
+                            sb.Append(CultureInfo.InvariantCulture, $"graph_names: [{string.Join(",", result.GraphNames)}]\n");
                         if (result.NodeNames.Count > 0)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"node_names: [{string.Join(",", result.NodeNames)}]");
+                            sb.Append(CultureInfo.InvariantCulture, $"node_names: [{string.Join(",", result.NodeNames)}]\n");
                         if (result.InputNames.Count > 0)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"input_names: [{string.Join(",", result.InputNames)}]");
+                            sb.Append(CultureInfo.InvariantCulture, $"input_names: [{string.Join(",", result.InputNames)}]\n");
                         if (result.OutputNames.Count > 0)
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"output_names: [{string.Join(",", result.OutputNames)}]");
+                            sb.Append(CultureInfo.InvariantCulture, $"output_names: [{string.Join(",", result.OutputNames)}]\n");
                         if (result.MetadataProps.Count > 0)
                         {
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"metadata_props:");
+                            sb.Append(CultureInfo.InvariantCulture, $"metadata_props:\n");
                             foreach (var kvp in result.MetadataProps)
-                                sb.AppendLine(CultureInfo.InvariantCulture, $"  {kvp.Key}: {kvp.Value}");
+                                sb.Append(CultureInfo.InvariantCulture, $"  {kvp.Key}: {kvp.Value}\n");
                         }
 
                         if (result.OpsetImports.Count > 0)
                         {
-                            sb.AppendLine(CultureInfo.InvariantCulture, $"opset_imports:");
+                            sb.Append(CultureInfo.InvariantCulture, $"opset_imports:\n");
                             foreach (var (d, v) in result.OpsetImports)
-                                sb.AppendLine(CultureInfo.InvariantCulture, $"  domain={d} version={v}");
+                                sb.Append(CultureInfo.InvariantCulture, $"  domain={d} version={v}\n");
                         }
 
                         events.Add(MakeChunk(context, "onnx_metadata", sb.ToString(), 0, sb.Length));
