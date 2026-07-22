@@ -9,6 +9,11 @@ on:
         description: Version from the repository VERSION file
         required: true
         type: string
+      validation_only:
+        description: Run release gates without building or publishing assets
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -39,14 +44,6 @@ jobs:
             throw "Release notes not found: $notes"
           }
 
-      - name: Install Inno Setup
-        shell: pwsh
-        run: choco install innosetup --yes --no-progress
-
-      - name: Build and verify portable package
-        shell: pwsh
-        run: ./build/package.ps1 -Version '${{ inputs.version }}' -AllowUnsignedPilot
-
       - name: Run parser corpus and focused integration lanes
         shell: pwsh
         run: |
@@ -58,7 +55,18 @@ jobs:
             --filter "FullyQualifiedName~MigrationTests|FullyQualifiedName~CompositionRootTests|FullyQualifiedName~CompleteScanWorkflowTests|FullyQualifiedName~SemanticFailureWorkflowTests|FullyQualifiedName~Private_network_scope_round_trips_with_http_endpoint" `
             --logger "trx;LogFileName=FocusedIntegration.trx"
 
+      - name: Install Inno Setup
+        if: ${{ !inputs.validation_only }}
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build and verify portable package
+        if: ${{ !inputs.validation_only }}
+        shell: pwsh
+        run: ./build/package.ps1 -Version '${{ inputs.version }}' -AllowUnsignedPilot
+
       - name: Build and verify installer
+        if: ${{ !inputs.validation_only }}
         shell: pwsh
         run: |
           ./build/package-installer.ps1 `
@@ -67,6 +75,7 @@ jobs:
             -AllowUnsignedPilot
 
       - name: Preserve release assets as workflow artifact
+        if: ${{ !inputs.validation_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SecurityReviewTool-${{ inputs.version }}-win-x64
@@ -78,6 +87,7 @@ jobs:
             artifacts/release/SecurityReviewTool-${{ inputs.version }}-win-x64-setup.exe.sha256
 
       - name: Create GitHub release
+        if: ${{ !inputs.validation_only }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

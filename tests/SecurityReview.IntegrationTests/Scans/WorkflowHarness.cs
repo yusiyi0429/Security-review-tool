@@ -65,7 +65,7 @@ internal sealed class WorkflowHarness
         IValueFingerprintService fingerprint,
         DirectoryInfo? root,
         SemanticOutcome semanticOutcome = SemanticOutcome.NoCandidates,
-        bool emitCandidate = true,
+        bool? emitCandidate = null,
         bool rootMissing = false,
         bool simulateCancel = false,
         string? fileToMutateOnce = null,
@@ -74,7 +74,7 @@ internal sealed class WorkflowHarness
     {
         _root = root;
         _semanticOutcome = semanticOutcome;
-        _emitCandidate = emitCandidate;
+        _emitCandidate = emitCandidate ?? semanticOutcome != SemanticOutcome.NoCandidates;
         _rootMissing = rootMissing;
         _fileToMutateOnce = fileToMutateOnce;
         _fileToMutateTwice = fileToMutateTwice;
@@ -103,10 +103,12 @@ internal sealed class WorkflowHarness
 
         _orchestrator = new ScanOrchestrator(
             _inventory,
+            _scans,
             _preflight,
             new NullManifestReader(),
             Array.Empty<IFormatParser>(),
-            new FakeProcessor(_detection, _root, _fileToMutateOnce, _fileToMutateTwice, _simulateCancel),
+            new FakeProcessor(_detection, _root, _fileToMutateOnce, _fileToMutateTwice,
+                _simulateCancel, includeArchiveCorrupt),
             _detection,
             _findings,
             _coverage,
@@ -439,6 +441,7 @@ internal sealed class FakeSemanticQueue : ISemanticReviewQueue, ISemanticCandida
     public SemanticQueueProgress GetProgress() => new(
         PendingCount: _pending, ActiveCount: 0, CompletedCount: _completed,
         FailedCount: _failed, CancelledCount: _cancelled,
+        UnresolvedCount: _unresolved.Count,
         LastUpdatedAtUtc: DateTimeOffset.UtcNow);
 
     public bool IsCurrent(CandidateId candidateId) => !_unresolved.ContainsKey(candidateId);
@@ -554,19 +557,22 @@ internal sealed class FakeProcessor : IWorkerJobProcessor
     private readonly string? _mutateOnce;
     private readonly string? _mutateTwice;
     private readonly bool _simulateCancel;
+    private readonly bool _includeArchiveCorrupt;
 
     public FakeProcessor(
         FakeDetectionPipeline detection,
         DirectoryInfo? root,
         string? mutateOnce,
         string? mutateTwice,
-        bool simulateCancel)
+        bool simulateCancel,
+        bool includeArchiveCorrupt)
     {
         _detection = detection;
         _root = root;
         _mutateOnce = mutateOnce;
         _mutateTwice = mutateTwice;
         _simulateCancel = simulateCancel;
+        _includeArchiveCorrupt = includeArchiveCorrupt;
     }
 
     public async IAsyncEnumerable<WorkerJobResult> ProcessAsync(
@@ -594,6 +600,26 @@ internal sealed class FakeProcessor : IWorkerJobProcessor
                 Chunk: null, Gap: null, ChildVirtualPath: null, ChildProbe: null,
                 Failure: WorkerFailure.Cancelled);
             yield break;
+        }
+
+        if (_includeArchiveCorrupt)
+        {
+            yield return new WorkerJobResult(
+                item.JobId, item.FileId, WorkerResultKind.Gap,
+                Chunk: null,
+                Gap: new CoverageGap(
+                    GapId: Guid.NewGuid(),
+                    ScanId: item.ScanId,
+                    FileId: item.FileId,
+                    VirtualPath: item.VirtualPath,
+                    FormatId: item.FormatHint,
+                    Stage: "parse",
+                    Reason: GapReason.Corrupt,
+                    DetailCode: "archive_corrupt",
+                    PlannedBytes: item.DeclaredLength,
+                    ProcessedBytes: 0,
+                    CreatedAtUtc: DateTimeOffset.UtcNow),
+                ChildVirtualPath: null, ChildProbe: null, Failure: null);
         }
 
         string text = ReadFileText(item.VirtualPath);

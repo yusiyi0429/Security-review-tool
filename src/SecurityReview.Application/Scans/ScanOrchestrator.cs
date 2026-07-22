@@ -35,6 +35,7 @@ namespace SecurityReview.Application.Scans;
 public sealed class ScanOrchestrator : IScanOrchestrator
 {
     private readonly IInventoryService _inventoryService;
+    private readonly IScanRepository _scanRepository;
     private readonly ScanPreflightService _preflightService;
     private readonly IManifestReader _manifestReader;
     private readonly IReadOnlyList<IFormatParser> _parsers;
@@ -50,6 +51,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
     public ScanOrchestrator(
         IInventoryService inventoryService,
+        IScanRepository scanRepository,
         ScanPreflightService preflightService,
         IManifestReader manifestReader,
         IReadOnlyList<IFormatParser> parsers,
@@ -65,6 +67,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
     {
         _inventoryService = inventoryService
             ?? throw new ArgumentNullException(nameof(inventoryService));
+        _scanRepository = scanRepository
+            ?? throw new ArgumentNullException(nameof(scanRepository));
         _preflightService = preflightService
             ?? throw new ArgumentNullException(nameof(preflightService));
         _manifestReader = manifestReader
@@ -111,6 +115,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
         try
         {
+            await TransitionToRunningAsync(scanId, cancellationToken)
+                .ConfigureAwait(false);
             outcome = await RunPipelineAsync(scanId, snapshot, progress, cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -158,6 +164,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
         if (outcome is not null)
         {
+            await PersistOutcomeAsync(outcome).ConfigureAwait(false);
             _state.Record(outcome);
         }
 
@@ -332,6 +339,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         var filePathMap = new Dictionary<FileId, string>();
         int findingCount = 0;
         int llmUnresolvedCount = 0;
+        bool workerCancelled = false;
 
         foreach (FileRecord file in inventory.Files)
         {
@@ -451,6 +459,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                         break;
 
                     case WorkerResultKind.Cancelled:
+                        workerCancelled = true;
                         ledger.TransitionFile(file.FileId, CoverageStatus.NotCovered);
                         pendingFileIds.Remove(file.FileId);
                         break;
@@ -506,6 +515,11 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             _semanticQueue.Cancel();
         }
 
+        SemanticQueueProgress semanticProgress = _semanticQueue.GetProgress();
+        llmUnresolvedCount += semanticProgress.UnresolvedCount
+            + semanticProgress.FailedCount
+            + semanticProgress.CancelledCount;
+
         // ---- Step: Final reconciliation ----
         progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Reconciling });
         CoverageSummary summary = ledger.Reconcile();
@@ -525,13 +539,18 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         ScanStatus finalStatus = summary.FinalScanStatus(
             unresolvedSemanticCandidates: llmUnresolvedCount);
 
-        if (cancellationToken.IsCancellationRequested)
+        if (workerCancelled || cancellationToken.IsCancellationRequested)
         {
             finalStatus = ScanStatus.Cancelled;
         }
 
         progressList.Add(new ScanProgress(
-            finalStatus == ScanStatus.Completed ? ScanStage.Completed : ScanStage.Partial,
+            finalStatus switch
+            {
+                ScanStatus.Completed => ScanStage.Completed,
+                ScanStatus.Cancelled => ScanStage.Cancelled,
+                _ => ScanStage.Partial,
+            },
             DiscoveredFiles: inventory.Files.Count,
             ProcessedFiles: inventory.Files.Count - pendingFileIds.Count,
             FailedFiles: 0,
@@ -573,6 +592,70 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             UnresolvedSemanticCount: unresolvedCount,
             GapCount: gapCount,
             CompletedAtUtc: _clock());
+    }
+
+    private async Task TransitionToRunningAsync(
+        ScanId scanId,
+        CancellationToken cancellationToken)
+    {
+        ScanRun? scan = await _scanRepository.GetByIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        if (scan is null)
+            throw new InvalidOperationException("Scan run is missing.");
+
+        if (scan.Status == ScanStatus.Running)
+            return;
+
+        if (scan.Status != ScanStatus.Preflight
+            || !await _scanRepository.TryTransitionAsync(
+                scanId,
+                ScanStatus.Preflight,
+                scan.Version,
+                ScanStatus.Running,
+                cancellationToken).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException("Scan run could not enter Running state.");
+        }
+    }
+
+    private async Task PersistOutcomeAsync(ScanOutcome outcome)
+    {
+        ScanRun? scan = await _scanRepository.GetByIdAsync(
+            outcome.ScanId, CancellationToken.None).ConfigureAwait(false);
+        if (scan is null)
+            throw new InvalidOperationException("Scan run is missing during finalisation.");
+
+        if (scan.Status == outcome.FinalStatus)
+            return;
+
+        if (outcome.FinalStatus == ScanStatus.Cancelled
+            && scan.Status == ScanStatus.Running)
+        {
+            bool cancelling = await _scanRepository.TryTransitionAsync(
+                outcome.ScanId,
+                ScanStatus.Running,
+                scan.Version,
+                ScanStatus.Cancelling,
+                CancellationToken.None).ConfigureAwait(false);
+            if (!cancelling)
+                throw new InvalidOperationException("Scan run could not enter Cancelling state.");
+
+            scan = await _scanRepository.GetByIdAsync(
+                outcome.ScanId, CancellationToken.None).ConfigureAwait(false)
+                ?? throw new InvalidOperationException(
+                    "Scan run is missing during cancellation finalisation.");
+        }
+
+        if (!ScanStateMachine.CanTransition(scan.Status, outcome.FinalStatus)
+            || !await _scanRepository.TryTransitionAsync(
+                outcome.ScanId,
+                scan.Status,
+                scan.Version,
+                outcome.FinalStatus,
+                CancellationToken.None).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException("Scan run terminal transition failed.");
+        }
     }
 
     private static CoverageGap BuildLlmUnresolvedGap(FileRecord file, CandidateId candidateId)

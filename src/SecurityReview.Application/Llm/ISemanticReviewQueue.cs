@@ -88,6 +88,7 @@ public sealed record SemanticQueueProgress(
     int CompletedCount,
     int FailedCount,
     int CancelledCount,
+    int UnresolvedCount,
     DateTimeOffset LastUpdatedAtUtc);
 
 /// <summary>

@@ -38,6 +38,7 @@ public sealed class SemanticReviewQueue : ISemanticReviewQueue, IDisposable
     private int _completedCount;
     private int _failedCount;
     private int _cancelledCount;
+    private int _unresolvedCount;
     private DateTimeOffset _lastUpdatedAtUtc = DateTimeOffset.UtcNow;
     private bool _cancelled;
     private bool _completedAdding;
@@ -142,6 +143,7 @@ public sealed class SemanticReviewQueue : ISemanticReviewQueue, IDisposable
                 CompletedCount: _completedCount,
                 FailedCount: _failedCount,
                 CancelledCount: _cancelledCount,
+                UnresolvedCount: _unresolvedCount,
                 LastUpdatedAtUtc: _lastUpdatedAtUtc);
         }
     }
@@ -195,6 +197,8 @@ public sealed class SemanticReviewQueue : ISemanticReviewQueue, IDisposable
         {
             if (!_lifetime.IsCurrent(item.CandidateId))
                 return;
+
+            Interlocked.Increment(ref _unresolvedCount);
         }
 
         var persisted = new PersistedLlmReview(
@@ -263,6 +267,7 @@ public sealed class SemanticReviewQueue : ISemanticReviewQueue, IDisposable
                 CompletedCount: _completedCount,
                 FailedCount: _failedCount,
                 CancelledCount: _cancelledCount,
+                UnresolvedCount: _unresolvedCount,
                 LastUpdatedAtUtc: _lastUpdatedAtUtc);
         }
         _progressSink.Publish(snapshot);

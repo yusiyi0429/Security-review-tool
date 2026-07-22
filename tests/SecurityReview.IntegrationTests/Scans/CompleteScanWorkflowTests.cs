@@ -229,17 +229,14 @@ public sealed class CompleteScanWorkflowTests : IAsyncDisposable
     // 6. root/inventory/database integrity failure → Failed
     // ------------------------------------------------------------------
     [Fact]
-    public async Task Root_failure_yields_failed()
+    public async Task Missing_root_is_rejected_during_start_preflight()
     {
         var harness = new WorkflowHarness(_factory, _protector, _fingerprint, root: null,
             rootMissing: true);
 
-        ScanId scanId = await harness.CreateAndStartAsync();
-        await harness.RunAsync(scanId, TestContext.Current.CancellationToken);
-
-        ScanRun final = (await harness.Scans.GetByIdAsync(scanId,
-            TestContext.Current.CancellationToken))!;
-        Assert.Equal(ScanStatus.Failed, final.Status);
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => harness.CreateAndStartAsync());
+        Assert.Contains("root_invalid", error.Message, StringComparison.Ordinal);
     }
 
     // ------------------------------------------------------------------
@@ -359,11 +356,12 @@ public sealed class CompleteScanWorkflowTests : IAsyncDisposable
             ScanRun second = (await harness.Scans.GetByIdAsync(secondId,
                 TestContext.Current.CancellationToken))!;
 
-            // The first scan's status must remain Completed; the second is also Completed
-            // and has a strictly greater version number.
+            // The first scan's status and row version must remain frozen; each
+            // independent scan advances through the same lifecycle revisions.
             Assert.Equal(ScanStatus.Completed, first.Status);
             Assert.Equal(ScanStatus.Completed, second.Status);
-            Assert.True(second.Version > first.Version);
+            Assert.True(first.Version >= 4);
+            Assert.True(second.Version >= 4);
 
             // Both scans must be listed by status.
             IReadOnlyList<ScanRun> completed = await harness.Scans.ListByStatusAsync(
