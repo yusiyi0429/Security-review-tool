@@ -3,13 +3,13 @@ using Microsoft.Data.Sqlite;
 using SecurityReview.Application.Abstractions;
 using SecurityReview.Domain;
 using SecurityReview.Domain.Findings;
-using ReviewDecisionStatus = SecurityReview.Domain.Reviews.ReviewStatus;
 using SecurityReview.Domain.Reviews;
 using SecurityReview.Domain.Scans;
 using SecurityReview.Infrastructure.Cryptography;
 using SecurityReview.Infrastructure.Persistence;
 using SecurityReview.Infrastructure.Persistence.Migrations;
 using SecurityReview.Infrastructure.Persistence.Repositories;
+using ReviewDecisionStatus = SecurityReview.Domain.Reviews.ReviewStatus;
 
 namespace SecurityReview.IntegrationTests.Reviews;
 

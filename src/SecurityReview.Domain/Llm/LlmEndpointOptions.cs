@@ -3,11 +3,11 @@ using System.Text;
 namespace SecurityReview.Domain.Llm;
 
 /// <summary>
-/// Validated runtime configuration for a single approved intranet LLM
+/// Validated runtime configuration for a single approved LLM
 /// endpoint. The origin (scheme + host + effective port) is locked at
 /// construction time and used by <c>ExactOriginHttpMessageHandler</c> to
-/// reject any request that would otherwise escape the corporate HTTPS
-/// surface. The credential referenced by <see cref="CredentialReference"/>
+/// reject any request that would otherwise escape the configured trust
+/// boundary. The credential referenced by <see cref="CredentialReference"/>
 /// is stored separately in DPAPI — this record never embeds plaintext
 /// tokens, model identifiers, or host names in any string representation.
 /// </summary>
@@ -30,6 +30,12 @@ public sealed record LlmEndpointOptions
     /// Validated base URI. Scheme, host, port, and base path are frozen.
     /// </summary>
     public Uri BaseUri { get; }
+
+    /// <summary>
+    /// Trust boundary selected for this endpoint. Cloud APIs require HTTPS;
+    /// private-network endpoints may use transport-restricted HTTP.
+    /// </summary>
+    public LlmEndpointScope EndpointScope { get; }
 
     /// <summary>
     /// Root-relative chat completions path; must begin with "/" and stay
@@ -76,6 +82,7 @@ public sealed record LlmEndpointOptions
 
     private LlmEndpointOptions(
         Uri baseUri,
+        LlmEndpointScope endpointScope,
         string chatCompletionsPath,
         string model,
         LlmAuthMode authMode,
@@ -88,6 +95,7 @@ public sealed record LlmEndpointOptions
         bool allowLoopbackHttpForTesting)
     {
         BaseUri = baseUri;
+        EndpointScope = endpointScope;
         ChatCompletionsPath = chatCompletionsPath;
         Model = model;
         AuthMode = authMode;
@@ -108,10 +116,11 @@ public sealed record LlmEndpointOptions
     public Uri ApprovedOrigin => new(BaseUri.GetLeftPart(UriPartial.Authority));
 
     /// <summary>
-    /// Builds validated options. In release builds the base URL must be
-    /// HTTPS. In debug builds loopback HTTP is allowed when
-    /// <paramref name="allowLoopbackHttp"/> is true — the same escape
-    /// hatch is consumed by the exact-origin HTTP handler.
+    /// Builds validated options. Cloud APIs require HTTPS. Private-network
+    /// endpoints may use HTTP; their resolved address is pinned and validated
+    /// by the exact-origin transport before a connection is opened. In debug
+    /// builds, <paramref name="allowLoopbackHttp"/> retains the legacy
+    /// loopback-only test escape hatch.
     /// </summary>
     public static LlmEndpointOptions Create(
         Uri baseUri,
@@ -125,12 +134,13 @@ public sealed record LlmEndpointOptions
         string? credentialReference = null,
         TimeSpan? timeout = null,
         int? maxConcurrency = null,
+        LlmEndpointScope endpointScope = LlmEndpointScope.CloudApi,
         bool allowLoopbackHttp = false)
     {
         return CreateCore(
             baseUri, chatCompletionsPath, model, reference, authMode,
             responseFormatMode, sendTemperatureZero, customHeaderName,
-            credentialReference, timeout, maxConcurrency, allowLoopbackHttp,
+            credentialReference, timeout, maxConcurrency, endpointScope, allowLoopbackHttp,
             allowLoopbackHttpForTesting: false);
     }
 
@@ -150,7 +160,8 @@ public sealed record LlmEndpointOptions
         return CreateCore(
             baseUri, chatCompletionsPath, model, reference, authMode,
             responseFormatMode, sendTemperatureZero, customHeaderName,
-            credentialReference, timeout, maxConcurrency, allowLoopbackHttp: true,
+            credentialReference, timeout, maxConcurrency, LlmEndpointScope.PrivateNetwork,
+            allowLoopbackHttp: true,
             allowLoopbackHttpForTesting: true);
     }
 
@@ -166,6 +177,7 @@ public sealed record LlmEndpointOptions
         string? credentialReference,
         TimeSpan? timeout,
         int? maxConcurrency,
+        LlmEndpointScope endpointScope,
         bool allowLoopbackHttp,
         bool allowLoopbackHttpForTesting)
     {
@@ -190,7 +202,13 @@ public sealed record LlmEndpointOptions
             throw new ArgumentException(
                 "Base URI host must not contain wildcards.", nameof(baseUri));
 
-        ValidateScheme(baseUri, allowLoopbackHttp, allowLoopbackHttpForTesting);
+        if (!Enum.IsDefined(endpointScope))
+        {
+            throw new ArgumentOutOfRangeException(nameof(endpointScope),
+                "Endpoint scope is not supported.");
+        }
+
+        ValidateScheme(baseUri, endpointScope, allowLoopbackHttp, allowLoopbackHttpForTesting);
 
         string path = chatCompletionsPath ?? DefaultChatCompletionsPath;
         ValidateChatCompletionsPath(path, baseUri);
@@ -225,13 +243,14 @@ public sealed record LlmEndpointOptions
         _ = reference; // Reserved for future routing — not used in this record.
 
         return new LlmEndpointOptions(
-            baseUri, path, resolvedModel, authMode, responseFormatMode,
+            baseUri, endpointScope, path, resolvedModel, authMode, responseFormatMode,
             sendTemperatureZero, customHeaderName, credentialReference,
             resolvedTimeout, resolvedConcurrency, allowLoopbackHttpForTesting);
     }
 
     private static void ValidateScheme(
         Uri baseUri,
+        LlmEndpointScope endpointScope,
         bool allowLoopbackHttp,
         bool allowLoopbackHttpForTesting)
     {
@@ -247,14 +266,29 @@ public sealed record LlmEndpointOptions
         if (allowLoopbackHttpForTesting && IsLoopbackHost(baseUri.Host))
             return;
 
-        // HTTP base URIs are loopback-only and only allowed in DEBUG builds.
+        if (endpointScope == LlmEndpointScope.PrivateNetwork)
+        {
+            if (System.Net.IPAddress.TryParse(baseUri.Host, out var address) &&
+                !IsPrivateNetworkAddress(address))
+            {
+                throw new ArgumentException(
+                    "HTTP private-network endpoints must use a loopback or private IP address. " +
+                    "Host names are validated after DNS resolution when connecting.",
+                    nameof(baseUri));
+            }
+
+            return;
+        }
+
+        // Legacy loopback-only escape hatch retained for debug tooling.
 #if !DEBUG
         throw new ArgumentException(
-            "Base URI scheme must be https in release builds.", nameof(baseUri));
+            "Cloud API base URI scheme must be https.", nameof(baseUri));
 #else
         if (!allowLoopbackHttp)
             throw new ArgumentException(
-                "HTTP base URIs are only allowed in DEBUG with --allow-loopback-http.",
+                "Cloud API base URI scheme must be https. Select PrivateNetwork for " +
+                "a trusted intranet HTTP endpoint.",
                 nameof(baseUri));
         if (!IsLoopbackHost(baseUri.Host))
             throw new ArgumentException(
@@ -269,6 +303,34 @@ public sealed record LlmEndpointOptions
         if (System.Net.IPAddress.TryParse(host, out var ip))
             return System.Net.IPAddress.IsLoopback(ip);
         return false;
+    }
+
+    /// <summary>
+    /// Returns whether an address is inside the explicitly supported local
+    /// trust boundary: loopback, RFC 1918 IPv4, or RFC 4193 IPv6 ULA.
+    /// Link-local ranges are deliberately excluded because they include cloud
+    /// instance metadata services.
+    /// </summary>
+    internal static bool IsPrivateNetworkAddress(System.Net.IPAddress address)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+
+        if (System.Net.IPAddress.IsLoopback(address))
+            return true;
+
+        if (address.IsIPv4MappedToIPv6)
+            address = address.MapToIPv4();
+
+        byte[] bytes = address.GetAddressBytes();
+        if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            return bytes[0] == 10 ||
+                   (bytes[0] == 172 && bytes[1] is >= 16 and <= 31) ||
+                   (bytes[0] == 192 && bytes[1] == 168);
+        }
+
+        return address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 &&
+               (bytes[0] & 0xFE) == 0xFC;
     }
 
     private static void ValidateChatCompletionsPath(string path, Uri baseUri)
@@ -379,7 +441,8 @@ public sealed record LlmEndpointOptions
     {
         var sb = new StringBuilder();
         sb.Append("LlmEndpointOptions(");
-        sb.Append("AuthMode=").Append(AuthMode);
+        sb.Append("EndpointScope=").Append(EndpointScope);
+        sb.Append(", AuthMode=").Append(AuthMode);
         sb.Append(", ResponseFormatMode=").Append(ResponseFormatMode);
         sb.Append(", MaxConcurrency=").Append(MaxConcurrency);
         sb.Append(", TimeoutSeconds=").Append((int)Timeout.TotalSeconds);

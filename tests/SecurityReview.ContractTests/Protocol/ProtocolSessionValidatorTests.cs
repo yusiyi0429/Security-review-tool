@@ -200,6 +200,7 @@ public sealed class ProtocolSessionValidatorTests
     [Theory]
     [InlineData(MessageType.ContentChunk)]
     [InlineData(MessageType.GapProduced)]
+    [InlineData(MessageType.ChildDiscovered)]
     [InlineData(MessageType.ParseCompleted)]
     [InlineData(MessageType.ParseFailed)]
     [InlineData(MessageType.CancelJob)]
@@ -212,6 +213,7 @@ public sealed class ProtocolSessionValidatorTests
     [Theory]
     [InlineData(MessageType.ContentChunk)]
     [InlineData(MessageType.GapProduced)]
+    [InlineData(MessageType.ChildDiscovered)]
     [InlineData(MessageType.ParseCompleted)]
     [InlineData(MessageType.ParseFailed)]
     [InlineData(MessageType.CancelJob)]
@@ -272,7 +274,8 @@ public sealed class ProtocolSessionValidatorTests
         Assert.Equal(SessionVerdict.Accept, Validate(validator, Message(MessageType.ContentChunk, 3, ExpectedScan, ExpectedJob)));
         Assert.Equal(SessionVerdict.Accept, Validate(validator, Message(MessageType.Heartbeat, 4)));
         Assert.Equal(SessionVerdict.Accept, Validate(validator, Message(MessageType.GapProduced, 5, ExpectedScan, ExpectedJob)));
-        Assert.Equal(SessionVerdict.Accept, Validate(validator, Message(MessageType.ParseCompleted, 6, ExpectedScan, ExpectedJob)));
+        Assert.Equal(SessionVerdict.Accept, Validate(validator, Message(MessageType.ChildDiscovered, 6, ExpectedScan, ExpectedJob)));
+        Assert.Equal(SessionVerdict.Accept, Validate(validator, Message(MessageType.ParseCompleted, 7, ExpectedScan, ExpectedJob)));
     }
 
     [Theory]

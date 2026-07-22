@@ -24,6 +24,7 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
 
     // Config fields
     private string _baseUri = "";
+    private LlmEndpointScope _endpointScope = LlmEndpointScope.CloudApi;
     private string _chatCompletionsPath = "/v1/chat/completions";
     private string _model = "";
     private LlmAuthMode _authMode = LlmAuthMode.None;
@@ -85,6 +86,20 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
         get => _baseUri;
         set => SetProperty(ref _baseUri, value);
     }
+
+    public LlmEndpointScope EndpointScope
+    {
+        get => _endpointScope;
+        set
+        {
+            if (SetProperty(ref _endpointScope, value))
+                OnPropertyChanged(nameof(EndpointSecurityHint));
+        }
+    }
+
+    public string EndpointSecurityHint => EndpointScope == LlmEndpointScope.CloudApi
+        ? "云上 API 必须使用 HTTPS；请确认组织的数据策略允许发送受限语义候选。"
+        : "内网模型可使用 HTTPS，或受限的 HTTP；HTTP 内容不加密，且仅连接回环或私有网络地址。";
 
     public string ChatCompletionsPath
     {
@@ -212,6 +227,7 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     private void ApplyOptions(LlmEndpointOptions options)
     {
         BaseUri = options.BaseUri.ToString();
+        EndpointScope = options.EndpointScope;
         ChatCompletionsPath = options.ChatCompletionsPath;
         Model = options.Model;
         AuthMode = options.AuthMode;
@@ -228,30 +244,9 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     /// </summary>
     private async Task SaveConfigAsync()
     {
-        // Validate HTTPS
-        if (!string.IsNullOrWhiteSpace(BaseUri))
-        {
-            if (!BaseUri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                MessageBox.Show("LLM 端点必须使用 HTTPS 协议。\n不支持 HTTP 连接。",
-                    "安全配置", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-        }
-
         try
         {
-            var options = LlmEndpointOptions.Create(
-                string.IsNullOrWhiteSpace(BaseUri) ? new Uri("https://localhost") : new Uri(BaseUri),
-                chatCompletionsPath: ChatCompletionsPath,
-                model: Model,
-                authMode: AuthMode,
-                responseFormatMode: ResponseFormatMode,
-                sendTemperatureZero: SendTemperatureZero,
-                customHeaderName: string.IsNullOrWhiteSpace(CustomHeaderName) ? null : CustomHeaderName,
-                credentialReference: AuthMode != LlmAuthMode.None ? "llm-api-key" : null,
-                timeout: TimeSpan.FromSeconds(TimeoutSeconds),
-                maxConcurrency: MaxConcurrency);
+            LlmEndpointOptions options = BuildOptions();
 
             // Check if target/model changed → clear semantic cache
             string currentTarget = options.BaseUri.ToString();
@@ -282,6 +277,11 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
                 MessageBox.Show("LLM 配置已保存。", "配置", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+        catch (Exception ex) when (ex is ArgumentException or FormatException)
+        {
+            MessageBox.Show($"LLM 配置无效。\n\n{ex.Message}",
+                "安全配置", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
         catch (Exception)
         {
             _errorSink.Report("llm_config_save_failed", $"保存LLM配置失败。");
@@ -298,17 +298,7 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
         try
         {
             // Build options from current form state
-            var options = LlmEndpointOptions.Create(
-                string.IsNullOrWhiteSpace(BaseUri) ? new Uri("https://localhost") : new Uri(BaseUri),
-                chatCompletionsPath: ChatCompletionsPath,
-                model: Model,
-                authMode: AuthMode,
-                responseFormatMode: ResponseFormatMode,
-                sendTemperatureZero: SendTemperatureZero,
-                customHeaderName: string.IsNullOrWhiteSpace(CustomHeaderName) ? null : CustomHeaderName,
-                credentialReference: AuthMode != LlmAuthMode.None ? "llm-api-key" : null,
-                timeout: TimeSpan.FromSeconds(TimeoutSeconds),
-                maxConcurrency: MaxConcurrency);
+            LlmEndpointOptions options = BuildOptions();
 
             var command = new TestLlmConnectionCommand(options);
 
@@ -316,7 +306,7 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
 
             LastTestStatus = result.Succeeded ? "连接成功" : $"连接失败: {result.FailureReason}";
             LastTestTime = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-            LastTestOrigin = _lastSavedTarget;
+            LastTestOrigin = options.BaseUri.GetLeftPart(UriPartial.Authority);
 
             if (result.Succeeded)
             {
@@ -328,6 +318,12 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
                 MessageBox.Show($"LLM 连接测试失败。\n\n原因: {result.FailureReason}\n\n请检查端点地址、认证凭据和网络连接。",
                     "连接测试", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+        catch (Exception ex) when (ex is ArgumentException or FormatException)
+        {
+            LastTestStatus = "配置无效";
+            MessageBox.Show($"LLM 配置无效。\n\n{ex.Message}",
+                "安全配置", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         catch (Exception)
         {
@@ -356,6 +352,7 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
             await _configStore.ClearAsync();
             HasConfig = false;
             BaseUri = "";
+            EndpointScope = LlmEndpointScope.CloudApi;
             Model = "";
             CredentialInput = "";
             LastTestOrigin = "";
@@ -373,5 +370,24 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         CredentialInput = "";
+    }
+
+    private LlmEndpointOptions BuildOptions()
+    {
+        if (!Uri.TryCreate(BaseUri, UriKind.Absolute, out Uri? baseUri))
+            throw new ArgumentException("服务基地址必须是完整的 HTTP 或 HTTPS URL。", nameof(BaseUri));
+
+        return LlmEndpointOptions.Create(
+            baseUri,
+            chatCompletionsPath: ChatCompletionsPath,
+            model: Model,
+            authMode: AuthMode,
+            responseFormatMode: ResponseFormatMode,
+            sendTemperatureZero: SendTemperatureZero,
+            customHeaderName: string.IsNullOrWhiteSpace(CustomHeaderName) ? null : CustomHeaderName,
+            credentialReference: AuthMode != LlmAuthMode.None ? "llm-api-key" : null,
+            timeout: TimeSpan.FromSeconds(TimeoutSeconds),
+            maxConcurrency: MaxConcurrency,
+            endpointScope: EndpointScope);
     }
 }

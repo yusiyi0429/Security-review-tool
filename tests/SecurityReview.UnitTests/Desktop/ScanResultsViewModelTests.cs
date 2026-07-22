@@ -1,13 +1,13 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using SecurityReview.Application.Scans;
+using SecurityReview.Desktop.Services;
+using SecurityReview.Desktop.ViewModels;
 using SecurityReview.Domain;
 using SecurityReview.Domain.Findings;
 using SecurityReview.Domain.Scans;
-using SecurityReview.Desktop.Services;
-using SecurityReview.Desktop.ViewModels;
-using ReviewsReviewStatus = SecurityReview.Domain.Reviews.ReviewStatus;
 using ReviewsDifferenceStatus = SecurityReview.Domain.Reviews.DifferenceStatus;
+using ReviewsReviewStatus = SecurityReview.Domain.Reviews.ReviewStatus;
 
 namespace SecurityReview.UnitTests.Desktop;
 

@@ -29,14 +29,15 @@ public sealed class ExactOriginHttpTests
     {
         var baseUri = new Uri(origin + "/");
         return baseUri.Scheme == Uri.UriSchemeHttp
-            ? LlmEndpointOptions.CreateForLoopbackTesting(
+            ? LlmEndpointOptions.Create(
                 baseUri: baseUri,
                 chatCompletionsPath: path,
                 model: ModelName,
                 reference: "Llm.Endpoint.Default",
                 authMode: LlmAuthMode.Bearer,
                 credentialReference: "Llm.Credential.Default",
-                maxConcurrency: 1)
+                maxConcurrency: 1,
+                endpointScope: LlmEndpointScope.PrivateNetwork)
             : LlmEndpointOptions.Create(
                 baseUri: baseUri,
                 chatCompletionsPath: path,

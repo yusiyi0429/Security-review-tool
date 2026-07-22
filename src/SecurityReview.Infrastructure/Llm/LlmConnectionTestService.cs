@@ -98,6 +98,15 @@ public sealed class LlmConnectionTestService : ILlmConnectionTestService
                     LlmConnectionTestFailureReason.CertificateUntrusted, null,
                     stopwatch.Elapsed, fingerprint);
             }
+            catch (HttpRequestException)
+            {
+                stopwatch.Stop();
+                Publish(DiagnosticCode.LlmConnectionTestFailed, fingerprint,
+                    command.CorrelationId, (int)stopwatch.ElapsedMilliseconds, 0);
+                return LlmConnectionTestResult.Failure(
+                    LlmConnectionTestFailureReason.RequestError, null,
+                    stopwatch.Elapsed, fingerprint);
+            }
             catch (InvalidOperationException ex)
             {
                 stopwatch.Stop();

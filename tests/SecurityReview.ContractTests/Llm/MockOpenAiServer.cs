@@ -313,10 +313,14 @@ internal static class X509Helper
         var cert = req.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddMinutes(-5),
             DateTimeOffset.UtcNow.AddDays(1));
+        X509KeyStorageFlags storageFlags = X509KeyStorageFlags.Exportable;
+        if (!OperatingSystem.IsMacOS())
+            storageFlags |= X509KeyStorageFlags.EphemeralKeySet;
+
         return X509CertificateLoader.LoadPkcs12(
             cert.Export(X509ContentType.Pfx),
             password: null,
-            X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable);
+            storageFlags);
     }
 }
 

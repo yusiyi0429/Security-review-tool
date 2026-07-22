@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
+             xmlns:llm="clr-namespace:SecurityReview.Domain.Llm;assembly=SecurityReview.Domain"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:LlmSettingsViewModel}">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid>
@@ -29,10 +30,22 @@
                 <Border Style="{StaticResource CardStyle}">
                     <StackPanel>
                         <TextBlock Text="连接配置" Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="仅允许 HTTPS 基地址；密钥由系统安全存储管理。"
+                        <TextBlock Text="云上 API 强制 HTTPS；内网模型可使用受限 HTTP。"
                                    Style="{StaticResource PageSubtitleStyle}" Margin="0,4,0,18" />
 
-                        <TextBlock Text="服务基地址（HTTPS）" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBlock Text="端点类型" Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox SelectedValue="{Binding EndpointScope, Mode=TwoWay}"
+                                  SelectedValuePath="Tag" Margin="0,0,0,8">
+                            <ComboBoxItem Content="云上 API（HTTPS）"
+                                          Tag="{x:Static llm:LlmEndpointScope.CloudApi}" />
+                            <ComboBoxItem Content="内网 / 本机模型（HTTP 或 HTTPS）"
+                                          Tag="{x:Static llm:LlmEndpointScope.PrivateNetwork}" />
+                        </ComboBox>
+                        <TextBlock Text="{Binding EndpointSecurityHint}"
+                                   Style="{StaticResource PageSubtitleStyle}"
+                                   TextWrapping="Wrap" Margin="0,0,0,15" />
+
+                        <TextBlock Text="服务基地址" Style="{StaticResource FieldLabelStyle}" />
                         <TextBox Text="{Binding BaseUri, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="0,0,0,15" />
 

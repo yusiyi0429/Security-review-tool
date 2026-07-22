@@ -91,7 +91,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
     public async IAsyncEnumerable<ScanProgress> RunAsync(
         ScanId scanId,
-        ScanSnapshotRecord? snapshot,
+        ScanConfigurationSnapshot? snapshot,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var progress = new List<ScanProgress>();
@@ -188,7 +188,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
     private async Task<ScanOutcome> RunPipelineAsync(
         ScanId scanId,
-        ScanSnapshotRecord? snapshot,
+        ScanConfigurationSnapshot? snapshot,
         List<ScanProgress> progressList,
         CancellationToken cancellationToken)
     {
@@ -201,9 +201,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                 CompletedAtUtc: _clock());
         }
 
-        string firstRoot = snapshot is null || string.IsNullOrEmpty(snapshot.ClientVersion)
-            ? string.Empty
-            : Path.GetTempPath();
+        string firstRoot = snapshot.RootPaths.FirstOrDefault() ?? string.Empty;
 
         // The preflight gate is a fail-closed set of infrastructure checks
         // (sandbox, baseline, app data, database health). Run once at the
@@ -361,7 +359,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                 FormatHint: formatHint,
                 DeclaredLength: file.Length,
                 Limits: limits,
-                IsOci: false);
+                IsOci: false,
+                InputFilePath: Path.Combine(firstRoot, file.RelativePath));
 
             await foreach (WorkerJobResult result in _processor
                 .ProcessAsync(item, cancellationToken)

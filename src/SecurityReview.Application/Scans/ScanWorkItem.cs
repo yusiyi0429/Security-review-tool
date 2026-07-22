@@ -14,7 +14,8 @@ public sealed record ScanWorkItem(
     string FormatHint,
     long DeclaredLength,
     ParseLimits Limits,
-    bool IsOci);
+    bool IsOci,
+    string? InputFilePath = null);
 
 /// <summary>
 /// Result produced by a parser worker for a single <see cref="ScanWorkItem"/>.

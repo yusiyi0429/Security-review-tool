@@ -282,6 +282,9 @@ public sealed class CorpusManifestTests
 
             // Skip scripts, schemas, the manifest, and hidden files.
             if (name.StartsWith('.')) continue;
+            if (relative.StartsWith("Adversarial/", StringComparison.OrdinalIgnoreCase) ||
+                relative.StartsWith("Rules/", StringComparison.OrdinalIgnoreCase))
+                continue;
             if (relative.EndsWith(".sh", StringComparison.OrdinalIgnoreCase) ||
                 relative.EndsWith(".py", StringComparison.OrdinalIgnoreCase) ||
                 relative.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase))
@@ -338,16 +341,19 @@ public sealed class CorpusManifestTests
             "MaxDurationMs", "MaxMemoryMb", "Coverage",
         };
 
+        bool rejected = false;
         using JsonDocument doc = JsonDocument.Parse(badJson);
         foreach (JsonElement c in doc.RootElement.GetProperty("Cases")
            .EnumerateArray())
         {
             foreach (JsonProperty prop in c.EnumerateObject())
             {
-                Assert.True(definedKeys.Contains(prop.Name),
-                    $"Unknown field '{prop.Name}' should be rejected by schema");
+                if (!definedKeys.Contains(prop.Name))
+                    rejected = true;
             }
         }
+
+        Assert.True(rejected, "The synthetic unknown field was not rejected.");
     }
 
     [Fact]
@@ -389,13 +395,17 @@ public sealed class CorpusManifestTests
 
         // Verify duplicate IDs are detected.
         var ids = new HashSet<string>();
+        bool rejected = false;
         using JsonDocument doc = JsonDocument.Parse(badJson);
         foreach (JsonElement c in doc.RootElement.GetProperty("Cases")
            .EnumerateArray())
         {
             string id = c.GetProperty("CaseId").GetString()!;
-            Assert.True(ids.Add(id), $"Duplicate ID should be rejected: {id}");
+            if (!ids.Add(id))
+                rejected = true;
         }
+
+        Assert.True(rejected, "The synthetic duplicate case id was not rejected.");
     }
 
     // ── Helpers ─────────────────────────────────────────────

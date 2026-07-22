@@ -206,20 +206,20 @@ public sealed class SafePreviewService
             case SourceLocator.TextLocator tl:
                 return (tl.Line, tl.ByteStart, tl.ByteLength);
             case SourceLocator.JsonLocator jl:
-            {
-                // Search for the JSON pointer in the text then estimate line
-                int lineIdx = 0;
-                long byteCount = 0;
-                foreach (string ln in fullText.Split('\n'))
                 {
-                    long nextByteCount = byteCount + Encoding.UTF8.GetByteCount(ln + "\n");
-                    if (byteCount <= jl.ByteStart && nextByteCount > jl.ByteStart)
-                        return (lineIdx, jl.ByteStart - byteCount, jl.ByteLength);
-                    byteCount = nextByteCount;
-                    lineIdx++;
+                    // Search for the JSON pointer in the text then estimate line
+                    int lineIdx = 0;
+                    long byteCount = 0;
+                    foreach (string ln in fullText.Split('\n'))
+                    {
+                        long nextByteCount = byteCount + Encoding.UTF8.GetByteCount(ln + "\n");
+                        if (byteCount <= jl.ByteStart && nextByteCount > jl.ByteStart)
+                            return (lineIdx, jl.ByteStart - byteCount, jl.ByteLength);
+                        byteCount = nextByteCount;
+                        lineIdx++;
+                    }
+                    return (0, jl.ByteStart, jl.ByteLength);
                 }
-                return (0, jl.ByteStart, jl.ByteLength);
-            }
             case SourceLocator.PdfLocator pl:
                 return (pl.Page, 0, 0);
             default:

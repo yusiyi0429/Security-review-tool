@@ -1,0 +1,98 @@
+name: Release Windows
+
+run-name: Release v${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version from the repository VERSION file
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.302
+
+      - name: Validate requested version
+        shell: pwsh
+        run: |
+          $repositoryVersion = (Get-Content -LiteralPath VERSION -Raw).Trim()
+          if ($repositoryVersion -ne '${{ inputs.version }}') {
+            throw "Requested version '${{ inputs.version }}' does not match VERSION '$repositoryVersion'."
+          }
+          $notes = ".github/release-notes/v$repositoryVersion.md"
+          if (-not (Test-Path -LiteralPath $notes -PathType Leaf)) {
+            throw "Release notes not found: $notes"
+          }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build and verify portable package
+        shell: pwsh
+        run: ./build/package.ps1 -Version '${{ inputs.version }}' -AllowUnsignedPilot
+
+      - name: Run integration and parser corpus lanes
+        shell: pwsh
+        run: ./build/test.ps1 -Lane Integration,ParserCorpus
+
+      - name: Build and verify installer
+        shell: pwsh
+        run: |
+          ./build/package-installer.ps1 `
+            -Version '${{ inputs.version }}' `
+            -PortablePackage "artifacts/release/SecurityReviewTool-${{ inputs.version }}-win-x64.zip" `
+            -AllowUnsignedPilot
+
+      - name: Preserve release assets as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SecurityReviewTool-${{ inputs.version }}-win-x64
+          if-no-files-found: error
+          path: |
+            artifacts/release/SecurityReviewTool-${{ inputs.version }}-win-x64.zip
+            artifacts/release/SecurityReviewTool-${{ inputs.version }}-win-x64.zip.sha256
+            artifacts/release/SecurityReviewTool-${{ inputs.version }}-win-x64-setup.exe
+            artifacts/release/SecurityReviewTool-${{ inputs.version }}-win-x64-setup.exe.sha256
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ inputs.version }}'
+          $tag = "v$version"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Release $tag already exists; published assets are never overwritten."
+          }
+
+          $assets = @(
+            "artifacts/release/SecurityReviewTool-$version-win-x64.zip",
+            "artifacts/release/SecurityReviewTool-$version-win-x64.zip.sha256",
+            "artifacts/release/SecurityReviewTool-$version-win-x64-setup.exe",
+            "artifacts/release/SecurityReviewTool-$version-win-x64-setup.exe.sha256"
+          )
+          gh release create $tag $assets `
+            --target $env:GITHUB_SHA `
+            --title $tag `
+            --notes-file ".github/release-notes/$tag.md" `
+            --latest
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub release creation failed."
+          }

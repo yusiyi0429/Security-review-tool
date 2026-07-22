@@ -31,7 +31,7 @@ public interface IScanOrchestrator
     /// </summary>
     IAsyncEnumerable<ScanProgress> RunAsync(
         ScanId scanId,
-        ScanSnapshotRecord snapshot,
+        ScanConfigurationSnapshot snapshot,
         CancellationToken cancellationToken = default);
 
     /// <summary>

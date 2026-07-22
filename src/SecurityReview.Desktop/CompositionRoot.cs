@@ -204,6 +204,8 @@ public sealed class CompositionRoot : IDisposable
                     launcher, launcher,
                     new SandboxSelfTestEnvironment(staging, workerExe));
                 Register<IWorkerLauncher>(launcher);
+                Register<IWorkerJobProcessor>(new SandboxWorkerJobProcessor(
+                    launcher, staging, workerExe));
                 Register<ISandboxSelfTest>(selfTest);
                 RegisterConcrete(selfTest);
             }
@@ -253,7 +255,7 @@ public sealed class CompositionRoot : IDisposable
                     new StubBaselineProvider(),
                     new StubSpaceProbe(),
                     new StubDbHealthCheck());
-                var startScan = new StartScanHandler(sr, ssr, preflight);
+                var startScan = new StartScanHandler(sr, ssr, preflight, protector);
                 RegisterConcrete(startScan);
 
                 var cancelScan = new CancelScanHandler(sr);

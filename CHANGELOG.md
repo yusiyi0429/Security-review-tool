@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.0.3 - 2026-07-22
+
+### 新功能
+
+- LLM 配置新增“云上 API”和“内网 / 本机模型”两种端点类型；云端继续强制 HTTPS，内网模型可使用 HTTPS 或受限 HTTP。
+- 内网 HTTP 支持私有 DNS 名称，并在建连时将 socket 固定到校验通过的 loopback、RFC 1918 IPv4 或 RFC 4193 IPv6 ULA 地址。
+
+### 修复
+
+- 修复桌面端扫描启动时配置快照无法正确还原，导致任务不能进入实际解析流程的问题。
+- 补齐主进程到沙箱 worker 的协议负载、作业处理和解析器注册，使 Windows 扫描链路能够执行真实文件解析。
+- 修复二进制输入被文本解析器误判，以及 corpus 清单与验证用例未覆盖相应边界的问题。
+- 修复 solution 级构建错误传递 RID、跨平台验证无法准备正确运行资产的问题。
+- LLM 连接测试现在会把普通网络失败稳定映射为请求错误，而不是让异常逸出到界面。
+
+### 安全
+
+- 内网 HTTP 拒绝公网、link-local 和云元数据地址；禁止自动重定向、隐式代理和跨 origin 请求。
+- 云上 API 仍要求系统信任的 HTTPS 证书；界面提示云端数据边界以及内网 HTTP 未加密风险。
+
+### 验证
+
+- Debug 与 Release 全解决方案构建均为 0 警告、0 错误。
+- macOS 可执行的 LLM exact-origin 合约测试 20/20 通过；Windows 发布流水线继续运行 Unit、Contract、Integration 和 ParserCorpus 验证。
+
+### 发布说明
+
+- 当前发布物未使用 Authenticode 证书签名；请在运行前核对随附的 SHA-256 校验文件。
+- macOS 尚不受支持：当前桌面层和安全隔离依赖 WPF、AppContainer、Job Object 与 DPAPI。
+
 ## 1.0.2 - 2026-07-22
 
 ### 新功能

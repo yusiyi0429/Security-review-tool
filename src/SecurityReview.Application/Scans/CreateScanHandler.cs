@@ -1,5 +1,3 @@
-using System.Text;
-using System.Text.Json;
 using SecurityReview.Application.Abstractions;
 using SecurityReview.Application.Scans.Preflight;
 using SecurityReview.Domain;
@@ -37,7 +35,7 @@ public sealed class CreateScanHandler
 {
     private readonly IScanRepository _scanRepository;
     private readonly IScanSnapshotRepository _snapshotRepository;
-    private readonly IPayloadProtector _protector;
+    private readonly ScanConfigurationSnapshotCodec _snapshotCodec;
     private readonly Func<DateTimeOffset> _clock;
 
     public CreateScanHandler(
@@ -48,7 +46,8 @@ public sealed class CreateScanHandler
     {
         _scanRepository = scanRepository ?? throw new ArgumentNullException(nameof(scanRepository));
         _snapshotRepository = snapshotRepository ?? throw new ArgumentNullException(nameof(snapshotRepository));
-        _protector = protector ?? throw new ArgumentNullException(nameof(protector));
+        _snapshotCodec = new ScanConfigurationSnapshotCodec(
+            protector ?? throw new ArgumentNullException(nameof(protector)));
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
     }
 
@@ -107,8 +106,7 @@ public sealed class CreateScanHandler
 
         await _scanRepository.InsertAsync(draft, cancellationToken).ConfigureAwait(false);
 
-        byte[] payloadBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(snapshot));
-        byte[] encrypted = EncryptSnapshot(scanId, payloadBytes);
+        byte[] encrypted = _snapshotCodec.Protect(scanId, snapshot);
 
         var record = new ScanSnapshotRecord(
             ScanId: scanId,
@@ -131,16 +129,6 @@ public sealed class CreateScanHandler
         return CreateScanResult.Success(scanId, hash, capturedAtUtc);
     }
 
-    private byte[] EncryptSnapshot(ScanId scanId, byte[] plaintext)
-    {
-        EncryptedPayload envelope = _protector.Protect(
-            "scan_config_snapshots",
-            scanId.Value.ToString(),
-            "encrypted_payload",
-            plaintext);
-        return JsonSerializer.SerializeToUtf8Bytes(envelope,
-            SnapshotJsonContext.Default.EncryptedPayload);
-    }
 }
 
 [System.Text.Json.Serialization.JsonSerializable(typeof(EncryptedPayload))]

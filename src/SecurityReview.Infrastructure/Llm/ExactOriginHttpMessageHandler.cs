@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using SecurityReview.Domain.Llm;
 
@@ -9,14 +10,14 @@ namespace SecurityReview.Infrastructure.Llm;
 /// <summary>
 /// Locked-down HTTP transport for the approved intranet LLM endpoint.
 /// The handler wraps a <see cref="SocketsHttpHandler"/> with the
-/// smallest set of sockets options that still meets OpenAI-style
+/// smallest set of socket options that still meets OpenAI-style
 /// request/response semantics, and gates every outgoing request against
 /// the approved origin: scheme, host, effective port, and base path
 /// must all match exactly (ordinal, case-insensitive). 3xx responses
 /// are never followed. CR/LF in the request line or path is rejected
-/// before the bytes leave the process. In debug builds only, HTTP is
-/// accepted for loopback hosts when the process was started with the
-/// <c>--allow-loopback-http</c> argument.
+/// before the bytes leave the process. Private-network HTTP connections
+/// resolve and connect through a pinned private or loopback IP address;
+/// public and link-local destinations are rejected before a socket opens.
 /// </summary>
 public sealed class ExactOriginHttpMessageHandler : DelegatingHandler
 {
@@ -101,7 +102,67 @@ public sealed class ExactOriginHttpMessageHandler : DelegatingHandler
         // Explicitly null out credential/ICredentials paths; the defaults
         // would otherwise be picked up from the environment.
         inner.Credentials = null;
+
+        if (string.Equals(options.BaseUri.Scheme, Uri.UriSchemeHttp,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            inner.ConnectCallback = ConnectToPrivateNetworkAsync;
+        }
+
         return inner;
+    }
+
+    private static async ValueTask<Stream> ConnectToPrivateNetworkAsync(
+        SocketsHttpConnectionContext context,
+        CancellationToken cancellationToken)
+    {
+        DnsEndPoint endpoint = context.DnsEndPoint;
+        IPAddress[] resolvedAddresses;
+        if (IPAddress.TryParse(endpoint.Host, out var literalAddress))
+        {
+            resolvedAddresses = [literalAddress];
+        }
+        else
+        {
+            resolvedAddresses = await Dns.GetHostAddressesAsync(
+                endpoint.Host, cancellationToken).ConfigureAwait(false);
+        }
+
+        IPAddress[] approvedAddresses = resolvedAddresses
+            .Where(LlmEndpointOptions.IsPrivateNetworkAddress)
+            .Distinct()
+            .ToArray();
+        if (approvedAddresses.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "Private-network HTTP endpoint resolved to no approved private address.");
+        }
+
+        Exception? lastError = null;
+        foreach (IPAddress address in approvedAddresses)
+        {
+            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
+            {
+                NoDelay = true,
+            };
+            try
+            {
+                await socket.ConnectAsync(
+                    new IPEndPoint(address, endpoint.Port), cancellationToken)
+                    .ConfigureAwait(false);
+                return new NetworkStream(socket, ownsSocket: true);
+            }
+            catch (Exception ex) when (ex is SocketException or OperationCanceledException)
+            {
+                socket.Dispose();
+                lastError = ex;
+                if (ex is OperationCanceledException)
+                    throw;
+            }
+        }
+
+        throw new HttpRequestException(
+            "Unable to connect to the approved private-network endpoint.", lastError);
     }
 
     private static bool ShouldAllowLoopback(LlmEndpointOptions options)

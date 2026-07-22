@@ -104,7 +104,7 @@ public class UiExceptionBoundary
     {
         return ex switch
         {
-            System.Data.Common.DbException 
+            System.Data.Common.DbException
                 or Microsoft.Data.Sqlite.SqliteException => "database_corrupted",
             System.Security.Cryptography.CryptographicException => "keyring_corrupted",
             System.Security.SecurityException => "security_invariant_violated",

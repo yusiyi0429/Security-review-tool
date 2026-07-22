@@ -71,6 +71,7 @@ public sealed class ProtocolSessionValidator
             case MessageType.ParseJob:
             case MessageType.ContentChunk:
             case MessageType.GapProduced:
+            case MessageType.ChildDiscovered:
                 return IdsMatch(message);
             case MessageType.ParseCompleted:
             case MessageType.ParseFailed:

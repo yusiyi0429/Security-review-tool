@@ -1,5 +1,5 @@
-using System.Text;
 using SecurityReview.Domain;
+using SecurityReview.Domain.Scans;
 using SecurityReview.ParserContracts.Parsing;
 using SecurityReview.Parsers.Core;
 using SecurityReview.Parsers.Text;
@@ -77,9 +77,6 @@ public sealed class TextParserTests
 
         byte[] data = await File.ReadAllBytesAsync(path);
 
-        // Register the code pages provider for GB18030
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
         var detection = TextEncodingDetector.DetectAndDecode(data);
 
         Assert.True(detection.IsReliable);
@@ -87,6 +84,48 @@ public sealed class TextParserTests
         // and the heuristic may detect GB18030 or fallback
         // The key assertion is that text was decoded
         Assert.NotEmpty(detection.Text);
+    }
+
+    [Fact]
+    public async Task binary_pickle_is_not_accepted_as_gb18030_text()
+    {
+        string path = Path.Combine(
+            Path.GetDirectoryName(CorpusDir)!, "Models", "pickle_protocol_2.pkl");
+        Assert.True(File.Exists(path), $"Corpus file not found: {path}");
+
+        byte[] data = await File.ReadAllBytesAsync(path);
+        var detection = TextEncodingDetector.DetectAndDecode(data);
+
+        Assert.False(detection.IsReliable);
+        Assert.Empty(detection.Text);
+    }
+
+    [Fact]
+    public async Task binary_pickle_parser_emits_gap_without_empty_chunk()
+    {
+        string path = Path.Combine(
+            Path.GetDirectoryName(CorpusDir)!, "Models", "pickle_protocol_2.pkl");
+        var parser = new TextFormatParser();
+        await using var stream = File.OpenRead(path);
+        await using var input = new ParserInput(stream, stream.Length);
+        var context = new ParseContext(
+            new JobId(Guid.NewGuid()),
+            new ScanId(Guid.NewGuid()),
+            "Models/pickle_protocol_2.pkl",
+            new ParseLimits(DateTimeOffset.UtcNow.AddMinutes(1), 3,
+                100_000, 1_000_000_000, 1_048_576));
+
+        var events = new List<ParserEvent>();
+        await foreach (ParserEvent evt in parser.ParseAsync(
+            input, context, CancellationToken.None))
+        {
+            events.Add(evt);
+        }
+
+        Assert.DoesNotContain(events, evt => evt is ParserEvent.ChunkProduced);
+        Assert.Contains(events, evt => evt is ParserEvent.GapProduced gap
+            && gap.Gap.Reason == GapReason.DecodeUnreliable);
+        Assert.Contains(events, evt => evt is ParserEvent.ParseCompleted);
     }
 
     [Fact]

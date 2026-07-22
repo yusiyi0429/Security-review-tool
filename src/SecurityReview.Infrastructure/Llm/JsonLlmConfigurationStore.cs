@@ -197,6 +197,7 @@ public sealed class JsonLlmConfigurationStore : ILlmConfigurationStore
         return new LlmConfigurationPayload
         {
             BaseUri = options.BaseUri.AbsoluteUri,
+            EndpointScope = options.EndpointScope,
             ChatCompletionsPath = options.ChatCompletionsPath,
             Model = options.Model,
             AuthMode = options.AuthMode,
@@ -224,7 +225,8 @@ public sealed class JsonLlmConfigurationStore : ILlmConfigurationStore
             customHeaderName: payload.CustomHeaderName,
             credentialReference: payload.CredentialReference,
             timeout: TimeSpan.FromSeconds(payload.TimeoutSeconds),
-            maxConcurrency: payload.MaxConcurrency);
+            maxConcurrency: payload.MaxConcurrency,
+            endpointScope: payload.EndpointScope);
     }
 
     /// <summary>
@@ -235,6 +237,7 @@ public sealed class JsonLlmConfigurationStore : ILlmConfigurationStore
     internal sealed record LlmConfigurationPayload
     {
         public string? BaseUri { get; init; }
+        public LlmEndpointScope EndpointScope { get; init; }
         public string? ChatCompletionsPath { get; init; }
         public string? Model { get; init; }
         public LlmAuthMode AuthMode { get; init; }

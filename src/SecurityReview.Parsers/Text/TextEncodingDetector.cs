@@ -10,10 +10,16 @@ namespace SecurityReview.Parsers.Text;
 /// 4. Strict GB18030 decoder
 /// 5. Fallback: DecodeUnreliable with bytes processed, no lossy text
 ///
-/// Caller must register CodePagesEncodingProvider.Instance once at startup.
+/// The code-pages provider is registered by this type so results do not depend
+/// on unrelated callers or test execution order.
 /// </summary>
 public static class TextEncodingDetector
 {
+    static TextEncodingDetector()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
+
     /// <summary>
     /// Detected encoding result — either a valid Encoding with the text decoded
     /// successfully, or a DecodeUnreliable marker.
@@ -176,6 +182,8 @@ public static class TextEncodingDetector
                 EncoderFallback.ExceptionFallback,
                 DecoderFallback.ExceptionFallback);
             string text = gb18030.GetString(data);
+            if (!IsPlausibleText(text))
+                return false;
             result = DetectionResult.Success("gb18030", text, data.Length);
             return true;
         }
@@ -188,6 +196,17 @@ public static class TextEncodingDetector
             // CodePagesEncodingProvider not registered
             return false;
         }
+    }
+
+    private static bool IsPlausibleText(string text)
+    {
+        foreach (char value in text)
+        {
+            if (char.IsControl(value) && value is not ('\t' or '\n' or '\r' or '\f'))
+                return false;
+        }
+
+        return true;
     }
 
     private static DetectionResult DecodeUnreliableWithBom(ReadOnlySpan<byte> data, int bomLength, string reason)

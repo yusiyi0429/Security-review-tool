@@ -1,6 +1,6 @@
 using SecurityReview.Application.History;
-using SecurityReview.Domain.Scans;
 using SecurityReview.Domain;
+using SecurityReview.Domain.Scans;
 
 namespace SecurityReview.UnitTests.History;
 

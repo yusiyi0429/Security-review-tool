@@ -2,9 +2,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using SecurityReview.Application.Scans;
 using SecurityReview.Application.Scans.Preflight;
-using SecurityReview.Domain.Assets;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
+using SecurityReview.Domain.Assets;
 
 namespace SecurityReview.UnitTests.Desktop;
 

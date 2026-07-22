@@ -17,15 +17,19 @@ public sealed class StartScanHandler
     private readonly IScanRepository _scanRepository;
     private readonly IScanSnapshotRepository _snapshotRepository;
     private readonly ScanPreflightService _preflight;
+    private readonly ScanConfigurationSnapshotCodec _snapshotCodec;
 
     public StartScanHandler(
         IScanRepository scanRepository,
         IScanSnapshotRepository snapshotRepository,
-        ScanPreflightService preflight)
+        ScanPreflightService preflight,
+        IPayloadProtector protector)
     {
         _scanRepository = scanRepository ?? throw new ArgumentNullException(nameof(scanRepository));
         _snapshotRepository = snapshotRepository ?? throw new ArgumentNullException(nameof(snapshotRepository));
         _preflight = preflight ?? throw new ArgumentNullException(nameof(preflight));
+        _snapshotCodec = new ScanConfigurationSnapshotCodec(
+            protector ?? throw new ArgumentNullException(nameof(protector)));
     }
 
     public async Task<StartScanResult> HandleAsync(
@@ -61,10 +65,36 @@ public sealed class StartScanHandler
             });
         }
 
-        // Use the first root path for the legacy single-root preflight probe.
-        var preflightRequest = new ScanPreflightRequest(string.Empty);
-        // The real preflight happens inside the orchestrator (multi-root aware);
-        // here we only verify the snapshot is well-formed.
+        ScanConfigurationSnapshot configuration;
+        try
+        {
+            configuration = _snapshotCodec.Unprotect(snapshot);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return StartScanResult.Failed(new[]
+            {
+                new PreflightError("snapshot_invalid",
+                    "Scan configuration snapshot is invalid or cannot be decrypted.")
+            });
+        }
+
+        if (configuration.RootPaths.Length == 0)
+        {
+            return StartScanResult.Failed(new[]
+            {
+                new PreflightError("snapshot_invalid",
+                    "Scan configuration snapshot contains no scan roots.")
+            });
+        }
+
+        // Preflight currently probes the first root. The immutable snapshot,
+        // rather than mutable UI state, is the source of truth.
+        var preflightRequest = new ScanPreflightRequest(configuration.RootPaths[0]);
         ScanPreflightResult result = await _preflight
             .ValidateAsync(preflightRequest, cancellationToken)
             .ConfigureAwait(false);
@@ -91,7 +121,7 @@ public sealed class StartScanHandler
             }
         }
 
-        return StartScanResult.Succeeded(scanId, snapshot.ConfigHash);
+        return StartScanResult.Succeeded(scanId, snapshot.ConfigHash, configuration);
     }
 }
 
@@ -102,11 +132,15 @@ public sealed record StartScanResult(
     bool Started,
     ScanId? ScanId,
     string? ConfigHash,
-    IReadOnlyList<PreflightError> Errors)
+    IReadOnlyList<PreflightError> Errors,
+    ScanConfigurationSnapshot? Snapshot)
 {
-    public static StartScanResult Succeeded(ScanId scanId, string configHash) =>
-        new(true, scanId, configHash, Array.Empty<PreflightError>());
+    public static StartScanResult Succeeded(
+        ScanId scanId,
+        string configHash,
+        ScanConfigurationSnapshot snapshot) =>
+        new(true, scanId, configHash, Array.Empty<PreflightError>(), snapshot);
 
     public static StartScanResult Failed(IReadOnlyList<PreflightError> errors) =>
-        new(false, null, null, errors);
+        new(false, null, null, errors, null);
 }

@@ -1,7 +1,9 @@
 using System.IO.Pipes;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using SecurityReview.Domain;
+using SecurityReview.ParserContracts.Parsing;
 using SecurityReview.ParserContracts.Protocol;
 
 namespace SecurityReview.Worker;
@@ -10,6 +12,7 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         WorkerArguments arguments;
         try
         {
@@ -90,15 +93,50 @@ public static class Program
             switch (message.MessageType)
             {
                 case MessageType.ParseJob:
-                    await context.SendAsync(MessageType.ParseFailed,
-                        "{\"error\":\"not_implemented\"}").ConfigureAwait(false);
-                    break;
+                    ParseJob? job;
+                    try
+                    {
+                        job = JsonSerializer.Deserialize(message.PayloadJson,
+                            ProtocolJsonContext.Default.ParseJob);
+                    }
+                    catch (JsonException)
+                    {
+                        await SendInvalidJobAsync(context).ConfigureAwait(false);
+                        return 4;
+                    }
+
+                    if (job is null || job.ProtocolVersion != ProtocolConstants.Version
+                        || job.ScanId != context.ScanId || job.JobId != context.JobId
+                        || job.Limits.Validate(DateTimeOffset.UtcNow).Count != 0)
+                    {
+                        await SendInvalidJobAsync(context).ConfigureAwait(false);
+                        return 4;
+                    }
+
+                    using (var deadline = new CancellationTokenSource())
+                    {
+                        TimeSpan remaining = job.Limits.DeadlineUtc - DateTimeOffset.UtcNow;
+                        deadline.CancelAfter(remaining > TimeSpan.Zero
+                            ? remaining
+                            : TimeSpan.Zero);
+                        var host = new WorkerHost(ParserRegistry.CreateDefault(), context);
+                        await host.ProcessJobAsync(job, deadline.Token).ConfigureAwait(false);
+                    }
+                    return 0;
                 case MessageType.CancelJob:
                     return 0;
                 default:
                     break;
             }
         }
+    }
+
+    private static Task SendInvalidJobAsync(WorkerSessionContext context)
+    {
+        var failure = new WorkerFailurePayload("invalid_parse_job");
+        string payload = JsonSerializer.Serialize(failure,
+            ProtocolJsonContext.Default.WorkerFailurePayload);
+        return context.SendAsync(MessageType.ParseFailed, payload);
     }
 }
 

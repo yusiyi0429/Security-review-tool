@@ -18,6 +18,9 @@ namespace SecurityReview.ParserContracts.Protocol;
 [JsonSerializable(typeof(SourceLocator))]
 [JsonSerializable(typeof(GapReason))]
 [JsonSerializable(typeof(HelloPayload))]
+[JsonSerializable(typeof(WorkerGapPayload))]
+[JsonSerializable(typeof(WorkerChildPayload))]
+[JsonSerializable(typeof(WorkerFailurePayload))]
 public sealed partial class ProtocolJsonContext : JsonSerializerContext
 {
 }

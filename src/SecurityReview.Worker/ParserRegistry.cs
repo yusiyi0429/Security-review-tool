@@ -1,4 +1,12 @@
 using SecurityReview.Parsers.Core;
+using SecurityReview.Parsers.Archives;
+using SecurityReview.Parsers.Jvm;
+using SecurityReview.Parsers.Models;
+using SecurityReview.Parsers.Oci;
+using SecurityReview.Parsers.OpenXml;
+using SecurityReview.Parsers.Pdf;
+using SecurityReview.Parsers.Structured;
+using SecurityReview.Parsers.Text;
 
 namespace SecurityReview.Worker;
 
@@ -12,6 +20,34 @@ public sealed class ParserRegistry
 
     /// <summary>All registered parsers.</summary>
     public IReadOnlyList<IFormatParser> Parsers => _parsers.Values.ToList().AsReadOnly();
+
+    /// <summary>Creates the complete production parser registry.</summary>
+    public static ParserRegistry CreateDefault()
+    {
+        var registry = new ParserRegistry();
+        IFormatParser[] parsers =
+        [
+            new TextFormatParser(),
+            new XmlFormatParser(),
+            new JsonFormatParser(),
+            new YamlFormatParser(),
+            new CsvFormatParser(),
+            new OpenXmlFormatParser(),
+            new PdfFormatParser(),
+            new ZipFormatParser(),
+            new TarFormatParser(),
+            new GZipFormatParser(),
+            new JarFormatParser(),
+            new ModelFormatParser(),
+            new DockerArchiveParser(),
+            new OciLayerParser(),
+        ];
+
+        foreach (IFormatParser parser in parsers)
+            registry.Register(parser);
+
+        return registry;
+    }
 
     /// <summary>Register a parser by its <see cref="IFormatParser.ParserId"/>.</summary>
     public void Register(IFormatParser parser)

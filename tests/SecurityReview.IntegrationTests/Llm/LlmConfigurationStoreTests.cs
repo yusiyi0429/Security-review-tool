@@ -77,6 +77,23 @@ public sealed class LlmConfigurationStoreTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Private_network_scope_round_trips_with_http_endpoint()
+    {
+        var options = LlmEndpointOptions.Create(
+            baseUri: new Uri("http://10.20.30.40:11434/"),
+            model: ModelCanary,
+            authMode: LlmAuthMode.None,
+            endpointScope: LlmEndpointScope.PrivateNetwork);
+
+        await _store.SaveAsync(options);
+        LlmEndpointOptions? loaded = await _store.LoadAsync();
+
+        Assert.NotNull(loaded);
+        Assert.Equal(LlmEndpointScope.PrivateNetwork, loaded!.EndpointScope);
+        Assert.Equal(Uri.UriSchemeHttp, loaded.BaseUri.Scheme);
+    }
+
+    [Fact]
     public async Task Reference_document_contains_no_plaintext_canary()
     {
         var options = LlmEndpointOptions.Create(

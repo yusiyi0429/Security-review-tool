@@ -3,7 +3,8 @@ using SecurityReview.Domain.Llm;
 namespace SecurityReview.UnitTests.Llm;
 
 /// <summary>
-/// Validation tests for <see cref="LlmEndpointOptions"/>: HTTPS-only,
+/// Validation tests for <see cref="LlmEndpointOptions"/>: cloud HTTPS and
+/// transport-restricted private-network HTTP,
 /// no userinfo/fragment/query in base URL, no wildcards/relative paths,
 /// no CR/LF, base-path enforcement for chat completions, timeout/concurrency
 /// bounds, model length, response-format mode, and custom-header name rules.
@@ -54,10 +55,10 @@ public sealed class LlmEndpointOptionsTests
 #endif
     }
 
-    // ---------- HTTP / scheme rejected in release ----------
+    // ---------- Cloud HTTPS / private-network HTTP ----------
 
     [Fact]
-    public void Rejects_http_in_release()
+    public void Rejects_http_for_cloud_api()
     {
         var ex = Assert.Throws<ArgumentException>(() => LlmEndpointOptions.Create(
             new Uri("http://llm.internal.example/"),
@@ -65,6 +66,65 @@ public sealed class LlmEndpointOptionsTests
             model: Model,
             reference: Reference));
         Assert.Contains("https", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("http://127.0.0.1:11434/")]
+    [InlineData("http://10.1.2.3:8000/")]
+    [InlineData("http://172.16.0.1:8000/")]
+    [InlineData("http://172.31.255.254:8000/")]
+    [InlineData("http://192.168.50.10:8000/")]
+    [InlineData("http://[fd00::1234]:8000/")]
+    [InlineData("http://llm.corp.internal:8000/")]
+    public void Accepts_http_for_private_network_scope(string uri)
+    {
+        var options = LlmEndpointOptions.Create(
+            new Uri(uri),
+            chatCompletionsPath: "/v1/chat/completions",
+            model: Model,
+            reference: Reference,
+            endpointScope: LlmEndpointScope.PrivateNetwork);
+
+        Assert.Equal(LlmEndpointScope.PrivateNetwork, options.EndpointScope);
+        Assert.Equal(Uri.UriSchemeHttp, options.BaseUri.Scheme);
+    }
+
+    [Theory]
+    [InlineData("http://8.8.8.8:8000/")]
+    [InlineData("http://172.15.255.255:8000/")]
+    [InlineData("http://172.32.0.1:8000/")]
+    [InlineData("http://169.254.169.254/")]
+    [InlineData("http://[fe80::1]:8000/")]
+    public void Rejects_public_or_link_local_http_ip_for_private_network_scope(string uri)
+    {
+        Assert.Throws<ArgumentException>(() => LlmEndpointOptions.Create(
+            new Uri(uri),
+            chatCompletionsPath: "/v1/chat/completions",
+            model: Model,
+            reference: Reference,
+            endpointScope: LlmEndpointScope.PrivateNetwork));
+    }
+
+    [Fact]
+    public void Accepts_https_for_private_network_scope()
+    {
+        var options = LlmEndpointOptions.Create(
+            new Uri("https://llm.corp.internal/"),
+            model: Model,
+            reference: Reference,
+            endpointScope: LlmEndpointScope.PrivateNetwork);
+
+        Assert.Equal(LlmEndpointScope.PrivateNetwork, options.EndpointScope);
+    }
+
+    [Fact]
+    public void Rejects_unknown_endpoint_scope()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => LlmEndpointOptions.Create(
+            new Uri("https://llm.internal.example/"),
+            model: Model,
+            reference: Reference,
+            endpointScope: (LlmEndpointScope)999));
     }
 
     [Fact]

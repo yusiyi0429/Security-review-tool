@@ -61,9 +61,11 @@ public sealed class ChecksumDetectorTests
         var detector = new ChecksumDetector();
         var chunk = MakeChunk("card: 4532015112830366");
         var rule = MakeRule("RULE-LUHN", DetectorKind.Checksum)
-            with { DetectorId = new DetectorId("DET-LUHN-CARD") };
+            with
+        { DetectorId = new DetectorId("DET-LUHN-CARD") };
         var detDef = MakeDetector("DET-LUHN-CARD", DetectorKind.Checksum)
-            with { Parameters = new Dictionary<string, string> { ["algorithm"] = "luhn" } };
+            with
+        { Parameters = new Dictionary<string, string> { ["algorithm"] = "luhn" } };
 
         var result = await detector.DetectAsync(chunk, rule, detDef, CancellationToken.None);
 
@@ -79,9 +81,11 @@ public sealed class ChecksumDetectorTests
         var detector = new ChecksumDetector();
         var chunk = MakeChunk("card: 4532015112830367");
         var rule = MakeRule("RULE-LUHN", DetectorKind.Checksum)
-            with { DetectorId = new DetectorId("DET-LUHN-CARD") };
+            with
+        { DetectorId = new DetectorId("DET-LUHN-CARD") };
         var detDef = MakeDetector("DET-LUHN-CARD", DetectorKind.Checksum)
-            with { Parameters = new Dictionary<string, string> { ["algorithm"] = "luhn" } };
+            with
+        { Parameters = new Dictionary<string, string> { ["algorithm"] = "luhn" } };
 
         var result = await detector.DetectAsync(chunk, rule, detDef, CancellationToken.None);
 
@@ -100,9 +104,11 @@ public sealed class ChecksumDetectorTests
         var detector = new ChecksumDetector();
         var chunk = MakeChunk("身份证: 110101199003071233");
         var rule = MakeRule("RULE-CNID", DetectorKind.Checksum)
-            with { DetectorId = new DetectorId("DET-CNID-CHECK") };
+            with
+        { DetectorId = new DetectorId("DET-CNID-CHECK") };
         var detDef = MakeDetector("DET-CNID-CHECK", DetectorKind.Checksum)
-            with { Parameters = new Dictionary<string, string> { ["algorithm"] = "cnid" } };
+            with
+        { Parameters = new Dictionary<string, string> { ["algorithm"] = "cnid" } };
 
         var result = await detector.DetectAsync(chunk, rule, detDef, CancellationToken.None);
 
@@ -117,9 +123,11 @@ public sealed class ChecksumDetectorTests
         var detector = new ChecksumDetector();
         var chunk = MakeChunk("身份证: 110101199003071235");
         var rule = MakeRule("RULE-CNID-FAIL", DetectorKind.Checksum)
-            with { DetectorId = new DetectorId("DET-CNID-CHECK") };
+            with
+        { DetectorId = new DetectorId("DET-CNID-CHECK") };
         var detDef = MakeDetector("DET-CNID-CHECK", DetectorKind.Checksum)
-            with { Parameters = new Dictionary<string, string> { ["algorithm"] = "cnid" } };
+            with
+        { Parameters = new Dictionary<string, string> { ["algorithm"] = "cnid" } };
 
         var result = await detector.DetectAsync(chunk, rule, detDef, CancellationToken.None);
 
@@ -136,9 +144,11 @@ public sealed class ChecksumDetectorTests
         var detector = new ChecksumDetector();
         var chunk = MakeChunk("身份证: 110101199013011234");
         var rule = MakeRule("RULE-CNID-DATE", DetectorKind.Checksum)
-            with { DetectorId = new DetectorId("DET-CNID-CHECK") };
+            with
+        { DetectorId = new DetectorId("DET-CNID-CHECK") };
         var detDef = MakeDetector("DET-CNID-CHECK", DetectorKind.Checksum)
-            with { Parameters = new Dictionary<string, string> { ["algorithm"] = "cnid" } };
+            with
+        { Parameters = new Dictionary<string, string> { ["algorithm"] = "cnid" } };
 
         var result = await detector.DetectAsync(chunk, rule, detDef, CancellationToken.None);
 
@@ -152,9 +162,11 @@ public sealed class ChecksumDetectorTests
         // Multiple valid Luhn numbers
         var chunk = MakeChunk("4532015112830366 4532015112830366 4532015112830366 4532015112830366 4532015112830366");
         var rule = MakeRule("RULE-LUHN-MAX", DetectorKind.Checksum)
-            with { DetectorId = new DetectorId("DET-LUHN-CARD") };
+            with
+        { DetectorId = new DetectorId("DET-LUHN-CARD") };
         var detDef = MakeDetector("DET-LUHN-CARD", DetectorKind.Checksum)
-            with { Parameters = new Dictionary<string, string> { ["algorithm"] = "luhn" }, MaxMatchesPerChunk = 2 };
+            with
+        { Parameters = new Dictionary<string, string> { ["algorithm"] = "luhn" }, MaxMatchesPerChunk = 2 };
 
         var result = await detector.DetectAsync(chunk, rule, detDef, CancellationToken.None);
 
@@ -167,9 +179,11 @@ public sealed class ChecksumDetectorTests
         var detector = new ChecksumDetector();
         var chunk = MakeChunk("");
         var rule = MakeRule("RULE-EMPTY", DetectorKind.Checksum)
-            with { DetectorId = new DetectorId("DET-LUHN-CARD") };
+            with
+        { DetectorId = new DetectorId("DET-LUHN-CARD") };
         var detDef = MakeDetector("DET-LUHN-CARD", DetectorKind.Checksum)
-            with { Parameters = new Dictionary<string, string> { ["algorithm"] = "luhn" } };
+            with
+        { Parameters = new Dictionary<string, string> { ["algorithm"] = "luhn" } };
 
         var result = await detector.DetectAsync(chunk, rule, detDef, CancellationToken.None);
 

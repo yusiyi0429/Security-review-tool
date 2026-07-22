@@ -63,21 +63,21 @@ public static class OpenAiHttpClientFactory
             switch (options.AuthMode)
             {
                 case LlmAuthMode.Bearer:
-                {
-                    var header = new AuthenticationHeaderValue("Bearer", value);
-                    request.Headers.Authorization = header;
-                    break;
-                }
+                    {
+                        var header = new AuthenticationHeaderValue("Bearer", value);
+                        request.Headers.Authorization = header;
+                        break;
+                    }
                 case LlmAuthMode.CustomHeader:
-                {
-                    string headerName = options.CustomHeaderName
-                        ?? throw new InvalidOperationException(
-                            "CustomHeader auth mode requires a header name.");
-                    if (!request.Headers.TryAddWithoutValidation(headerName, value))
-                        throw new InvalidOperationException(
-                            $"Failed to attach custom header '{headerName}'.");
-                    break;
-                }
+                    {
+                        string headerName = options.CustomHeaderName
+                            ?? throw new InvalidOperationException(
+                                "CustomHeader auth mode requires a header name.");
+                        if (!request.Headers.TryAddWithoutValidation(headerName, value))
+                            throw new InvalidOperationException(
+                                $"Failed to attach custom header '{headerName}'.");
+                        break;
+                    }
             }
         }
         finally

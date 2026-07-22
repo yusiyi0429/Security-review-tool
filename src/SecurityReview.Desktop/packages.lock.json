@@ -5,7 +5,10 @@
       "DocumentFormat.OpenXml.Framework": {
         "type": "Transitive",
         "resolved": "3.5.1",
-        "contentHash": "U5txtc3ORno73xQx9Lf2gWzfaSZnZwKHfLkTAslhlew9lxe5XbUiCt0dY1fHeAf8yRqszUAe5i/+xLC9R/Xfsw=="
+        "contentHash": "U5txtc3ORno73xQx9Lf2gWzfaSZnZwKHfLkTAslhlew9lxe5XbUiCt0dY1fHeAf8yRqszUAe5i/+xLC9R/Xfsw==",
+        "dependencies": {
+          "System.IO.Packaging": "10.0.2"
+        }
       },
       "Microsoft.Data.Sqlite.Core": {
         "type": "Transitive",
@@ -15,13 +18,18 @@
           "SQLitePCLRaw.core": "2.1.11"
         }
       },
+      "System.IO.Packaging": {
+        "type": "Transitive",
+        "resolved": "10.0.2",
+        "contentHash": "JTpM4z0wpoIHHDvlCU27HsXo+zVnpWib94HXQpzzr+jc/P9NYf4w353AK4MXyGq/grm1mbLi7eXsOsDU8sGmNg=="
+      },
       "securityreview.application": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.2, )",
-          "SecurityReview.ParserContracts": "[1.0.2, )",
-          "SecurityReview.Parsers": "[1.0.2, )",
-          "SecurityReview.RulePack": "[1.0.2, )"
+          "SecurityReview.Domain": "[1.0.3, )",
+          "SecurityReview.ParserContracts": "[1.0.3, )",
+          "SecurityReview.Parsers": "[1.0.3, )",
+          "SecurityReview.RulePack": "[1.0.3, )"
         }
       },
       "securityreview.domain": {
@@ -32,16 +40,17 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, )",
           "Microsoft.Data.Sqlite": "[10.0.10, )",
-          "SecurityReview.Application": "[1.0.2, )",
-          "SecurityReview.Domain": "[1.0.2, )",
-          "SecurityReview.ParserContracts": "[1.0.2, )",
-          "SecurityReview.RulePack": "[1.0.2, )"
+          "SecurityReview.Application": "[1.0.3, )",
+          "SecurityReview.Domain": "[1.0.3, )",
+          "SecurityReview.ParserContracts": "[1.0.3, )",
+          "SecurityReview.RulePack": "[1.0.3, )",
+          "System.Security.Cryptography.ProtectedData": "[10.0.10, )"
         }
       },
       "securityreview.parsercontracts": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.2, )"
+          "SecurityReview.Domain": "[1.0.3, )"
         }
       },
       "securityreview.parsers": {
@@ -49,16 +58,16 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, )",
           "PdfPig": "[0.1.14, )",
-          "SecurityReview.Domain": "[1.0.2, )",
-          "SecurityReview.ParserContracts": "[1.0.2, )",
+          "SecurityReview.Domain": "[1.0.3, )",
+          "SecurityReview.ParserContracts": "[1.0.3, )",
           "YamlDotNet": "[18.1.0, )"
         }
       },
       "securityreview.rulepack": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.2, )",
-          "SecurityReview.ParserContracts": "[1.0.2, )"
+          "SecurityReview.Domain": "[1.0.3, )",
+          "SecurityReview.ParserContracts": "[1.0.3, )"
         }
       },
       "DocumentFormat.OpenXml": {
@@ -117,6 +126,12 @@
         "dependencies": {
           "SQLitePCLRaw.core": "2.1.12"
         }
+      },
+      "System.Security.Cryptography.ProtectedData": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.10, )",
+        "resolved": "10.0.10",
+        "contentHash": "BKt0SQgq2lq3ESE68jkeLwv95ypANrPDtkTOIFGcnhg2aRUeUUBDrQlkVDZctrg1WenVcvn5P5XZnuYI7q6rFQ=="
       },
       "YamlDotNet": {
         "type": "CentralTransitive",

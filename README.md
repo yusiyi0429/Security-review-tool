@@ -2,7 +2,7 @@
 
 > 敏感信息资产内容审查工具 V1
 
-A portable Windows desktop client that statically scans release assets, locates sensitive information, records every coverage gap, optionally asks an intranet OpenAI-compatible LLM to review semantic candidates, and exports a fixed six-sheet XLSX report.
+A portable Windows desktop client that statically scans release assets, locates sensitive information, records every coverage gap, optionally asks a configured OpenAI-compatible LLM to review semantic candidates, and exports a fixed six-sheet XLSX report.
 
 ## 系统要求
 
@@ -52,7 +52,7 @@ A portable Windows desktop client that statically scans release assets, locates 
 | **静态解析** | 30+ 文件格式支持（文本/CSV/JSON/XML/YAML/Office/PDF/JVM/PE/ELF/Docker/OCI/Safetensors/GGUF/ONNX） |
 | **敏感检测** | 8 类基线（网络地址/凭据/私钥/受限实体/占位符/许可/合规/语义），ECDSA 签名规则包 |
 | **沙箱隔离** | AppContainer 零网络能力、嵌套 Job Object、只读句柄、无降级回退 |
-| **LLM 审查** | 精确来源 HTTPS、≤16 KiB 最小化候选、注入检测、严格响应解析 |
+| **LLM 审查** | 云 API HTTPS / 受限内网 HTTP、≤16 KiB 最小化候选、注入检测、严格响应解析 |
 | **加密存储** | DPAPI CurrentUser + AES-256-GCM + HMAC、零明文泄露 |
 | **六 Sheet XLSX** | 扫描摘要/敏感发现/合规发现/未覆盖/文件清单/复核记录 |
 | **审查/异常/差异** | 追加式审查、精确过期异常、重扫差异对比 |
@@ -83,8 +83,8 @@ dotnet build SecurityReviewTool.sln -c Release
 dotnet test SecurityReviewTool.sln -c Release
 
 # 试点发布：生成便携 ZIP 和单文件安装器
-pwsh ./build/package.ps1 -Version 1.0.2 -AllowUnsignedPilot
-pwsh ./build/package-installer.ps1 -Version 1.0.2 -AllowUnsignedPilot
+pwsh ./build/package.ps1 -Version 1.0.3 -AllowUnsignedPilot
+pwsh ./build/package-installer.ps1 -Version 1.0.3 -AllowUnsignedPilot
 ```
 
 ## 发布流程

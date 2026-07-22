@@ -78,6 +78,8 @@ public sealed class TextFormatParser : Core.IFormatParser
                         "text_decode", Domain.Scans.GapReason.DecodeUnreliable,
                         detection.FailureReason ?? "unreliable_encoding",
                         totalRead, totalRead, DateTimeOffset.UtcNow));
+                yield return new Core.ParserEvent.ParseCompleted();
+                yield break;
             }
 
             // Chunk the text

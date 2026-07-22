@@ -179,10 +179,10 @@
       "securityreview.application": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.2, )",
-          "SecurityReview.ParserContracts": "[1.0.2, )",
-          "SecurityReview.Parsers": "[1.0.2, )",
-          "SecurityReview.RulePack": "[1.0.2, )"
+          "SecurityReview.Domain": "[1.0.3, )",
+          "SecurityReview.ParserContracts": "[1.0.3, )",
+          "SecurityReview.Parsers": "[1.0.3, )",
+          "SecurityReview.RulePack": "[1.0.3, )"
         }
       },
       "securityreview.domain": {
@@ -191,7 +191,7 @@
       "securityreview.parsercontracts": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.2, )"
+          "SecurityReview.Domain": "[1.0.3, )"
         }
       },
       "securityreview.parsers": {
@@ -199,16 +199,16 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, )",
           "PdfPig": "[0.1.14, )",
-          "SecurityReview.Domain": "[1.0.2, )",
-          "SecurityReview.ParserContracts": "[1.0.2, )",
+          "SecurityReview.Domain": "[1.0.3, )",
+          "SecurityReview.ParserContracts": "[1.0.3, )",
           "YamlDotNet": "[18.1.0, )"
         }
       },
       "securityreview.rulepack": {
         "type": "Project",
         "dependencies": {
-          "SecurityReview.Domain": "[1.0.2, )",
-          "SecurityReview.ParserContracts": "[1.0.2, )"
+          "SecurityReview.Domain": "[1.0.3, )",
+          "SecurityReview.ParserContracts": "[1.0.3, )"
         }
       },
       "DocumentFormat.OpenXml": {

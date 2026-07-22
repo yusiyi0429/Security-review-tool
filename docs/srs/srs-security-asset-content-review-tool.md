@@ -20,7 +20,7 @@
 - Job Object 限制解析器进程树、内存、CPU 和生命周期；
 - 命名管道承载版本化进程间协议；
 - 完整敏感值和历史以 AES-256-GCM 加密，数据密钥由当前 Windows 用户的 DPAPI 保护；
-- 唯一允许的网络流量由主进程按需发往用户配置的内网 OpenAI 兼容 LLM；
+- 唯一允许的网络流量由主进程按需发往用户配置的 OpenAI 兼容 LLM（云上 HTTPS 或受限内网端点）；
 - 任何未支持、失败、排除、超限、加密或未完成语义复核的内容都形成覆盖缺口，任务不能显示为“完成”。
 
 工具只扫描、定位、辅助复核并导出证据，不修改资产、不执行发布拦截，也不作绝对安全保证。
@@ -36,7 +36,7 @@
 ### 2.2 假设
 
 1. 正式审查输入是稳定的最终待发布产物，且单任务最多约 10 GB、10 万文件。
-2. 内网 LLM 能提供 OpenAI 兼容的 `chat/completions` 接口；具体认证头、模型和并发限制在实施前配置。
+2. 云上或内网 LLM 能提供 OpenAI 兼容的 `chat/completions` 接口；具体端点类型、认证头、模型和并发限制在实施前配置。
 3. 所有本机用户均为可信内部人员；应用不提供本机内部 RBAC。
 4. 规则签名私钥由规则发布流程持有，绝不进入客户端；客户端只内置受信公钥。
 5. 第一版只支持 `win-x64`，每次只运行一个活动扫描任务。
@@ -79,7 +79,7 @@ flowchart LR
     APP --> STORE[Encrypted SQLite]
     APP --> XLSX[XLSX Reporter]
     APP --> LLM[OpenAI-compatible Adapter]
-    LLM -->|only semantic candidate + bounded context| INTRANET[(Configured intranet LLM)]
+    LLM -->|only semantic candidate + bounded context| ENDPOINT[(Configured cloud or private LLM)]
 
     INV -->|read-only duplicated handle| W1[Parser Worker / AppContainer]
     APP <-->|versioned named pipe| W1
@@ -107,7 +107,7 @@ flowchart LR
 | `SecurityReview.Worker.exe` | 不可信解析边界 | 识别格式、受限递归解析、输出规范化内容和位置 | 网络、凭据、数据库、用户目录枚举、规则变更、LLM、资产执行 |
 | AppContainer | OS 安全边界 | 给 worker 最小 token、私有目录和无网络 capability | 无受控句柄时访问扫描资产 |
 | Job Object | 资源边界 | 限制活动进程、内存、CPU；父进程退出时杀死 worker 树 | 子进程逃逸、无限资源占用 |
-| 内网 LLM | 外部于本机信任边界 | 仅对语义候选给出结构化辅助判断 | 文件访问、工具调用、发布判断、规则覆盖 |
+| 云上或内网 LLM | 外部于本机信任边界 | 仅对语义候选给出结构化辅助判断 | 文件访问、工具调用、发布判断、规则覆盖 |
 
 解析 worker 不能获得 API Key、DPAPI 密文、规则签名私钥或历史数据库路径。主进程崩溃或关闭 Job handle 时，设置 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 的 worker 进程树必须退出。
 
@@ -163,7 +163,7 @@ tests/
 | SRS-F-009 | 有效策略始终包含 8 类基础规则，再叠加资产专项和合规规则；专项规则不得削弱基础规则；合规证据缺失输出“无法验证”。 | REQ-009 / AC-022, AC-023, AC-024 | VT-015 |
 | SRS-F-010 | 客户端只启用结构、版本、引用、哈希和 ECDSA 签名均有效的离线规则包；保留历史版本并显著提示旧版扫描；本地补充只能增加规则。 | REQ-010 / AC-025, AC-026, AC-027 | VT-016 |
 | SRS-F-011 | 检测管线组合线性时间正则、校验器、熵、结构字段、网络解析、词典、Aho-Corasick、许可证/内容指纹和语义候选器；每个候选保留 detector ID。 | REQ-011 / AC-028, AC-029, AC-030, AC-031 | VT-017 |
-| SRS-F-012 | 仅主进程调用配置的 OpenAI 兼容内网端点；每次发送一个经最小化和遮盖的语义候选；固定无工具提示词和严格结构输出；异常结果回退人工。 | REQ-012 / AC-032, AC-033, AC-034, AC-035 | VT-018, VT-019, VT-020 |
+| SRS-F-012 | 仅主进程调用配置的 OpenAI 兼容端点（云上 HTTPS 或受限内网端点）；每次发送一个经最小化和遮盖的语义候选；固定无工具提示词和严格结构输出；异常结果回退人工。 | REQ-012 / AC-032, AC-033, AC-034, AC-035 | VT-018, VT-019, VT-020 |
 | SRS-F-013 | 每个发现保存完整值、有限上下文、规则/检测器/模型轨迹、独立严重度与置信度及可复现位置；UI 按指纹分组但保留每一位置；结论遵守有界口径。 | REQ-013 / AC-036, AC-037, AC-038, AC-039, AC-040 | VT-021 |
 | SRS-F-014 | 保存人工判定和当前 Windows 用户；例外精确绑定资产/位置/内容/规则/期限；复扫计算差异；仅完整阶段指纹一致时使用缓存。 | REQ-014 / AC-041, AC-042, AC-043, AC-044 | VT-022, VT-023 |
 | SRS-F-015 | 在当前用户目录保存 AES-256-GCM 加密敏感字段，数据密钥由 DPAPI CurrentUser 保护；默认保留 90 天并支持 30/180 天、永久和一键清除。 | REQ-015 / AC-045, AC-046, AC-047 | VT-024, VT-025 |
@@ -437,13 +437,13 @@ compliance.json
 
 降级到旧版需要用户显式确认，任务和报告持续显示警告。旧包只读保留以复现历史；包清理前检查历史引用。本地补充包必须标记 `local_additive`，不需要组织签名但受“只增不减”验证，且其 SHA-256 写入报告。
 
-## 9. 内网 LLM 契约与安全
+## 9. LLM 端点契约与安全
 
 ### 9.1 配置和凭据
 
-配置项：`base_url`, `chat_completions_path`（默认 `/v1/chat/completions`）, `model`, `auth_mode`, `header_name`, `timeout_seconds`（默认 30）, `max_concurrency`（默认 2）。Base URL 必须由用户显式配置且正式扫描只接受 HTTPS；不内置公网 fallback。HTTP handler 设置 `AllowAutoRedirect=false`、`UseProxy=false`，请求的 scheme/host/port 必须与批准的 base origin 完全一致，3xx 作为失败处理。API Key/Token 以 DPAPI CurrentUser 密文保存，界面不可回显完整值。
+配置项：`endpoint_scope`（`CloudApi` 或 `PrivateNetwork`）、`base_url`, `chat_completions_path`（默认 `/v1/chat/completions`）, `model`, `auth_mode`, `header_name`, `timeout_seconds`（默认 30）, `max_concurrency`（默认 2）。Base URL 必须由用户显式配置；`CloudApi` 强制 HTTPS，`PrivateNetwork` 可使用 HTTPS，或仅连接 loopback、RFC 1918 IPv4、RFC 4193 IPv6 ULA 的受限 HTTP。内网 HTTP 域名在建连时解析并将 socket 固定到校验通过的私网地址，拒绝公网及 link-local 地址。不内置自动公网 fallback。HTTP handler 设置 `AllowAutoRedirect=false`、`UseProxy=false`，请求的 scheme/host/port 必须与批准的 base origin 完全一致，3xx 作为失败处理。API Key/Token 以 DPAPI CurrentUser 密文保存，界面不可回显完整值。
 
-连接测试发送固定无敏感内容，不读取扫描候选。TLS 证书必须由 Windows 信任链验证；第一版不提供“忽略证书错误”。开发环境若确需 loopback HTTP，只能使用单独的非正式开发构建开关，正式发行包不得包含该开关。目标变更要清空语义缓存并记录脱敏事件。
+连接测试发送固定无敏感内容，不读取扫描候选。HTTPS 的 TLS 证书必须由 Windows 信任链验证；第一版不提供“忽略证书错误”。界面必须提示内网 HTTP 不提供传输加密，并提示云 API 会把受限语义候选发送到组织网络之外。目标变更要清空语义缓存并记录脱敏事件。
 
 ### 9.2 最小发送与提示词隔离
 

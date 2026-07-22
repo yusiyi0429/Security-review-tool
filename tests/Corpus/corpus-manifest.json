@@ -988,9 +988,9 @@
       "ExpectedChunks": [],
       "ExpectedGaps": [
         {
-          "Reason": "Corrupt",
-          "DetailCode": "exception:NotSupportedException",
-          "VirtualPath": null
+          "Reason": "DecodeUnreliable",
+          "DetailCode": "no_encoding_detected",
+          "VirtualPath": "Models/pickle_protocol_2.pkl"
         }
       ],
       "MaxDurationMs": 30000,

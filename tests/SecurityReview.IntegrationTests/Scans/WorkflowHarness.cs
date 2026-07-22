@@ -40,6 +40,7 @@ internal sealed class WorkflowHarness
     private readonly CreateScanHandler _create;
     private readonly StartScanHandler _start;
     private readonly CancelScanHandler _cancel;
+    private readonly ScanConfigurationSnapshotCodec _snapshotCodec;
 
     private readonly DirectoryInfo? _root;
     private readonly SemanticOutcome _semanticOutcome;
@@ -84,6 +85,7 @@ internal sealed class WorkflowHarness
         _findings = new SqliteFindingRepository(factory, protector, fingerprint);
         _coverage = new SqliteCoverageRepository(factory, protector);
         _snapshots = new SqliteScanSnapshotRepository(factory);
+        _snapshotCodec = new ScanConfigurationSnapshotCodec(protector);
 
         _inventory = new FakeInventoryService(_root, _rootMissing, _fileToMutateOnce, _fileToMutateTwice);
         _semanticQueue = new FakeSemanticQueue();
@@ -114,7 +116,7 @@ internal sealed class WorkflowHarness
             state);
 
         _create = new CreateScanHandler(_scans, _snapshots, protector);
-        _start = new StartScanHandler(_scans, _snapshots, _preflight);
+        _start = new StartScanHandler(_scans, _snapshots, _preflight, protector);
         _cancel = new CancelScanHandler(_scans);
     }
 
@@ -176,8 +178,12 @@ internal sealed class WorkflowHarness
         ScanSnapshotRecord? snapshot = await _snapshots
             .GetByScanIdAsync(scanId, cancellationToken);
 
+        ScanConfigurationSnapshot? configuration = snapshot is null
+            ? null
+            : _snapshotCodec.Unprotect(snapshot);
+
         await foreach (ScanProgress _ in _orchestrator
-            .RunAsync(scanId, snapshot, cancellationToken)
+            .RunAsync(scanId, configuration!, cancellationToken)
             .WithCancellation(cancellationToken))
         {
             // Drain progress events; the orchestrator writes the outcome to its state map.

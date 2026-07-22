@@ -61,7 +61,7 @@ public sealed class InProcessParserRunner : IWorkerJobProcessor
         List<WorkerJobResult> results,
         CancellationToken cancellationToken)
     {
-        string? resolvedPath = ResolvePhysicalPath(item.VirtualPath);
+        string? resolvedPath = ResolvePhysicalPath(item.InputFilePath ?? item.VirtualPath);
         if (resolvedPath is null || !File.Exists(resolvedPath))
         {
             var gap = new CoverageGap(
@@ -70,7 +70,7 @@ public sealed class InProcessParserRunner : IWorkerJobProcessor
                 "file_not_found", item.DeclaredLength, 0, DateTimeOffset.UtcNow);
 
             results.Add(new WorkerJobResult(item.JobId, item.FileId,
-                WorkerResultKind.Gap, null, gap, null, null, null));
+                WorkerResultKind.Failed, null, gap, null, null, null));
             return;
         }
 

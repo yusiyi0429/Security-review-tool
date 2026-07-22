@@ -134,10 +134,13 @@ Click **Export XLSX** and save to your Desktop.
 Follow the [LLM Configuration Guide](llm-configuration.md):
 
 1. Go to **Settings → LLM**.
-2. Enter your intranet LLM endpoint URL (must start with `https://`).
-3. Enter your API key.
-4. Enter the model name provided by your team lead.
-5. Click **Test Connection**.
+2. Select **Cloud API** or **Private network / local model**.
+3. Enter the endpoint URL. Cloud APIs must start with `https://`; private
+   endpoints may use `http://` only when they resolve to a private or loopback
+   address.
+4. Enter your API key when the endpoint requires one.
+5. Enter the model name provided by your model owner.
+6. Click **Test Connection**.
 
 - [ ] Connection test succeeds.
 - [ ] If test fails, record the error and consult the

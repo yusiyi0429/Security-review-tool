@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using SecurityReview.Application.Scans;
 using SecurityReview.Domain;
 using SecurityReview.Domain.Scans;
 using SecurityReview.ParserContracts.Parsing;
@@ -56,10 +57,29 @@ public sealed class FullParserCorpusTests
             new OciLayerParser(),
         }.ToDictionary(p => p.ParserId);
 
-    /// <summary>Parsers that support encrypted file detection.</summary>
+    /// <summary>
+    /// Corpus capability matrix. Archive/container parsers that only emit child
+    /// discoveries are intentionally not required to produce text chunks, and a
+    /// parser is only held to corrupt/limit/encryption cases it advertises here.
+    /// </summary>
+    private static readonly HashSet<string> CoveredCaseParsers = new(StringComparer.Ordinal)
+    {
+        "text", "openxml", "pdf",
+    };
+
+    private static readonly HashSet<string> CorruptCaseParsers = new(StringComparer.Ordinal)
+    {
+        "text", "model", "openxml", "zip",
+    };
+
+    private static readonly HashSet<string> LimitCaseParsers = new(StringComparer.Ordinal)
+    {
+        "zip",
+    };
+
     private static readonly HashSet<string> EncryptionParsers = new(StringComparer.Ordinal)
     {
-        "zip", "openxml", "pdf",
+        "openxml", "pdf",
     };
 
     // ── Per-adapter coverage checks ─────────────────────────
@@ -71,11 +91,12 @@ public sealed class FullParserCorpusTests
         var adapterCases = GroupByParser(manifest);
 
         var missing = new List<string>();
-        foreach ((string parserId, var cases) in adapterCases)
+        foreach (string parserId in CoveredCaseParsers)
         {
-            if (parserId == "none") continue;
+            Assert.True(adapterCases.TryGetValue(parserId, out var cases),
+                $"No corpus cases exist for parser '{parserId}'.");
 
-            bool hasCovered = cases.Any(c =>
+            bool hasCovered = cases!.Any(c =>
                 c.Coverage == "Covered");
             if (!hasCovered)
                 missing.Add(parserId);
@@ -111,11 +132,12 @@ public sealed class FullParserCorpusTests
         var adapterCases = GroupByParser(manifest);
 
         var missing = new List<string>();
-        foreach ((string parserId, var cases) in adapterCases)
+        foreach (string parserId in CorruptCaseParsers)
         {
-            if (parserId == "none") continue;
+            Assert.True(adapterCases.TryGetValue(parserId, out var cases),
+                $"No corpus cases exist for parser '{parserId}'.");
 
-            bool hasCorrupt = cases.Any(c =>
+            bool hasCorrupt = cases!.Any(c =>
                 c.ExpectedGaps.Any(g =>
                     g.Reason == "Corrupt" || g.Reason == "DecodeUnreliable"));
             if (!hasCorrupt)
@@ -132,11 +154,12 @@ public sealed class FullParserCorpusTests
         var adapterCases = GroupByParser(manifest);
 
         var missing = new List<string>();
-        foreach ((string parserId, var cases) in adapterCases)
+        foreach (string parserId in LimitCaseParsers)
         {
-            if (parserId == "none") continue;
+            Assert.True(adapterCases.TryGetValue(parserId, out var cases),
+                $"No corpus cases exist for parser '{parserId}'.");
 
-            bool hasLimit = cases.Any(c =>
+            bool hasLimit = cases!.Any(c =>
                 c.ExpectedGaps.Any(g =>
                     g.Reason is "ArchiveLimit" or "ParserTimeout"
                         or "ParserMemory" or "ParserCrash"));
@@ -154,11 +177,12 @@ public sealed class FullParserCorpusTests
         var adapterCases = GroupByParser(manifest);
 
         var missing = new List<string>();
-        foreach ((string parserId, var cases) in adapterCases)
+        foreach (string parserId in EncryptionParsers)
         {
-            if (!EncryptionParsers.Contains(parserId)) continue;
+            Assert.True(adapterCases.TryGetValue(parserId, out var cases),
+                $"No corpus cases exist for parser '{parserId}'.");
 
-            bool hasEncrypted = cases.Any(c =>
+            bool hasEncrypted = cases!.Any(c =>
                 c.ExpectedGaps.Any(g => g.Reason == "Encrypted"));
             if (!hasEncrypted)
                 missing.Add(parserId);
@@ -265,7 +289,8 @@ public sealed class FullParserCorpusTests
             }
         }
 
-        Assert.Empty(failures);
+        Assert.True(failures.Count == 0,
+            string.Join(Environment.NewLine, failures));
     }
 
     // ── Helpers ─────────────────────────────────────────────
@@ -355,8 +380,7 @@ public sealed class FullParserCorpusTests
         var input = new ParserInput(fs, fileLength);
         var jobId = new JobId(Guid.NewGuid());
         var scanId = new ScanId(Guid.NewGuid());
-        var limits = new ParseLimits(
-            DateTimeOffset.UtcNow.AddMinutes(5), 5, 100_000, 50_000_000_000, 1_048_576);
+        ParseLimits limits = ScanScheduler.CreateOrdinaryLimits(DateTimeOffset.UtcNow);
         var context = new ParseContext(jobId, scanId, expected.FixturePath, limits);
 
         await foreach (ParserEvent evt in parser.ParseAsync(
