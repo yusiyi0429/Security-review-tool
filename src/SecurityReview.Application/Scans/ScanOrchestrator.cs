@@ -55,6 +55,38 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         IScanRepository scanRepository,
         ScanPreflightService preflightService,
         IManifestReader manifestReader,
+        IWorkerJobProcessor processor,
+        IDetectionPipeline detectionPipeline,
+        IFindingRepository findingRepository,
+        ICoverageRepository coverageRepository,
+        IFileRepository fileRepository,
+        Func<ISemanticReviewQueue> semanticQueueFactory,
+        IDiagnosticSink diagnosticSink,
+        ScanOrchestratorState state,
+        Func<DateTimeOffset>? clock = null)
+        : this(
+            inventoryService,
+            scanRepository,
+            preflightService,
+            manifestReader,
+            Array.Empty<IFormatParser>(),
+            processor,
+            detectionPipeline,
+            findingRepository,
+            coverageRepository,
+            fileRepository,
+            semanticQueueFactory,
+            diagnosticSink,
+            state,
+            clock)
+    {
+    }
+
+    public ScanOrchestrator(
+        IInventoryService inventoryService,
+        IScanRepository scanRepository,
+        ScanPreflightService preflightService,
+        IManifestReader manifestReader,
         IReadOnlyList<IFormatParser> parsers,
         IWorkerJobProcessor processor,
         IDetectionPipeline detectionPipeline,

@@ -22,7 +22,6 @@ using SecurityReview.Infrastructure.Persistence.Repositories;
 using SecurityReview.Infrastructure.Rules;
 using SecurityReview.Infrastructure.Windows.Files;
 using SecurityReview.Infrastructure.Windows.Sandbox;
-using SecurityReview.Parsers.Core;
 using SecurityReview.RulePack.Signing;
 using SecurityReview.RulePack.Validation;
 
@@ -366,7 +365,6 @@ public sealed class CompositionRoot : IDisposable
                             sr,
                             scanPreflight,
                             new JsonManifestReader(),
-                            Array.Empty<IFormatParser>(),
                             processor,
                             detectionPipeline,
                             fr,
