@@ -134,8 +134,8 @@ Click **Export XLSX** and save to your Desktop.
 Follow the [LLM Configuration Guide](llm-configuration.md):
 
 1. Go to **Settings → LLM**.
-2. Select **Cloud API** or **Private network / local model**.
-3. Enter the endpoint URL. Cloud APIs must start with `https://`; private
+2. Select **Third-party API** or **Private network / local model**.
+3. Enter the endpoint URL. Third-party APIs must start with `https://`; private
    endpoints may use `http://` only when they resolve to a private or loopback
    address.
 4. Enter your API key when the endpoint requires one.

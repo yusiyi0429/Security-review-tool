@@ -79,6 +79,25 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    <Style TargetType="PasswordBox">
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="9,6" />
+        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+        <Setter Property="Background" Value="{StaticResource BrushSurface1}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BrushSurface3}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="CaretBrush" Value="{StaticResource BrushAccent}" />
+        <Style.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource BrushAccent}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource BrushTextDisabled}" />
+                <Setter Property="Background" Value="{StaticResource BrushSurface2}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
     <Style TargetType="ComboBox">
         <Setter Property="MinHeight" Value="34" />
         <Setter Property="Padding" Value="8,5" />

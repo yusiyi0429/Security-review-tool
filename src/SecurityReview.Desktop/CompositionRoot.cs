@@ -249,7 +249,15 @@ public sealed class CompositionRoot : IDisposable
             if (secrets is not null)
             {
                 var llmCredentials = new LlmCredentialStore(secrets);
+                Register<ILlmCredentialStore>(llmCredentials);
                 RegisterConcrete(llmCredentials);
+
+                if (fp is not null)
+                {
+                    var llmConfig = new JsonLlmConfigurationStore(paths, secrets, fp);
+                    Register<ILlmConfigurationStore>(llmConfig);
+                    RegisterConcrete(llmConfig);
+                }
 
                 var llmTest = new LlmConnectionTestService(llmCredentials, diagSink);
                 Register<ILlmConnectionTestService>(llmTest);
@@ -408,9 +416,11 @@ public sealed class CompositionRoot : IDisposable
     {
         var configStore = TryGet<ILlmConfigurationStore>();
         var testSvc = TryGet<ILlmConnectionTestService>();
+        var credentialStore = TryGet<ILlmCredentialStore>();
         return new LlmSettingsViewModel(
             configStore ?? new NullLlmConfigStore(),
             testSvc ?? new NullLlmTestService(),
+            credentialStore ?? new NullLlmCredentialStore(),
             ErrorSink);
     }
 
@@ -545,4 +555,24 @@ file sealed class NullLlmTestService : ILlmConnectionTestService
     public Task<LlmConnectionTestResult> TestConnectionAsync(TestLlmConnectionCommand command, CancellationToken ct = default)
         => Task.FromResult(LlmConnectionTestResult.Failure(
             LlmConnectionTestFailureReason.OriginMismatch, null, TimeSpan.Zero, "0000000000000000"));
+}
+
+file sealed class NullLlmCredentialStore : ILlmCredentialStore
+{
+    public void SaveCredential(string logicalName, string value) =>
+        throw new InvalidOperationException("LLM credential storage is unavailable.");
+
+    public void DeleteCredential(string logicalName)
+    {
+        _ = logicalName;
+    }
+
+    public SensitiveCredentialBuffer OpenCredential(LlmEndpointOptions options) =>
+        throw new InvalidOperationException("LLM credential storage is unavailable.");
+
+    public bool HasCredential(string logicalName)
+    {
+        _ = logicalName;
+        return false;
+    }
 }

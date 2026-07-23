@@ -6,7 +6,13 @@
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
              xmlns:llm="clr-namespace:SecurityReview.Domain.Llm;assembly=SecurityReview.Domain"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:LlmSettingsViewModel}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Auto"
+                  PanningMode="Both">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -20,7 +26,7 @@
                            Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,0" />
             </StackPanel>
 
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="1" MinWidth="620">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.35*" />
                     <ColumnDefinition Width="20" />
@@ -30,13 +36,13 @@
                 <Border Style="{StaticResource CardStyle}">
                     <StackPanel>
                         <TextBlock Text="连接配置" Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="云上 API 强制 HTTPS；内网模型可使用受限 HTTP。"
+                        <TextBlock Text="第三方 API 强制 HTTPS；内网模型可使用受限 HTTP。"
                                    Style="{StaticResource PageSubtitleStyle}" Margin="0,4,0,18" />
 
                         <TextBlock Text="端点类型" Style="{StaticResource FieldLabelStyle}" />
                         <ComboBox SelectedValue="{Binding EndpointScope, Mode=TwoWay}"
                                   SelectedValuePath="Tag" Margin="0,0,0,8">
-                            <ComboBoxItem Content="云上 API（HTTPS）"
+                            <ComboBoxItem Content="第三方 API（HTTPS）"
                                           Tag="{x:Static llm:LlmEndpointScope.CloudApi}" />
                             <ComboBoxItem Content="内网 / 本机模型（HTTP 或 HTTPS）"
                                           Tag="{x:Static llm:LlmEndpointScope.PrivateNetwork}" />
@@ -51,14 +57,44 @@
 
                         <TextBlock Text="模型标识" Style="{StaticResource FieldLabelStyle}" />
                         <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,20" />
+                                 Margin="0,0,0,15" />
 
-                        <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="认证方式" Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox SelectedValue="{Binding AuthMode, Mode=TwoWay}"
+                                  SelectedValuePath="Tag" Margin="0,0,0,15">
+                            <ComboBoxItem Content="无需认证（本机 / 内网模型）"
+                                          Tag="{x:Static llm:LlmAuthMode.None}" />
+                            <ComboBoxItem Content="Bearer Token / API Key"
+                                          Tag="{x:Static llm:LlmAuthMode.Bearer}" />
+                            <ComboBoxItem Content="自定义请求头"
+                                          Tag="{x:Static llm:LlmAuthMode.CustomHeader}" />
+                        </ComboBox>
+
+                        <StackPanel Visibility="{Binding IsCustomHeaderAuth, Converter={StaticResource BooleanToVisibility}}">
+                            <TextBlock Text="API Key 请求头名称" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding CustomHeaderName, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="例如：X-API-Key" Margin="0,0,0,15" />
+                        </StackPanel>
+
+                        <StackPanel Visibility="{Binding UsesCredential, Converter={StaticResource BooleanToVisibility}}">
+                            <TextBlock Text="API Key / 访问令牌" Style="{StaticResource FieldLabelStyle}" />
+                            <PasswordBox x:Name="ApiKeyBox"
+                                         PasswordChanged="OnApiKeyPasswordChanged"
+                                         PasswordChar="●"
+                                         AutomationProperties.Name="API Key"
+                                         ToolTip="API Key 不会明文写入配置文件"
+                                         Margin="0,0,0,5" />
+                            <TextBlock Text="{Binding CredentialHint}"
+                                       Style="{StaticResource PageSubtitleStyle}"
+                                       FontSize="11" Margin="0,0,0,15" />
+                        </StackPanel>
+
+                        <WrapPanel>
                             <Button Content="加载配置" Command="{Binding LoadCommand}" Margin="0,0,8,0" />
                             <Button Content="保存配置" Command="{Binding SaveCommand}"
                                     Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" Padding="14,7" Margin="0,0,8,0" />
                             <Button Content="清除" Command="{Binding ClearCommand}" />
-                        </StackPanel>
+                        </WrapPanel>
                     </StackPanel>
                 </Border>
 
@@ -87,7 +123,7 @@
                             </Border>
                         </StackPanel>
                     </Border>
-                    <Button Content="测试当前连接  →" Command="{Binding TestCommand}"
+                    <Button Content="{Binding TestButtonText}" Command="{Binding TestCommand}"
                             Style="{StaticResource PrimaryButtonStyle}" />
                     <TextBlock Text="测试请求不会携带扫描发现或敏感内容。"
                                Style="{StaticResource PageSubtitleStyle}" FontSize="11"

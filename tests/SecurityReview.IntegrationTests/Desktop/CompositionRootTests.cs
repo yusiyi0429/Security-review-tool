@@ -8,6 +8,7 @@ using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
 using SecurityReview.Infrastructure.Cryptography;
+using SecurityReview.Infrastructure.Llm;
 using SecurityReview.Infrastructure.Persistence;
 
 namespace SecurityReview.IntegrationTests.Desktop;
@@ -187,6 +188,22 @@ public sealed class CompositionRootTests : IAsyncDisposable
         using var root = BuildRoot();
         var svc = root.GetService<ILlmConnectionTestService>();
         Assert.NotNull(svc);
+    }
+
+    [Fact]
+    public void LLM_configuration_store_is_resolvable()
+    {
+        using var root = BuildRoot();
+        var store = root.GetService<ILlmConfigurationStore>();
+        Assert.NotNull(store);
+    }
+
+    [Fact]
+    public void LLM_credential_store_is_resolvable()
+    {
+        using var root = BuildRoot();
+        var store = root.GetService<ILlmCredentialStore>();
+        Assert.NotNull(store);
     }
 
     [Fact]

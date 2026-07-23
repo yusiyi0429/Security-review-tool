@@ -2,12 +2,12 @@
 
 SecurityReviewTool uses a user-configured large language model (LLM) for
 semantic review of text regions flagged by deterministic detectors. The model
-may be hosted on a private network or exposed through a cloud API.
+may be hosted on a private network or exposed through a third-party API.
 
 ## Requirements
 
 - An **OpenAI-compatible** `chat/completions` HTTP API endpoint.
-- A cloud endpoint accessible over **HTTPS**, or a private/local endpoint over
+- A third-party endpoint accessible over **HTTPS**, or a private/local endpoint over
   HTTPS or restricted HTTP.
 - Private HTTP host names must resolve to a loopback, RFC 1918 IPv4, or RFC
   4193 IPv6 ULA address. Public and link-local addresses are rejected.
@@ -23,11 +23,11 @@ application.
 
 Select the endpoint type before entering the URL:
 
-- **Cloud API** requires `https://`.
+- **Third-party API** requires `https://`.
 - **Private network / local model** accepts `https://`, or `http://` when the
   destination is inside the supported private address ranges.
 
-Cloud example:
+Third-party API example:
 
 ```
 https://api.example.com/
@@ -122,10 +122,10 @@ regions that exhaust retries are permanently marked as `LlmUnavailable`.
 
 ## Security Model
 
-- **Cloud LLM traffic uses HTTPS.** HTTP is available only in the explicitly
+- **Third-party LLM traffic uses HTTPS.** HTTP is available only in the explicitly
   selected private-network mode and only to approved private addresses.
 - **Only detected excerpts are sent**, never full files.
-- **Cloud use is explicit.** When Cloud API is selected, bounded semantic
+- **Third-party use is explicit.** When Third-party API is selected, bounded semantic
   candidates leave the private network; confirm that organizational data
   handling policy permits this before enabling semantic review.
 - **No telemetry, usage data, or error reports** are sent to any external
@@ -139,7 +139,7 @@ regions that exhaust retries are permanently marked as `LlmUnavailable`.
 | Symptom | Likely Cause | Action |
 |---------|-------------|--------|
 | "TLS handshake failed" | Endpoint certificate not trusted | Install the internal CA certificate on this machine. |
-| "Private-network endpoint rejected" | HTTP resolved to a public or link-local address | Select Cloud API with HTTPS, or correct private DNS/addressing. |
+| "Private-network endpoint rejected" | HTTP resolved to a public or link-local address | Select Third-party API with HTTPS, or correct private DNS/addressing. |
 | "HTTP 401" | Invalid or expired API key | Obtain a fresh key and re-enter in Settings. |
 | "HTTP 404" | Wrong endpoint path | Verify the URL ends with `/chat/completions`. |
 | "Model not found" | Model name mismatch | Check the model name with your LLM provider. |

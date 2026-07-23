@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Windows;
 using System.Xml.Linq;
 using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
@@ -54,6 +55,24 @@ public sealed partial class UiStartupRegressionTests
         Assert.Empty(missing);
     }
 
+    [Fact]
+    public void Llm_settings_exposes_secure_credential_and_connection_test_controls()
+    {
+        string xamlPath = Path.Combine(FindRepositoryRoot(),
+            "src", "SecurityReview.Desktop", "Views", "LlmSettingsView.xaml");
+        XDocument document = XDocument.Load(xamlPath);
+
+        Assert.Contains(document.Descendants(),
+            element => element.Name.LocalName == "PasswordBox"
+                && element.Attributes().Any(attribute =>
+                    attribute.Name.LocalName == "PasswordChanged"));
+        Assert.Contains(document.Descendants(),
+            element => element.Name.LocalName == "Button"
+                && element.Attributes().Any(attribute =>
+                    attribute.Name.LocalName == "Command"
+                    && attribute.Value.Contains("TestCommand", StringComparison.Ordinal)));
+    }
+
     [GeneratedRegex(@"\{StaticResource\s+([^\s,}]+)")]
     private static partial Regex StaticResourceRegex();
 
@@ -75,6 +94,7 @@ public sealed partial class UiStartupRegressionTests
             Path.GetTempPath(),
             $"security-review-ui-startup-{Guid.NewGuid():N}");
         Exception? startupException = null;
+        bool initialBoundsFitWorkArea = false;
 
         var thread = new Thread(() =>
         {
@@ -83,6 +103,11 @@ public sealed partial class UiStartupRegressionTests
                 using var root = new CompositionRoot(
                     CompositionRoot.Args.ForTest(tempDirectory));
                 var window = new MainWindow(root.MainWindowViewModel, root);
+                Rect workArea = SystemParameters.WorkArea;
+                initialBoundsFitWorkArea = window.Left >= workArea.Left
+                    && window.Top >= workArea.Top
+                    && window.Left + window.Width <= workArea.Right
+                    && window.Top + window.Height <= workArea.Bottom;
                 window.Close();
             }
             catch (Exception ex)
@@ -99,6 +124,8 @@ public sealed partial class UiStartupRegressionTests
             Assert.True(completed,
                 "Main window XAML loading did not finish within 15 seconds.");
             Assert.Null(startupException);
+            Assert.True(initialBoundsFitWorkArea,
+                "Main window initial bounds extend outside the Windows work area.");
         }
         finally
         {

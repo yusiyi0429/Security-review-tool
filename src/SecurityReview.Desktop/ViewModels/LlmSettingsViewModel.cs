@@ -1,12 +1,10 @@
-using System.ComponentModel;
 using System.Globalization;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using System.Windows;
 using System.Windows.Input;
 using SecurityReview.Application.Llm;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Domain.Llm;
+using SecurityReview.Infrastructure.Llm;
 
 namespace SecurityReview.Desktop.ViewModels;
 
@@ -18,8 +16,11 @@ namespace SecurityReview.Desktop.ViewModels;
 /// </summary>
 public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
 {
+    private const string DefaultCredentialReference = "llm-api-key";
+
     private readonly ILlmConfigurationStore _configStore;
     private readonly ILlmConnectionTestService _testService;
+    private readonly ILlmCredentialStore _credentialStore;
     private readonly IUiErrorSink _errorSink;
 
     // Config fields
@@ -43,6 +44,7 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     private string _lastTestTime = "";
     private bool _isTesting;
     private bool _hasConfig;
+    private bool _hasStoredCredential;
 
     // Track last saved values for cache clearing detection
     private string _lastSavedTarget = "";
@@ -51,23 +53,26 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     public LlmSettingsViewModel(
         ILlmConfigurationStore configStore,
         ILlmConnectionTestService testService,
+        ILlmCredentialStore credentialStore,
         IUiErrorSink errorSink)
     {
         _configStore = configStore;
         _testService = testService;
+        _credentialStore = credentialStore;
         _errorSink = errorSink;
 
         SaveCommand = new AsyncRelayCommand(_ => SaveConfigAsync(), errorSink,
             _ => !IsTesting);
         TestCommand = new AsyncRelayCommand(_ => TestConnectionAsync(), errorSink,
-            _ => !IsTesting && HasConfig);
+            _ => !IsTesting);
         ClearCommand = new AsyncRelayCommand(_ => ClearConfigAsync(), errorSink,
-            _ => !IsTesting && HasConfig);
+            _ => !IsTesting && (HasConfig || HasStoredCredential));
         LoadCommand = new AsyncRelayCommand(_ => LoadConfigAsync(), errorSink);
 
         PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(IsTesting) or nameof(HasConfig))
+            if (e.PropertyName is nameof(IsTesting) or nameof(HasConfig)
+                or nameof(HasStoredCredential))
                 CommandManager.InvalidateRequerySuggested();
         };
     }
@@ -98,7 +103,7 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     }
 
     public string EndpointSecurityHint => EndpointScope == LlmEndpointScope.CloudApi
-        ? "云上 API 必须使用 HTTPS；请确认组织的数据策略允许发送受限语义候选。"
+        ? "第三方 API 必须使用 HTTPS；请确认组织的数据策略允许发送受限语义候选。"
         : "内网模型可使用 HTTPS，或受限的 HTTP；HTTP 内容不加密，且仅连接回环或私有网络地址。";
 
     public string ChatCompletionsPath
@@ -119,11 +124,20 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
         set
         {
             if (SetProperty(ref _authMode, value))
+            {
                 OnPropertyChanged(nameof(IsBearerAuth));
+                OnPropertyChanged(nameof(IsCustomHeaderAuth));
+                OnPropertyChanged(nameof(UsesCredential));
+                OnPropertyChanged(nameof(CredentialHint));
+            }
         }
     }
 
     public bool IsBearerAuth => _authMode == LlmAuthMode.Bearer;
+
+    public bool IsCustomHeaderAuth => _authMode == LlmAuthMode.CustomHeader;
+
+    public bool UsesCredential => _authMode != LlmAuthMode.None;
 
     public string CustomHeaderName
     {
@@ -186,14 +200,34 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     public bool IsTesting
     {
         get => _isTesting;
-        set => SetProperty(ref _isTesting, value);
+        set
+        {
+            if (SetProperty(ref _isTesting, value))
+                OnPropertyChanged(nameof(TestButtonText));
+        }
     }
+
+    public string TestButtonText => IsTesting ? "正在测试…" : "测试当前连接  →";
 
     public bool HasConfig
     {
         get => _hasConfig;
         set => SetProperty(ref _hasConfig, value);
     }
+
+    public bool HasStoredCredential
+    {
+        get => _hasStoredCredential;
+        private set
+        {
+            if (SetProperty(ref _hasStoredCredential, value))
+                OnPropertyChanged(nameof(CredentialHint));
+        }
+    }
+
+    public string CredentialHint => HasStoredCredential
+        ? "已安全保存凭据。留空可继续使用，输入新值会在保存后替换。"
+        : "凭据使用 Windows DPAPI 加密，仅当前 Windows 用户可读取。";
 
     // ------------------------------------------------------------------ Load/Save
 
@@ -208,11 +242,14 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
             if (options is null)
             {
                 HasConfig = false;
+                HasStoredCredential = HasCredential(DefaultCredentialReference);
                 return;
             }
 
             ApplyOptions(options);
             HasConfig = true;
+            HasStoredCredential = options.CredentialReference is { Length: > 0 } reference
+                && HasCredential(reference);
             _lastSavedTarget = options.BaseUri.ToString();
             _lastSavedModel = options.Model;
             LastTestOrigin = options.BaseUri.GetLeftPart(UriPartial.Authority);
@@ -248,6 +285,20 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
         {
             LlmEndpointOptions options = BuildOptions();
 
+            if (options.AuthMode != LlmAuthMode.None)
+            {
+                if (!string.IsNullOrWhiteSpace(CredentialInput))
+                {
+                    _credentialStore.SaveCredential(
+                        DefaultCredentialReference, CredentialInput);
+                }
+                else if (!HasCredential(DefaultCredentialReference))
+                {
+                    throw new ArgumentException(
+                        "请选择认证方式并填写 API Key，或改为“无需认证”。");
+                }
+            }
+
             // Check if target/model changed → clear semantic cache
             string currentTarget = options.BaseUri.ToString();
             string currentModel = options.Model;
@@ -257,6 +308,16 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
                  !string.Equals(_lastSavedModel, currentModel, StringComparison.Ordinal));
 
             await _configStore.SaveAsync(options);
+
+            if (options.AuthMode == LlmAuthMode.None)
+            {
+                DeleteCredentialIfPresent(DefaultCredentialReference);
+                HasStoredCredential = false;
+            }
+            else
+            {
+                HasStoredCredential = true;
+            }
 
             // Clear credential from memory immediately
             CredentialInput = "";
@@ -295,10 +356,38 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     {
         IsTesting = true;
         LastTestStatus = "正在测试…";
+        string? temporaryCredentialReference = null;
         try
         {
-            // Build options from current form state
-            LlmEndpointOptions options = BuildOptions();
+            string? credentialReference = null;
+            if (AuthMode != LlmAuthMode.None)
+            {
+                if (!string.IsNullOrWhiteSpace(CredentialInput))
+                {
+                    temporaryCredentialReference =
+                        $"llm-api-key-test-{Guid.NewGuid():N}";
+                    credentialReference = temporaryCredentialReference;
+                }
+                else if (HasCredential(DefaultCredentialReference))
+                {
+                    credentialReference = DefaultCredentialReference;
+                }
+                else
+                {
+                    throw new ArgumentException(
+                        "当前认证方式需要 API Key。请输入后再测试连接。");
+                }
+            }
+
+            // Build from the current form state. A newly entered credential is
+            // stored under a short-lived DPAPI reference and removed after the
+            // test, so testing does not silently save the configuration.
+            LlmEndpointOptions options = BuildOptions(credentialReference);
+            if (temporaryCredentialReference is not null)
+            {
+                _credentialStore.SaveCredential(
+                    temporaryCredentialReference, CredentialInput);
+            }
 
             var command = new TestLlmConnectionCommand(options);
 
@@ -332,6 +421,8 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            if (temporaryCredentialReference is not null)
+                DeleteCredentialIfPresent(temporaryCredentialReference);
             IsTesting = false;
         }
     }
@@ -350,7 +441,9 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
         try
         {
             await _configStore.ClearAsync();
+            DeleteCredentialIfPresent(DefaultCredentialReference);
             HasConfig = false;
+            HasStoredCredential = false;
             BaseUri = "";
             EndpointScope = LlmEndpointScope.CloudApi;
             Model = "";
@@ -372,10 +465,10 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
         CredentialInput = "";
     }
 
-    private LlmEndpointOptions BuildOptions()
+    private LlmEndpointOptions BuildOptions(string? credentialReference = null)
     {
         if (!Uri.TryCreate(BaseUri, UriKind.Absolute, out Uri? baseUri))
-            throw new ArgumentException("服务基地址必须是完整的 HTTP 或 HTTPS URL。", nameof(BaseUri));
+            throw new ArgumentException("服务基地址必须是完整的 HTTP 或 HTTPS URL。");
 
         return LlmEndpointOptions.Create(
             baseUri,
@@ -384,10 +477,41 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
             authMode: AuthMode,
             responseFormatMode: ResponseFormatMode,
             sendTemperatureZero: SendTemperatureZero,
-            customHeaderName: string.IsNullOrWhiteSpace(CustomHeaderName) ? null : CustomHeaderName,
-            credentialReference: AuthMode != LlmAuthMode.None ? "llm-api-key" : null,
+            customHeaderName: AuthMode == LlmAuthMode.CustomHeader
+                && !string.IsNullOrWhiteSpace(CustomHeaderName)
+                    ? CustomHeaderName
+                    : null,
+            credentialReference: AuthMode != LlmAuthMode.None
+                ? credentialReference ?? DefaultCredentialReference
+                : null,
             timeout: TimeSpan.FromSeconds(TimeoutSeconds),
             maxConcurrency: MaxConcurrency,
             endpointScope: EndpointScope);
+    }
+
+    private bool HasCredential(string logicalName)
+    {
+        try
+        {
+            return _credentialStore.HasCredential(logicalName);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void DeleteCredentialIfPresent(string logicalName)
+    {
+        try
+        {
+            if (_credentialStore.HasCredential(logicalName))
+                _credentialStore.DeleteCredential(logicalName);
+        }
+        catch
+        {
+            // Best effort for stale/test credentials. Configuration clearing
+            // still reports its own failures through the UI error sink.
+        }
     }
 }

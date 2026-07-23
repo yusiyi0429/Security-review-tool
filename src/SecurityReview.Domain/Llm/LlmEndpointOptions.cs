@@ -32,7 +32,7 @@ public sealed record LlmEndpointOptions
     public Uri BaseUri { get; }
 
     /// <summary>
-    /// Trust boundary selected for this endpoint. Cloud APIs require HTTPS;
+    /// Trust boundary selected for this endpoint. Third-party APIs require HTTPS;
     /// private-network endpoints may use transport-restricted HTTP.
     /// </summary>
     public LlmEndpointScope EndpointScope { get; }
@@ -116,7 +116,7 @@ public sealed record LlmEndpointOptions
     public Uri ApprovedOrigin => new(BaseUri.GetLeftPart(UriPartial.Authority));
 
     /// <summary>
-    /// Builds validated options. Cloud APIs require HTTPS. Private-network
+    /// Builds validated options. Third-party APIs require HTTPS. Private-network
     /// endpoints may use HTTP; their resolved address is pinned and validated
     /// by the exact-origin transport before a connection is opened. In debug
     /// builds, <paramref name="allowLoopbackHttp"/> retains the legacy
@@ -283,11 +283,11 @@ public sealed record LlmEndpointOptions
         // Legacy loopback-only escape hatch retained for debug tooling.
 #if !DEBUG
         throw new ArgumentException(
-            "Cloud API base URI scheme must be https.", nameof(baseUri));
+            "Third-party API base URI scheme must be https.", nameof(baseUri));
 #else
         if (!allowLoopbackHttp)
             throw new ArgumentException(
-                "Cloud API base URI scheme must be https. Select PrivateNetwork for " +
+                "Third-party API base URI scheme must be https. Select PrivateNetwork for " +
                 "a trusted intranet HTTP endpoint.",
                 nameof(baseUri));
         if (!IsLoopbackHost(baseUri.Host))
