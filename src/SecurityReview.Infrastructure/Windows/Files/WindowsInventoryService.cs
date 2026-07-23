@@ -75,11 +75,11 @@ public sealed class WindowsInventoryService : IInventoryService
     {
         var gaps = new List<CoverageGap>();
         var boundary = new List<InventoryBoundaryRecord>();
-        string canonicalRoot;
+        string canonicalTarget;
         try
         {
-            canonicalRoot = Path.GetFullPath(request.RootPath)
-                .TrimEnd(Path.DirectorySeparatorChar);
+            canonicalTarget = Path.TrimEndingDirectorySeparator(
+                Path.GetFullPath(request.RootPath));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException
             or PathTooLongException)
@@ -87,7 +87,16 @@ public sealed class WindowsInventoryService : IInventoryService
             return RootFailed(request);
         }
 
-        if (!Directory.Exists(canonicalRoot) || File.Exists(canonicalRoot))
+        bool singleFile = File.Exists(canonicalTarget);
+        if (!singleFile && !Directory.Exists(canonicalTarget))
+        {
+            return RootFailed(request);
+        }
+
+        string canonicalRoot = singleFile
+            ? Path.GetDirectoryName(canonicalTarget) ?? string.Empty
+            : canonicalTarget;
+        if (string.IsNullOrEmpty(canonicalRoot) || !Directory.Exists(canonicalRoot))
         {
             return RootFailed(request);
         }
@@ -114,7 +123,9 @@ public sealed class WindowsInventoryService : IInventoryService
         var metadata = new List<InventoryMetadataUnit>();
         var seen = new HashSet<StreamKey>();
         var budget = new StreamBudgetAccumulator(request.MaxStreams, request.MaxTotalBytes);
-        string rootPrefix = canonicalRoot + Path.DirectorySeparatorChar;
+        string rootPrefix = Path.EndsInDirectorySeparator(canonicalRoot)
+            ? canonicalRoot
+            : canonicalRoot + Path.DirectorySeparatorChar;
 
         var stack = new Stack<string>();
         stack.Push(canonicalRoot);
@@ -125,7 +136,10 @@ public sealed class WindowsInventoryService : IInventoryService
             List<string> entries;
             try
             {
-                entries = [.. Directory.EnumerateFileSystemEntries(directory)];
+                entries = singleFile && string.Equals(
+                        directory, canonicalRoot, StringComparison.OrdinalIgnoreCase)
+                    ? [canonicalTarget]
+                    : [.. Directory.EnumerateFileSystemEntries(directory)];
             }
             catch (UnauthorizedAccessException)
             {
@@ -281,7 +295,7 @@ public sealed class WindowsInventoryService : IInventoryService
         }
 
         FileId fileId = identity.DeriveFileId(request.ScanId);
-        var record = new FileRecord(fileId, 0, relativePath, null, streamName, length,
+        var record = new FileRecord(fileId, request.RootIndex, relativePath, null, streamName, length,
             lastWriteUtc, attributes, identity, ComponentTypesOf(relativePath, request.Components),
             InventoryStatus.Complete, null, null, CoverageStatus.NotCovered);
         files.Add(record);

@@ -36,6 +36,26 @@ public sealed class ScanPreflightServiceTests
     }
 
     [Fact]
+    public async Task preflight_accepts_a_regular_file_target()
+    {
+        string file = Path.GetTempFileName();
+        try
+        {
+            ScanPreflightResult result = await CreateService()
+                .ValidateAsync(
+                    new ScanPreflightRequest(file),
+                    TestContext.Current.CancellationToken);
+
+            Assert.True(result.CanStart);
+            Assert.Empty(result.Errors);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
     public async Task preflight_fails_when_sandbox_self_test_fails()
     {
         ScanPreflightRequest request = ValidRoot(out _);

@@ -6,7 +6,8 @@
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:NewScanViewModel}"
-             AllowDrop="True" Drop="UserControl_Drop" DragOver="UserControl_DragOver">
+             AllowDrop="True" Loaded="UserControl_Loaded"
+             Drop="UserControl_Drop" DragOver="UserControl_DragOver">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid>
             <Grid.RowDefinitions>
@@ -216,11 +217,16 @@
                         </StackPanel>
                     </Border>
 
-                    <Button Content="开始安全扫描  →" Command="{Binding StartScanCommand}"
+                    <Button Content="{Binding StartButtonText}" Command="{Binding StartScanCommand}"
                             Style="{StaticResource PrimaryButtonStyle}" HorizontalContentAlignment="Center" />
+                    <TextBlock Text="{Binding ScanReadinessMessage}"
+                               Foreground="{StaticResource BrushWarn}"
+                               FontSize="11" TextWrapping="Wrap"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               Margin="0,8,0,0" />
                     <TextBlock Text="启动后可随时查看阶段进度并安全取消"
                                Style="{StaticResource PageSubtitleStyle}" FontSize="11"
-                               HorizontalAlignment="Center" Margin="0,8,0,0" />
+                               HorizontalAlignment="Center" Margin="0,5,0,0" />
                 </StackPanel>
             </Grid>
         </Grid>

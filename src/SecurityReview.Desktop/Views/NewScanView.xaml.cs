@@ -16,6 +16,14 @@ public partial class NewScanView : UserControl
         InitializeComponent();
     }
 
+    private async void UserControl_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is NewScanViewModel vm)
+        {
+            await vm.InitializeAsync();
+        }
+    }
+
     private void UserControl_Drop(object sender, DragEventArgs e)
     {
         if (DataContext is not NewScanViewModel vm)

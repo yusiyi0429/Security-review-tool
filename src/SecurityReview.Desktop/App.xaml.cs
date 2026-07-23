@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Markup;
 using SecurityReview.Application.Diagnostics;
 using SecurityReview.Desktop.Services;
+using SecurityReview.Desktop.ViewModels;
 
 namespace SecurityReview.Desktop;
 
@@ -86,6 +87,7 @@ public partial class App : global::System.Windows.Application, IDisposable
             var mainWindow = new MainWindow(_root.MainWindowViewModel, _root);
             MainWindow = mainWindow;
             mainWindow.Show();
+            _ = InitializeRuntimeAsync(_root);
         }
         catch (Exception ex)
         {
@@ -101,6 +103,21 @@ public partial class App : global::System.Windows.Application, IDisposable
 
     private static string GetStartupFailureReason(Exception exception) =>
         exception is XamlParseException ? "xaml_parse" : "unexpected_exception";
+
+    private static async Task InitializeRuntimeAsync(CompositionRoot root)
+    {
+        try
+        {
+            await root.InitializeRuntimeAsync();
+        }
+        catch (Exception ex)
+        {
+            root.Health.MarkBlocked("runtime_initialization_failed");
+            root.ErrorSink.Report(
+                "runtime_initialization_failed",
+                $"运行环境初始化失败：{AsyncRelayCommand.SanitizeMessage(ex)}");
+        }
+    }
 
     protected override void OnExit(ExitEventArgs e)
     {

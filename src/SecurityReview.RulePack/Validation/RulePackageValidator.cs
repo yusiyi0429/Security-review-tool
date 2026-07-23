@@ -299,6 +299,10 @@ public class RulePackageValidator : IRulePackValidator
             archive, "detectors.json",
             RulePackJsonContext.Default.IReadOnlyListDetectorDefinition);
 
+        var rules = ReadAndDeserialize<IReadOnlyList<RuleDefinition>>(
+            archive, "rules.json",
+            RulePackJsonContext.Default.IReadOnlyListRuleDefinition);
+
         var complianceRules = ReadAndDeserialize<IReadOnlyList<ComplianceRule>>(
             archive, "compliance.json",
             RulePackJsonContext.Default.IReadOnlyListComplianceRule);
@@ -307,6 +311,7 @@ public class RulePackageValidator : IRulePackValidator
         {
             Categories = categories,
             Assets = assets,
+            Rules = rules,
             Detectors = detectors,
             ComplianceRules = complianceRules,
         };

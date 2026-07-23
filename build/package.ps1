@@ -273,6 +273,30 @@ try {
         Write-Host "[6/8] Signing skipped (non-Windows host)"
     }
 
+    # The AppContainer launcher verifies every staged worker file before
+    # granting read/execute access. Generate this after signing because
+    # Authenticode changes the PE bytes covered by the hashes.
+    Write-Host "Generating worker integrity manifest..."
+    $workerHashes = [ordered]@{}
+    Get-ChildItem -LiteralPath $appWorkerDir -File |
+        Where-Object { $_.Name -ne "worker-manifest.json" } |
+        Sort-Object -Property Name |
+        ForEach-Object {
+            $workerHashes[$_.Name] = (
+                Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
+            ).Hash.ToLowerInvariant()
+        }
+    $workerManifest = [ordered]@{
+        algorithm = "SHA256"
+        files = $workerHashes
+    }
+    $workerManifestPath = Join-Path $appWorkerDir "worker-manifest.json"
+    $workerManifestJson = $workerManifest | ConvertTo-Json -Depth 4
+    [System.IO.File]::WriteAllText(
+        $workerManifestPath,
+        $workerManifestJson,
+        [System.Text.UTF8Encoding]::new($false))
+
     # ------------------------------------------------------------------
     # 7. Generate SBOM and release manifest
     # ------------------------------------------------------------------

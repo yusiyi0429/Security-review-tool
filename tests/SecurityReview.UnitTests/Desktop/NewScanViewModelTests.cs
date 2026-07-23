@@ -27,13 +27,15 @@ public sealed class NewScanViewModelTests
     private static NewScanViewModel CreateViewModel(
         TestErrorSink? sink = null,
         CreateScanHandler? createHandler = null,
-        StartScanHandler? startHandler = null)
+        StartScanHandler? startHandler = null,
+        IScanTargetPicker? targetPicker = null)
     {
         sink ??= new TestErrorSink();
         return new NewScanViewModel(
             sink,
             () => createHandler ?? throw new InvalidOperationException("CreateScanHandler not provided"),
-            () => startHandler ?? throw new InvalidOperationException("StartScanHandler not provided"));
+            () => startHandler ?? throw new InvalidOperationException("StartScanHandler not provided"),
+            targetPicker);
     }
 
     // ------------------------------------------------------------------
@@ -171,6 +173,49 @@ public sealed class NewScanViewModelTests
         var vm = CreateViewModel();
         vm.AddTargetFromDrop("/nonexistent/path/xyz.txt");
         Assert.Empty(vm.ScanTargets);
+    }
+
+    [Fact]
+    public async Task Pick_file_command_adds_selected_files()
+    {
+        string testFile = Path.GetTempFileName();
+        try
+        {
+            var picker = new TestTargetPicker([testFile], []);
+            var vm = CreateViewModel(targetPicker: picker);
+
+            await ((AsyncRelayCommand)vm.PickFileCommand).ExecuteAsync(null);
+
+            ScanTargetItem target = Assert.Single(vm.ScanTargets);
+            Assert.Equal(testFile, target.Path);
+            Assert.Equal(ScanTargetKind.File, target.Kind);
+        }
+        finally
+        {
+            File.Delete(testFile);
+        }
+    }
+
+    [Fact]
+    public async Task Pick_folder_command_adds_selected_folders()
+    {
+        DirectoryInfo directory = Directory.CreateTempSubdirectory(
+            "srt-new-scan-picker-");
+        try
+        {
+            var picker = new TestTargetPicker([], [directory.FullName]);
+            var vm = CreateViewModel(targetPicker: picker);
+
+            await ((AsyncRelayCommand)vm.PickFolderCommand).ExecuteAsync(null);
+
+            ScanTargetItem target = Assert.Single(vm.ScanTargets);
+            Assert.Equal(directory.FullName, target.Path);
+            Assert.Equal(ScanTargetKind.Directory, target.Kind);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -363,5 +408,14 @@ public sealed class NewScanViewModelTests
     {
         var vm = CreateViewModel();
         Assert.IsAssignableFrom<INotifyPropertyChanged>(vm);
+    }
+
+    private sealed class TestTargetPicker(
+        IReadOnlyList<string> files,
+        IReadOnlyList<string> folders) : IScanTargetPicker
+    {
+        public IReadOnlyList<string> PickFiles() => files;
+
+        public IReadOnlyList<string> PickFolders() => folders;
     }
 }

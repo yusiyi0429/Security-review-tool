@@ -358,6 +358,7 @@ worker/Microsoft.DiaSymReader.Native.amd64.dll
 worker/System.IO.Compression.Native.dll
 worker/System.Private.CoreLib.dll
 worker/*.dll
+worker/worker-manifest.json
 
 # --- Documentation (optional, copied only when present) ---
 README*.md

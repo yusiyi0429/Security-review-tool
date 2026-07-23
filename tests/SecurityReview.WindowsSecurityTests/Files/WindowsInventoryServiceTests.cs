@@ -59,6 +59,41 @@ public sealed class WindowsInventoryServiceTests
     }
 
     [Fact]
+    public async Task single_file_target_inventories_only_that_file_and_keeps_root_index()
+    {
+        WindowsSecurityGate.AssertEnabled();
+        DirectoryInfo root = Directory.CreateTempSubdirectory("srt-inv-file-");
+        try
+        {
+            string selected = Path.Combine(root.FullName, "selected.txt");
+            string sibling = Path.Combine(root.FullName, "sibling.txt");
+            await File.WriteAllTextAsync(
+                selected, "selected", TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(
+                sibling, "sibling", TestContext.Current.CancellationToken);
+            var service = new WindowsInventoryService(_ => "NTFS");
+
+            InventoryResult result = await service.BuildAsync(
+                InventoryRequest.Create(Scan, selected, rootIndex: 3),
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(InventoryOutcome.Completed, result.Outcome);
+            FileRecord record = Assert.Single(
+                result.Files,
+                item => item.StreamName is null);
+            Assert.Equal("selected.txt", record.RelativePath);
+            Assert.Equal(3, record.RootIndex);
+            Assert.DoesNotContain(
+                result.Files,
+                item => item.RelativePath == "sibling.txt");
+        }
+        finally
+        {
+            root.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task metadata_units_cover_canaries_and_hidden_system_entries()
     {
         using InventoryFixture fixture = await InventoryFixture.CreateAsync();

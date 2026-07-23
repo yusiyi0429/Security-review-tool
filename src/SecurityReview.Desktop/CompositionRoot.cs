@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.IO;
 using SecurityReview.Application.Abstractions;
 using SecurityReview.Application.Diagnostics;
 using SecurityReview.Application.History;
@@ -9,15 +10,21 @@ using SecurityReview.Application.Scans;
 using SecurityReview.Application.Scans.Preflight;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
+using SecurityReview.Domain;
 using SecurityReview.Domain.Llm;
 using SecurityReview.Infrastructure.Cryptography;
 using SecurityReview.Infrastructure.Diagnostics;
 using SecurityReview.Infrastructure.Llm;
+using SecurityReview.Infrastructure.Manifest;
 using SecurityReview.Infrastructure.Persistence;
 using SecurityReview.Infrastructure.Persistence.Migrations;
 using SecurityReview.Infrastructure.Persistence.Repositories;
 using SecurityReview.Infrastructure.Rules;
+using SecurityReview.Infrastructure.Windows.Files;
 using SecurityReview.Infrastructure.Windows.Sandbox;
+using SecurityReview.Parsers.Core;
+using SecurityReview.RulePack.Signing;
+using SecurityReview.RulePack.Validation;
 
 namespace SecurityReview.Desktop;
 
@@ -208,6 +215,35 @@ public sealed class CompositionRoot : IDisposable
         var ruleStore = new FileRulePackStore(paths.Rules);
         Register<IRulePackStore>(ruleStore);
         RegisterConcrete(ruleStore);
+        var ruleRuntimeProvider = new ActiveRulePackRuntimeProvider(ruleStore);
+        RegisterConcrete(ruleRuntimeProvider);
+        Register<IEffectivePolicyProvider>(ruleRuntimeProvider);
+        var ruleDetectionPipeline = new RulePackDetectionPipelineAdapter(
+            ruleRuntimeProvider);
+        Register<IDetectionPipeline>(ruleDetectionPipeline);
+        RegisterConcrete(ruleDetectionPipeline);
+
+        string signerStorePath = System.IO.Path.Combine(
+            AppContext.BaseDirectory,
+            "Assets",
+            "rules",
+            "trusted-signers.json");
+        string signerStoreJson = File.Exists(signerStorePath)
+            ? File.ReadAllText(signerStorePath)
+            : """{"signers":[]}""";
+        var signerStore = TrustedSignerStore.Load(signerStoreJson);
+        RegisterConcrete(signerStore);
+        var ruleValidator = new RulePackageValidator();
+        Register<IRulePackValidator>(ruleValidator);
+        RegisterConcrete(ruleValidator);
+        var ruleImportService = new RulePackImportService(
+            ruleValidator,
+            ruleStore,
+            ruleRuntimeProvider,
+            signerStore,
+            typeof(CompositionRoot).Assembly.GetName().Version?.ToString(3)
+                ?? "0.0.0");
+        RegisterConcrete(ruleImportService);
 
         // --- Step 6: Sandbox / worker ---
         if (!_args.IsTest)
@@ -215,7 +251,7 @@ public sealed class CompositionRoot : IDisposable
             try
             {
                 string staging = _args.SandboxStagingDirectory
-                    ?? System.IO.Path.Combine(paths.Temp, "worker-staging");
+                    ?? System.IO.Path.Combine(AppContext.BaseDirectory, "worker");
                 string workerExe = _args.WorkerExecutableName ?? "SecurityReview.Worker.exe";
 
                 var launcher = new AppContainerWorkerLauncher(
@@ -280,9 +316,12 @@ public sealed class CompositionRoot : IDisposable
             {
                 var preflight = new ScanPreflightService(
                     sandbox,
-                    new StubBaselineProvider(),
+                    _args.IsTest
+                        ? new StubBaselineProvider()
+                        : new ActiveRulePackBaselineProvider(ruleRuntimeProvider),
                     new StubSpaceProbe(),
                     new StubDbHealthCheck());
+                RegisterConcrete(preflight);
                 var startScan = new StartScanHandler(sr, ssr, preflight, protector);
                 RegisterConcrete(startScan);
 
@@ -313,6 +352,32 @@ public sealed class CompositionRoot : IDisposable
                 {
                     var scanQuery = new ScanQueryService(sr, fr, cr, flr, reviewSvc);
                     RegisterConcrete(scanQuery);
+
+                    if (!_args.IsTest
+                        && TryGet<IWorkerJobProcessor>() is { } processor
+                        && TryGet<IDetectionPipeline>() is { } detectionPipeline
+                        && TryGet<IDiagnosticSink>() is { } diagnostics
+                        && TryGet<ScanPreflightService>() is { } scanPreflight)
+                    {
+                        var orchestratorState = new ScanOrchestratorState();
+                        RegisterConcrete(orchestratorState);
+                        var orchestrator = new ScanOrchestrator(
+                            new WindowsInventoryService(),
+                            sr,
+                            scanPreflight,
+                            new JsonManifestReader(),
+                            Array.Empty<IFormatParser>(),
+                            processor,
+                            detectionPipeline,
+                            fr,
+                            cr,
+                            flr,
+                            () => new UnavailableSemanticReviewQueue(),
+                            diagnostics,
+                            orchestratorState);
+                        Register<IScanOrchestrator>(orchestrator);
+                        RegisterConcrete(orchestrator);
+                    }
                 }
             }
         }
@@ -327,6 +392,7 @@ public sealed class CompositionRoot : IDisposable
         // Register UI services
         var safePreviewService = new Services.SafePreviewService();
         RegisterConcrete(safePreviewService);
+        Register<IScanTargetPicker>(new WpfScanTargetPicker());
 
         var explorerService = new Services.ExplorerService(
             path => true); // Warning dialog will be shown by the ViewModel
@@ -377,8 +443,10 @@ public sealed class CompositionRoot : IDisposable
     public UiErrorSink ErrorSink => _errorSinkLazy.Value;
     public Services.NavigationService NavigationService => _navLazy.Value;
 
+    private MainWindowViewModel? _mainWindowViewModel;
+
     public MainWindowViewModel MainWindowViewModel
-        => new(NavigationService, Health, ErrorSink);
+        => _mainWindowViewModel ??= new(NavigationService, Health, ErrorSink);
 
     // ------------------------------------------------------------------ ViewModel factories (lazy, re-created on navigation)
 
@@ -386,10 +454,57 @@ public sealed class CompositionRoot : IDisposable
     {
         var createHandler = TryGet<CreateScanHandler>();
         var startHandler = TryGet<StartScanHandler>();
+        var targetPicker = TryGet<IScanTargetPicker>();
+        var ruleRuntimeProvider = TryGet<ActiveRulePackRuntimeProvider>();
+        var sandbox = TryGet<ISandboxSelfTest>();
         return new NewScanViewModel(
             ErrorSink,
             createHandler is not null ? () => createHandler : null!,
-            startHandler is not null ? () => startHandler : null!);
+            startHandler is not null ? () => startHandler : null!,
+            targetPicker,
+            ruleRuntimeProvider,
+            sandbox,
+            Health);
+    }
+
+    public ScanProgressViewModel GetScanProgressViewModel(ScanId scanId)
+    {
+        var cancelHandler = TryGet<CancelScanHandler>();
+        return new ScanProgressViewModel(
+            ErrorSink,
+            cancelHandler is not null ? () => cancelHandler : null!)
+        {
+            ScanId = scanId.Value.ToString("D"),
+            Stage = ScanStage.Preflight,
+        };
+    }
+
+    public async Task InitializeRuntimeAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (Health.State == StartupHealthState.Blocked)
+        {
+            return;
+        }
+
+        ISandboxSelfTest? sandbox = TryGet<ISandboxSelfTest>();
+        if (sandbox is null)
+        {
+            Health.MarkBlocked(PreflightErrorCodes.SandboxUnavailable);
+            return;
+        }
+
+        SandboxSelfTestResult result = await sandbox
+            .RunAsync(cancellationToken);
+        Health.SetDiagnostics(result.OsBuild, result.WorkerSha256);
+        if (result.Passed)
+        {
+            Health.MarkReady();
+        }
+        else
+        {
+            Health.MarkBlocked(result.Code);
+        }
     }
 
     public HistoryViewModel GetHistoryViewModel()

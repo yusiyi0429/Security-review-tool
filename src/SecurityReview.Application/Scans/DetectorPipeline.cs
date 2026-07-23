@@ -1,4 +1,5 @@
 using SecurityReview.Domain;
+using SecurityReview.Domain.Assets;
 using SecurityReview.Domain.Findings;
 using SecurityReview.ParserContracts.Parsing;
 
@@ -25,11 +26,15 @@ public sealed class DetectorPipeline : IDetectionPipeline
         FileId fileId,
         string fileSha256,
         string virtualPath,
+        string rulePackHash,
+        IReadOnlyList<AssetTypeId> assetTypes,
         ContentChunk chunk,
         [System.Runtime.CompilerServices.EnumeratorCancellation]
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(chunk);
+        _ = rulePackHash;
+        _ = assetTypes;
 
         var context = new DetectionContext(scanId, jobId, fileId, fileSha256, virtualPath, chunk);
 

@@ -168,8 +168,39 @@
                     <DataTemplate DataType="{x:Type vm:CoverageViewModel}">
                         <views:CoverageView />
                     </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:ScanProgressViewModel}">
+                        <views:ScanProgressView />
+                    </DataTemplate>
                 </ContentControl.Resources>
             </ContentControl>
+
+            <Border Grid.RowSpan="2" Panel.ZIndex="20"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Width="440" Margin="20"
+                    Padding="14,12"
+                    CornerRadius="7"
+                    Background="#FFF6E8"
+                    BorderBrush="{StaticResource BrushWarn}"
+                    BorderThickness="1"
+                    Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="操作未完成" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrushWarn}" />
+                        <TextBlock Text="{Binding ErrorMessage}" Margin="0,4,8,0"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource BrushTextPrimary}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="关闭"
+                            Command="{Binding DismissErrorCommand}"
+                            MinWidth="54" Padding="8,4"
+                            VerticalAlignment="Top" />
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- Operational status strip -->

@@ -376,7 +376,58 @@ public sealed class CompleteScanWorkflowTests : IAsyncDisposable
     }
 
     // ------------------------------------------------------------------
-    // 11. UI edits after Start do not affect in-flight scan
+    // 11. directory + selected file targets are both scanned
+    // ------------------------------------------------------------------
+    [Fact]
+    public async Task Multiple_targets_include_a_selected_file_without_its_siblings()
+    {
+        DirectoryInfo firstRoot = NewRoot("srt-wf-multi-a-");
+        DirectoryInfo secondRoot = NewRoot("srt-wf-multi-b-");
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(firstRoot.FullName, "first.txt"),
+                "first",
+                TestContext.Current.CancellationToken);
+            string selectedFile = Path.Combine(secondRoot.FullName, "selected.txt");
+            await File.WriteAllTextAsync(
+                selectedFile,
+                "selected",
+                TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(
+                Path.Combine(secondRoot.FullName, "sibling.txt"),
+                "not selected",
+                TestContext.Current.CancellationToken);
+
+            var harness = new WorkflowHarness(
+                _factory,
+                _protector,
+                _fingerprint,
+                firstRoot,
+                additionalTargetPaths: [selectedFile]);
+            ScanId scanId = await harness.CreateAndStartAsync();
+
+            await harness.RunAsync(scanId, TestContext.Current.CancellationToken);
+
+            Assert.Equal(
+                2,
+                await harness.FileCountAsync(
+                    scanId,
+                    TestContext.Current.CancellationToken));
+            ScanRun final = (await harness.Scans.GetByIdAsync(
+                scanId,
+                TestContext.Current.CancellationToken))!;
+            Assert.Equal(ScanStatus.Completed, final.Status);
+        }
+        finally
+        {
+            TryDelete(firstRoot);
+            TryDelete(secondRoot);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 12. UI edits after Start do not affect in-flight scan
     // ------------------------------------------------------------------
     [Fact]
     public async Task Ui_edits_after_start_do_not_affect_inflight_scan()

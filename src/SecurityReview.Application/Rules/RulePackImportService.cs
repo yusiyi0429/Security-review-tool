@@ -1,3 +1,4 @@
+using System.Text.Json;
 using SecurityReview.RulePack.Packaging;
 using SecurityReview.RulePack.Signing;
 using SecurityReview.RulePack.Validation;
@@ -115,6 +116,28 @@ public sealed class RulePackImportService
             Version = manifest.Version,
             Sha256 = packageSha256
         };
+
+        // Build the exact runtime policy before switching the active pointer.
+        // A package that validates structurally but cannot produce an effective
+        // detector policy must never become active.
+        try
+        {
+            _ = await _policyProvider
+                .BuildAsync(newActive, localSupplementJson: null, ct)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException
+            or JsonException or UnauthorizedAccessException)
+        {
+            _ = ex;
+            return new ImportResult
+            {
+                Success = false,
+                ErrorCode = "POLICY_BUILD_FAILED",
+                ErrorMessage = "Rule pack could not produce a runtime policy.",
+                Validation = validation,
+            };
+        }
 
         await _store.SetActiveAsync(newActive, ct);
 

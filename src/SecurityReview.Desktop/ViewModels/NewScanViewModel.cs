@@ -1,10 +1,13 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
+using System.Text.Json;
 using System.Windows.Input;
 using SecurityReview.Application.Scans;
 using SecurityReview.Application.Scans.Preflight;
 using SecurityReview.Domain.Assets;
 using SecurityReview.Desktop.Services;
+using SecurityReview.Infrastructure.Rules;
 
 namespace SecurityReview.Desktop.ViewModels;
 
@@ -21,6 +24,10 @@ public sealed class NewScanViewModel : ObservableObject
     private readonly IUiErrorSink _errorSink;
     private readonly Func<CreateScanHandler> _createScanHandlerFactory;
     private readonly Func<StartScanHandler> _startScanHandlerFactory;
+    private readonly IScanTargetPicker _targetPicker;
+    private readonly ActiveRulePackRuntimeProvider? _rulePackRuntimeProvider;
+    private readonly ISandboxSelfTest? _sandboxSelfTest;
+    private readonly StartupHealthService? _startupHealth;
 
     // Collection of scan targets (paths).
     private readonly ObservableCollection<ScanTargetItem> _scanTargets = new();
@@ -49,17 +56,31 @@ public sealed class NewScanViewModel : ObservableObject
 
     // Scan in progress.
     private bool _isStartingScan;
+    private bool _initialized;
+    private ActiveRulePackRuntime? _activeRulePack;
 
     public NewScanViewModel(
         IUiErrorSink errorSink,
         Func<CreateScanHandler> createScanHandlerFactory,
-        Func<StartScanHandler> startScanHandlerFactory)
+        Func<StartScanHandler> startScanHandlerFactory,
+        IScanTargetPicker? targetPicker = null,
+        ActiveRulePackRuntimeProvider? rulePackRuntimeProvider = null,
+        ISandboxSelfTest? sandboxSelfTest = null,
+        StartupHealthService? startupHealth = null)
     {
         _errorSink = errorSink ?? throw new ArgumentNullException(nameof(errorSink));
         _createScanHandlerFactory = createScanHandlerFactory
             ?? throw new ArgumentNullException(nameof(createScanHandlerFactory));
         _startScanHandlerFactory = startScanHandlerFactory
             ?? throw new ArgumentNullException(nameof(startScanHandlerFactory));
+        _targetPicker = targetPicker ?? new WpfScanTargetPicker();
+        _rulePackRuntimeProvider = rulePackRuntimeProvider;
+        _sandboxSelfTest = sandboxSelfTest;
+        _startupHealth = startupHealth;
+        if (_startupHealth is not null)
+        {
+            _startupHealth.PropertyChanged += OnStartupHealthChanged;
+        }
 
         PickFileCommand = new AsyncRelayCommand(
             _ => PickFileAsync(), errorSink);
@@ -80,6 +101,8 @@ public sealed class NewScanViewModel : ObservableObject
     public ICommand AddExclusionCommand { get; }
     public ICommand RemoveExclusionCommand { get; }
     public ICommand StartScanCommand { get; }
+
+    public event Func<ScanLaunchRequest, CancellationToken, Task>? ScanLaunchRequested;
 
     // ------------------------------------------------------------------ Scan targets
 
@@ -161,7 +184,10 @@ public sealed class NewScanViewModel : ObservableObject
         set
         {
             if (SetProperty(ref _exclusionPartialAcknowledged, value))
+            {
                 ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(ScanReadinessMessage));
+            }
         }
     }
 
@@ -173,7 +199,38 @@ public sealed class NewScanViewModel : ObservableObject
         set
         {
             if (SetProperty(ref _isStartingScan, value))
+            {
                 ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(StartButtonText));
+                OnPropertyChanged(nameof(ScanReadinessMessage));
+            }
+        }
+    }
+
+    public string StartButtonText => IsStartingScan
+        ? "正在启动安全扫描…"
+        : "开始安全扫描  →";
+
+    public string ScanReadinessMessage
+    {
+        get
+        {
+            if (_scanTargets.Count == 0)
+                return "请先选择至少一个文件或目录。";
+
+            if (_rulePackRuntimeProvider is not null && _activeRulePack is null)
+                return "请先在「规则管理」中导入并激活有效的签名规则包。";
+
+            if (_startupHealth?.State == StartupHealthState.Checking)
+                return "正在检查安全解析环境，请稍候。";
+
+            if (_startupHealth?.State == StartupHealthState.Blocked)
+                return $"安全解析环境不可用（{_startupHealth.BlockedCode}），请查看诊断信息。";
+
+            if (_exclusionEntries.Count > 0 && !_exclusionPartialAcknowledged)
+                return "存在排除项，请先确认其对扫描完整性的影响。";
+
+            return "";
         }
     }
 
@@ -196,6 +253,7 @@ public sealed class NewScanViewModel : ObservableObject
 
         _scanTargets.Add(new ScanTargetItem(path, kind.Value));
         OnPropertyChanged(nameof(HasValidTargets));
+        OnPropertyChanged(nameof(ScanReadinessMessage));
         ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
     }
 
@@ -258,54 +316,76 @@ public sealed class NewScanViewModel : ObservableObject
         LlmWarning = warning;
     }
 
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_initialized && _rulePackRuntimeProvider is null)
+        {
+            return;
+        }
+
+        _initialized = true;
+        if (_rulePackRuntimeProvider is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _activeRulePack = await _rulePackRuntimeProvider
+                .GetActiveAsync(cancellationToken)
+                .ConfigureAwait(true);
+            if (_activeRulePack is null)
+            {
+                RulePackVersion = "未配置";
+                RulePackStatus = "不可用";
+                HasOldRuleWarning = true;
+                ActiveRuleWarning = "尚未导入并激活签名规则包，请先前往「规则管理」。";
+            }
+            else
+            {
+                ApplyRulePackState(_activeRulePack.Active.Version, isLatest: true);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException
+            or JsonException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            _activeRulePack = null;
+            RulePackVersion = "加载失败";
+            RulePackStatus = "不可用";
+            HasOldRuleWarning = true;
+            ActiveRuleWarning = "激活规则包无法加载或完整性校验失败。";
+            _errorSink.Report(
+                "rule_pack_load_failed",
+                "激活规则包无法加载，请重新导入有效的签名规则包。");
+        }
+        finally
+        {
+            OnPropertyChanged(nameof(ScanReadinessMessage));
+            ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
+        }
+    }
+
     // ------------------------------------------------------------------ Private helpers
 
     private Task PickFileAsync()
     {
-        // On Windows this opens OpenFileDialog; on Linux compile-only we validate
-        // the shape through unit tests. The actual dialog is invoked via WPF.
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = "选择扫描文件或 Docker TAR",
-            Filter = "支持的文件 (*.txt;*.csv;*.log;*.xml;*.json;*.yaml;*.tar)|" +
-                "*.txt;*.csv;*.log;*.xml;*.json;*.yaml;*.tar|所有文件 (*.*)|*.*",
-            Multiselect = true,
-        };
-
-        bool? result = dialog.ShowDialog();
-        if (result != true || dialog.FileNames.Length == 0)
-            return Task.CompletedTask;
-
-        foreach (string path in dialog.FileNames)
-        {
-            ScanTargetKind? kind = FileDropService.ClassifyTarget(path);
-            if (kind is null)
-                continue;
-
-            if (_scanTargets.Any(t =>
-                    string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase)))
-                continue;
-
-            _scanTargets.Add(new ScanTargetItem(path, kind.Value));
-        }
-
-        OnPropertyChanged(nameof(HasValidTargets));
-        ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
+        AddPickedTargets(_targetPicker.PickFiles());
         return Task.CompletedTask;
     }
 
-#pragma warning disable CA1822
     private Task PickFolderAsync()
     {
-        // Folder selection is handled by the view layer (WPF) using
-        // a platform-appropriate folder picker. On Windows this uses
-        // FolderBrowserDialog from System.Windows.Forms (requires
-        // UseWindowsForms in csproj) or the modern Windows.Storage API.
-        // For the unit-test path, this command is a no-op and validated
-        // through AddTargetFromDrop.
+        AddPickedTargets(_targetPicker.PickFolders());
         return Task.CompletedTask;
     }
-#pragma warning restore CA1822
+
+    private void AddPickedTargets(IEnumerable<string> paths)
+    {
+        foreach (string path in paths)
+        {
+            AddTargetFromDrop(path);
+        }
+    }
 
     private Task AddExclusionAsync()
     {
@@ -317,6 +397,7 @@ public sealed class NewScanViewModel : ObservableObject
             Reason = "",
         };
         _exclusionEntries.Add(new ExclusionEntry(entry));
+        OnPropertyChanged(nameof(ScanReadinessMessage));
         ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
         return Task.CompletedTask;
     }
@@ -326,6 +407,7 @@ public sealed class NewScanViewModel : ObservableObject
         if (parameter is ExclusionEntry entry)
         {
             _exclusionEntries.Remove(entry);
+            OnPropertyChanged(nameof(ScanReadinessMessage));
             ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
         }
         return Task.CompletedTask;
@@ -337,6 +419,12 @@ public sealed class NewScanViewModel : ObservableObject
             return false;
 
         if (_scanTargets.Count == 0)
+            return false;
+
+        if (_rulePackRuntimeProvider is not null && _activeRulePack is null)
+            return false;
+
+        if (_startupHealth is not null && !_startupHealth.CanStartScan)
             return false;
 
         // If there are exclusions, the user must acknowledge Partial status.
@@ -351,6 +439,35 @@ public sealed class NewScanViewModel : ObservableObject
         IsStartingScan = true;
         try
         {
+            await InitializeAsync(cancellationToken).ConfigureAwait(true);
+            if (_rulePackRuntimeProvider is not null && _activeRulePack is null)
+            {
+                _errorSink.Report(
+                    "baseline_inactive",
+                    "请先在「规则管理」中导入并激活有效的签名规则包。");
+                return;
+            }
+
+            SandboxSelfTestResult sandboxResult = _sandboxSelfTest is null
+                ? new SandboxSelfTestResult(
+                    true,
+                    SandboxSelfTestResult.OkCode,
+                    "0000000000000000000000000000000000000000000000000000000000000000",
+                    Environment.OSVersion.VersionString,
+                    "S-1-0-0",
+                    DateTimeOffset.UtcNow)
+                : await _sandboxSelfTest
+                    .RunAsync(cancellationToken)
+                    .ConfigureAwait(true);
+            if (!sandboxResult.Passed)
+            {
+                _startupHealth?.MarkBlocked(sandboxResult.Code);
+                _errorSink.Report(
+                    "sandbox_unavailable",
+                    $"安全解析沙箱不可用（{sandboxResult.Code}），扫描未启动。");
+                return;
+            }
+
             // Build the CreateScanCommand.
             string[] rootPaths = _scanTargets
                 .Select(t => t.Path)
@@ -369,20 +486,23 @@ public sealed class NewScanViewModel : ObservableObject
                 Manifest: manifest,
                 UiOverrideComponentIds: Array.Empty<string>(),
                 ExclusionPatterns: exclusions,
-                ActiveRulePackHash: _rulePackVersion,
-                PolicySha256: "0000000000000000000000000000000000000000000000000000000000000000",
+                ActiveRulePackHash: _activeRulePack?.Active.Sha256
+                    ?? _rulePackVersion,
+                PolicySha256: _activeRulePack?.Package.Policy.PolicySha256
+                    ?? "0000000000000000000000000000000000000000000000000000000000000000",
                 LlmEndpointFingerprint: "",
                 LlmModelFingerprint: "",
-                ClientVersion: "0.0.0",
-                ParserAdapterVersion: "0.0.0",
-                DetectorAdapterVersion: "0.0.0",
-                PromptVersion: "0.0.0",
-                Sandbox: new SandboxSelfTestResult(
-                    true, SandboxSelfTestResult.OkCode,
-                    "0000000000000000000000000000000000000000000000000000000000000000",
-                    Environment.OSVersion.VersionString,
-                    "S-1-0-0", DateTimeOffset.UtcNow),
-                EffectiveDetectorVersions: Array.Empty<string>());
+                ClientVersion: typeof(NewScanViewModel).Assembly
+                    .GetName().Version?.ToString(3) ?? "0.0.0",
+                ParserAdapterVersion: "1.0.0",
+                DetectorAdapterVersion: "1.0.0",
+                PromptVersion: "1.0.0",
+                Sandbox: sandboxResult,
+                EffectiveDetectorVersions: _activeRulePack?.Package.Policy
+                    .ActiveDetectorVersions
+                    .Select(pair => $"{pair.Key}:{pair.Value}")
+                    .ToArray()
+                    ?? Array.Empty<string>());
 
             // Create the scan (Draft).
             CreateScanHandler createHandler = _createScanHandlerFactory();
@@ -414,8 +534,22 @@ public sealed class NewScanViewModel : ObservableObject
                 return;
             }
 
-            // Navigate to progress view — handled by the parent window / navigation.
-            // The scan orchestrator is started by the shell.
+            if (ScanLaunchRequested is null
+                || startResult.ScanId is null
+                || startResult.Snapshot is null)
+            {
+                _errorSink.Report(
+                    "scan_execution_unavailable",
+                    "扫描执行服务未连接，请重新启动应用后重试。");
+                return;
+            }
+
+            await ScanLaunchRequested(
+                    new ScanLaunchRequest(
+                        startResult.ScanId.Value,
+                        startResult.Snapshot),
+                    cancellationToken)
+                .ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
@@ -431,7 +565,23 @@ public sealed class NewScanViewModel : ObservableObject
             IsStartingScan = false;
         }
     }
+
+    private void OnStartupHealthChanged(
+        object? sender,
+        PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(StartupHealthService.CanStartScan)
+            or nameof(StartupHealthService.State))
+        {
+            OnPropertyChanged(nameof(ScanReadinessMessage));
+            ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
+        }
+    }
 }
+
+public sealed record ScanLaunchRequest(
+    Domain.ScanId ScanId,
+    ScanConfigurationSnapshot Snapshot);
 
 // ---------------------------------------------------------------------------
 // Supporting types

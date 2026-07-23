@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Security.Cryptography;
 using SecurityReview.Application.Rules;
 using SecurityReview.RulePack.Packaging;
 
@@ -133,6 +134,57 @@ public sealed class FileRulePackStore : IRulePackStore
             .ConfigureAwait(false);
 
         return JsonSerializer.Deserialize<ActivePointer>(jsonBytes, ActiveJsonOptions);
+    }
+
+    /// <summary>
+    /// Reads an immutable stored package by its content hash and verifies the
+    /// bytes again before returning them to the runtime detector pipeline.
+    /// </summary>
+    public async Task<byte[]> ReadPackageByHashAsync(
+        string sha256,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sha256);
+        byte[] expectedHash;
+        try
+        {
+            expectedHash = Convert.FromHexString(sha256);
+        }
+        catch (FormatException)
+        {
+            throw new InvalidOperationException("The active rule package hash is invalid.");
+        }
+
+        if (expectedHash.Length != 32)
+        {
+            throw new InvalidOperationException("The active rule package hash is invalid.");
+        }
+
+        string packagesRoot = Path.Combine(_basePath, PackagesDirName);
+        if (!Directory.Exists(packagesRoot))
+        {
+            throw new FileNotFoundException("The active rule package is missing.");
+        }
+
+        string fileName = $"{sha256.ToLowerInvariant()}.zip";
+        string? packagePath = Directory
+            .EnumerateFiles(packagesRoot, "*.zip", SearchOption.AllDirectories)
+            .FirstOrDefault(path => string.Equals(
+                Path.GetFileName(path), fileName, StringComparison.OrdinalIgnoreCase));
+        if (packagePath is null)
+        {
+            throw new FileNotFoundException("The active rule package is missing.");
+        }
+
+        byte[] bytes = await File.ReadAllBytesAsync(packagePath, cancellationToken)
+            .ConfigureAwait(false);
+        byte[] actualHash = SHA256.HashData(bytes);
+        if (!CryptographicOperations.FixedTimeEquals(actualHash, expectedHash))
+        {
+            throw new InvalidDataException("The active rule package failed integrity verification.");
+        }
+
+        return bytes;
     }
 
     /// <inheritdoc />

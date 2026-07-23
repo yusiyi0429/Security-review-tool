@@ -31,6 +31,7 @@ internal sealed class WorkflowHarness
     private readonly SqliteScanRepository _scans;
     private readonly SqliteFindingRepository _findings;
     private readonly SqliteCoverageRepository _coverage;
+    private readonly SqliteFileRepository _files;
     private readonly SqliteScanSnapshotRepository _snapshots;
     private readonly FakeInventoryService _inventory;
     private readonly FakeSemanticQueue _semanticQueue;
@@ -43,6 +44,7 @@ internal sealed class WorkflowHarness
     private readonly ScanConfigurationSnapshotCodec _snapshotCodec;
 
     private readonly DirectoryInfo? _root;
+    private readonly string[] _rootPaths;
     private readonly SemanticOutcome _semanticOutcome;
     private readonly bool _emitCandidate;
     private readonly bool _rootMissing;
@@ -70,9 +72,11 @@ internal sealed class WorkflowHarness
         bool simulateCancel = false,
         string? fileToMutateOnce = null,
         string? fileToMutateTwice = null,
-        bool includeArchiveCorrupt = false)
+        bool includeArchiveCorrupt = false,
+        IReadOnlyList<string>? additionalTargetPaths = null)
     {
         _root = root;
+        _rootPaths = BuildRootPaths(root, additionalTargetPaths);
         _semanticOutcome = semanticOutcome;
         _emitCandidate = emitCandidate ?? semanticOutcome != SemanticOutcome.NoCandidates;
         _rootMissing = rootMissing;
@@ -84,11 +88,12 @@ internal sealed class WorkflowHarness
         _scans = new SqliteScanRepository(factory, protector);
         _findings = new SqliteFindingRepository(factory, protector, fingerprint);
         _coverage = new SqliteCoverageRepository(factory, protector);
-        var files = new SqliteFileRepository(factory, protector, fingerprint);
+        _files = new SqliteFileRepository(factory, protector, fingerprint);
         _snapshots = new SqliteScanSnapshotRepository(factory);
         _snapshotCodec = new ScanConfigurationSnapshotCodec(protector);
 
-        _inventory = new FakeInventoryService(_root, _rootMissing, _fileToMutateOnce, _fileToMutateTwice);
+        _inventory = new FakeInventoryService(
+            _rootMissing, _fileToMutateOnce, _fileToMutateTwice);
         _semanticQueue = new FakeSemanticQueue();
         _detection = new FakeDetectionPipeline(emitCandidate: _emitCandidate);
         var state = new ScanOrchestratorState();
@@ -108,12 +113,12 @@ internal sealed class WorkflowHarness
             _preflight,
             new NullManifestReader(),
             Array.Empty<IFormatParser>(),
-            new FakeProcessor(_detection, _root, _fileToMutateOnce, _fileToMutateTwice,
+            new FakeProcessor(_detection, _fileToMutateOnce, _fileToMutateTwice,
                 _simulateCancel, includeArchiveCorrupt),
             _detection,
             _findings,
             _coverage,
-            files,
+            _files,
             _semanticQueue,
             new NullDiagnosticSink(),
             state);
@@ -144,7 +149,7 @@ internal sealed class WorkflowHarness
             Errors: Array.Empty<ManifestValidationError>());
 
         var command = new CreateScanCommand(
-            RootPaths: BuildRootPaths(_root),
+            RootPaths: _rootPaths,
             Manifest: manifestSnapshot,
             UiOverrideComponentIds: EmptyStrings,
             ExclusionPatterns: EmptyStrings,
@@ -202,14 +207,30 @@ internal sealed class WorkflowHarness
             ?? throw new InvalidOperationException("Snapshot missing.");
     }
 
+    public Task<int> FileCountAsync(
+        ScanId scanId,
+        CancellationToken cancellationToken) =>
+        _files.CountByScanIdAsync(scanId, cancellationToken);
+
     private static readonly string[] EmptyStrings = Array.Empty<string>();
     private static readonly IReadOnlyList<AssetComponent> EmptyAssetComponents = Array.Empty<AssetComponent>();
     private static readonly IReadOnlyList<LocationMapEntry> EmptyLocationMap = Array.Empty<LocationMapEntry>();
     private static readonly string[] SingleDetectorVersions = new[] { "detector-v1" };
     private static readonly string[] MissingRootPath = new[] { "/missing" };
 
-    private static string[] BuildRootPaths(DirectoryInfo? root)
-        => root is not null ? new[] { root.FullName } : MissingRootPath;
+    private static string[] BuildRootPaths(
+        DirectoryInfo? root,
+        IReadOnlyList<string>? additionalTargetPaths)
+    {
+        if (root is null)
+        {
+            return MissingRootPath;
+        }
+
+        return additionalTargetPaths is { Count: > 0 }
+            ? [root.FullName, .. additionalTargetPaths]
+            : [root.FullName];
+    }
 }
 
 // ------------------------------------------------------------------
@@ -275,9 +296,13 @@ internal sealed class FakeDetectionPipeline : IDetectionPipeline
         FileId fileId,
         string fileSha256,
         string virtualPath,
+        string rulePackHash,
+        IReadOnlyList<AssetTypeId> assetTypes,
         ContentChunk chunk,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        _ = rulePackHash;
+        _ = assetTypes;
         if (!_emitCandidate)
         {
             yield break;
@@ -461,22 +486,23 @@ internal sealed class FakeSemanticQueue : ISemanticReviewQueue, ISemanticCandida
 
 internal sealed class FakeInventoryService : IInventoryService
 {
-    private readonly DirectoryInfo? _root;
     private readonly bool _rootMissing;
 
-    public FakeInventoryService(DirectoryInfo? root, bool rootMissing, string? mutateOnce, string? mutateTwice)
+    public FakeInventoryService(
+        bool rootMissing,
+        string? mutateOnce,
+        string? mutateTwice)
     {
-        _root = root;
         _rootMissing = rootMissing;
         _ = mutateOnce;
         _ = mutateTwice;
     }
 
-    public string RootPath => _root?.FullName ?? string.Empty;
-
     public Task<InventoryResult> BuildAsync(InventoryRequest request, CancellationToken cancellationToken)
     {
-        if (_rootMissing || _root is null)
+        bool isFile = File.Exists(request.RootPath);
+        bool isDirectory = Directory.Exists(request.RootPath);
+        if (_rootMissing || (!isFile && !isDirectory))
         {
             return Task.FromResult(new InventoryResult(
                 Files: Array.Empty<FileRecord>(),
@@ -492,9 +518,20 @@ internal sealed class FakeInventoryService : IInventoryService
 
         var files = new List<FileRecord>();
         long totalBytes = 0;
-        foreach (FileInfo f in _root.EnumerateFiles("*", SearchOption.AllDirectories))
+        string rootPath = isFile
+            ? Path.GetDirectoryName(request.RootPath)!
+            : request.RootPath;
+        IEnumerable<FileInfo> targetFiles = isFile
+            ? [new FileInfo(request.RootPath)]
+            : new DirectoryInfo(request.RootPath)
+                .EnumerateFiles("*", SearchOption.AllDirectories);
+        foreach (FileInfo f in targetFiles)
         {
-            FileRecord record = BuildRecord(f, totalIndex: files.Count);
+            FileRecord record = BuildRecord(
+                f,
+                rootPath,
+                request.RootIndex,
+                totalIndex: files.Count);
             files.Add(record);
             totalBytes += f.Length;
         }
@@ -511,7 +548,11 @@ internal sealed class FakeInventoryService : IInventoryService
             AdsCapability: AdsCapability.NotAvailableForFileSystem));
     }
 
-    private FileRecord BuildRecord(FileInfo f, int totalIndex)
+    private static FileRecord BuildRecord(
+        FileInfo f,
+        string rootPath,
+        int rootIndex,
+        int totalIndex)
     {
         try
         {
@@ -532,8 +573,8 @@ internal sealed class FakeInventoryService : IInventoryService
 
         return new FileRecord(
             FileId: id,
-            RootIndex: 0,
-            RelativePath: Path.GetRelativePath(_root!.FullName, f.FullName),
+            RootIndex: rootIndex,
+            RelativePath: Path.GetRelativePath(rootPath, f.FullName),
             EncryptedPathPlaceholder: null,
             StreamName: null,
             Length: refresh.Length,
@@ -554,7 +595,6 @@ internal sealed class FakeInventoryService : IInventoryService
 internal sealed class FakeProcessor : IWorkerJobProcessor
 {
     private readonly FakeDetectionPipeline _detection;
-    private readonly DirectoryInfo? _root;
     private readonly string? _mutateOnce;
     private readonly string? _mutateTwice;
     private readonly bool _simulateCancel;
@@ -562,14 +602,12 @@ internal sealed class FakeProcessor : IWorkerJobProcessor
 
     public FakeProcessor(
         FakeDetectionPipeline detection,
-        DirectoryInfo? root,
         string? mutateOnce,
         string? mutateTwice,
         bool simulateCancel,
         bool includeArchiveCorrupt)
     {
         _detection = detection;
-        _root = root;
         _mutateOnce = mutateOnce;
         _mutateTwice = mutateTwice;
         _simulateCancel = simulateCancel;
@@ -623,7 +661,7 @@ internal sealed class FakeProcessor : IWorkerJobProcessor
                 ChildVirtualPath: null, ChildProbe: null, Failure: null);
         }
 
-        string text = ReadFileText(item.VirtualPath);
+        string text = ReadFileText(item.InputFilePath ?? string.Empty);
 
         var chunk = new ContentChunk(
             ProtocolVersion: 1,
@@ -671,15 +709,11 @@ internal sealed class FakeProcessor : IWorkerJobProcessor
         await Task.CompletedTask;
     }
 
-    private string ReadFileText(string virtualPath)
+    private static string ReadFileText(string inputFilePath)
     {
-        if (_root is null)
-        {
-            return string.Empty;
-        }
         try
         {
-            return File.ReadAllText(Path.Combine(_root.FullName, virtualPath));
+            return File.ReadAllText(inputFilePath);
         }
         catch
         {

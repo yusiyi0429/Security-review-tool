@@ -92,15 +92,24 @@ public sealed class StartScanHandler
             });
         }
 
-        // Preflight currently probes the first root. The immutable snapshot,
-        // rather than mutable UI state, is the source of truth.
+        // Run infrastructure preflight once and validate every remaining
+        // immutable target before allowing the scan to enter Preflight.
         var preflightRequest = new ScanPreflightRequest(configuration.RootPaths[0]);
         ScanPreflightResult result = await _preflight
             .ValidateAsync(preflightRequest, cancellationToken)
             .ConfigureAwait(false);
-        if (!result.CanStart)
+        var errors = result.Errors.ToList();
+        if (configuration.RootPaths.Skip(1).Any(
+                path => !ScanPreflightService.IsExistingTarget(path)))
         {
-            return StartScanResult.Failed(result.Errors);
+            errors.Add(new PreflightError(
+                PreflightErrorCodes.RootInvalid,
+                "One or more scan targets are missing or are not regular files or directories."));
+        }
+
+        if (errors.Count > 0)
+        {
+            return StartScanResult.Failed(errors);
         }
 
         if (existing.Status == ScanStatus.Draft)

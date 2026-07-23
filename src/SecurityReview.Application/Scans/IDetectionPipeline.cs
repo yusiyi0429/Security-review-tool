@@ -1,4 +1,5 @@
 using SecurityReview.Domain;
+using SecurityReview.Domain.Assets;
 using SecurityReview.Domain.Findings;
 using SecurityReview.ParserContracts.Parsing;
 
@@ -29,6 +30,8 @@ public interface IDetectionPipeline
         FileId fileId,
         string fileSha256,
         string virtualPath,
+        string rulePackHash,
+        IReadOnlyList<AssetTypeId> assetTypes,
         ContentChunk chunk,
         CancellationToken cancellationToken);
 }

@@ -22,6 +22,8 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _nonLatestRuleWarning;
     private bool _scanEnabled;
     private object? _currentView;
+    private string _errorMessage = "";
+    private bool _hasError;
 
     public MainWindowViewModel(
         NavigationService navigation,
@@ -35,6 +37,9 @@ public sealed class MainWindowViewModel : ObservableObject
         NavigateCommand = new AsyncRelayCommand(
             param => NavigateToAsync((NavigationEntry)param!),
             errorSink);
+        DismissErrorCommand = new AsyncRelayCommand(
+            _ => DismissErrorAsync(),
+            errorSink);
 
         _health.PropertyChanged += OnHealthChanged;
         SyncHealthState();
@@ -43,6 +48,7 @@ public sealed class MainWindowViewModel : ObservableObject
     // ------------------------------------------------------------------ Navigation commands
 
     public ICommand NavigateCommand { get; }
+    public ICommand DismissErrorCommand { get; }
 
     /// <summary>The navigation service instance for the shell.</summary>
     public NavigationService NavigationService => _navigation;
@@ -109,6 +115,31 @@ public sealed class MainWindowViewModel : ObservableObject
     {
         get => _scanEnabled;
         set => SetProperty(ref _scanEnabled, value);
+    }
+
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set => SetProperty(ref _errorMessage, value);
+    }
+
+    public bool HasError
+    {
+        get => _hasError;
+        private set => SetProperty(ref _hasError, value);
+    }
+
+    public void ShowError(string message)
+    {
+        ErrorMessage = message;
+        HasError = !string.IsNullOrWhiteSpace(message);
+    }
+
+    private Task DismissErrorAsync()
+    {
+        HasError = false;
+        ErrorMessage = "";
+        return Task.CompletedTask;
     }
 
     // ------------------------------------------------------------------ Health sync

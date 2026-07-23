@@ -46,11 +46,10 @@ public sealed class ScanPreflightService(
     {
         ArgumentNullException.ThrowIfNull(request);
         var errors = new List<PreflightError>();
-        if (string.IsNullOrWhiteSpace(request.ScanRootPath)
-            || !Directory.Exists(request.ScanRootPath))
+        if (!IsExistingTarget(request.ScanRootPath))
         {
             errors.Add(new PreflightError(PreflightErrorCodes.RootInvalid,
-                "Scan root is missing or is not a directory."));
+                "Scan target is missing or is not a regular file or directory."));
         }
 
         if (!await baselineProvider.HasActiveSignedBaselineAsync(cancellationToken)
@@ -82,4 +81,8 @@ public sealed class ScanPreflightService(
 
         return new ScanPreflightResult(errors.Count == 0, errors);
     }
+
+    public static bool IsExistingTarget(string? path) =>
+        !string.IsNullOrWhiteSpace(path)
+        && (Directory.Exists(path) || File.Exists(path));
 }

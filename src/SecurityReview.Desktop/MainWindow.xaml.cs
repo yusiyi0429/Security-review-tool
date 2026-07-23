@@ -1,4 +1,5 @@
 using System.Windows;
+using SecurityReview.Application.Scans;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
 
@@ -32,6 +33,7 @@ public partial class MainWindow : Window
 
         // Subscribe to navigation changes and sync the content view
         _viewModel.NavigationService.Navigated += OnNavigated;
+        _root.ErrorSink.ErrorReported += OnErrorReported;
 
         // Set initial view (新建扫描)
         OnNavigated(NavigationEntry.新建扫描);
@@ -39,7 +41,7 @@ public partial class MainWindow : Window
 
     private void OnNavigated(NavigationEntry entry)
     {
-        _viewModel.CurrentView = entry switch
+        object? view = entry switch
         {
             NavigationEntry.新建扫描 => _root.GetNewScanViewModel(),
             NavigationEntry.任务历史 => _root.GetHistoryViewModel(),
@@ -48,6 +50,62 @@ public partial class MainWindow : Window
             NavigationEntry.诊断与帮助 => _root.GetCoverageViewModel(),
             _ => null
         };
+
+        if (view is NewScanViewModel newScan)
+        {
+            newScan.ScanLaunchRequested += OnScanLaunchRequestedAsync;
+        }
+
+        _viewModel.CurrentView = view;
+    }
+
+    private async Task OnScanLaunchRequestedAsync(
+        ScanLaunchRequest request,
+        CancellationToken cancellationToken)
+    {
+        IScanOrchestrator orchestrator;
+        try
+        {
+            orchestrator = _root.GetService<IScanOrchestrator>();
+        }
+        catch (InvalidOperationException)
+        {
+            _root.ErrorSink.Report(
+                "scan_execution_unavailable",
+                "扫描执行服务未成功初始化，请检查沙箱和规则包状态后重启应用。");
+            return;
+        }
+
+        ScanProgressViewModel progressViewModel =
+            _root.GetScanProgressViewModel(request.ScanId);
+        _viewModel.CurrentView = progressViewModel;
+
+        await foreach (ScanProgress progress in orchestrator.RunAsync(
+            request.ScanId,
+            request.Snapshot,
+            cancellationToken))
+        {
+            progressViewModel.ApplyProgress(progress);
+        }
+    }
+
+    private void OnErrorReported(UiErrorEntry entry)
+    {
+        if (Dispatcher.CheckAccess())
+        {
+            _viewModel.ShowError(entry.Message);
+            return;
+        }
+
+        _ = Dispatcher.BeginInvoke(
+            () => _viewModel.ShowError(entry.Message));
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _viewModel.NavigationService.Navigated -= OnNavigated;
+        _root.ErrorSink.ErrorReported -= OnErrorReported;
+        base.OnClosed(e);
     }
 
     /// <summary>The view model instance backing this window.</summary>

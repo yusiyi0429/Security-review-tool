@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using SecurityReview.Application.Abstractions;
 using SecurityReview.Application.Diagnostics;
 using SecurityReview.Application.Findings;
@@ -44,7 +45,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
     private readonly IFindingRepository _findingRepository;
     private readonly ICoverageRepository _coverageRepository;
     private readonly IFileRepository _fileRepository;
-    private readonly ISemanticReviewQueue _semanticQueue;
+    private readonly Func<ISemanticReviewQueue> _semanticQueueFactory;
     private readonly IDiagnosticSink _diagnosticSink;
     private readonly ScanOrchestratorState _state;
     private readonly Func<DateTimeOffset> _clock;
@@ -61,6 +62,39 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         ICoverageRepository coverageRepository,
         IFileRepository fileRepository,
         ISemanticReviewQueue semanticQueue,
+        IDiagnosticSink diagnosticSink,
+        ScanOrchestratorState state,
+        Func<DateTimeOffset>? clock = null)
+        : this(
+            inventoryService,
+            scanRepository,
+            preflightService,
+            manifestReader,
+            parsers,
+            processor,
+            detectionPipeline,
+            findingRepository,
+            coverageRepository,
+            fileRepository,
+            () => semanticQueue,
+            diagnosticSink,
+            state,
+            clock)
+    {
+    }
+
+    public ScanOrchestrator(
+        IInventoryService inventoryService,
+        IScanRepository scanRepository,
+        ScanPreflightService preflightService,
+        IManifestReader manifestReader,
+        IReadOnlyList<IFormatParser> parsers,
+        IWorkerJobProcessor processor,
+        IDetectionPipeline detectionPipeline,
+        IFindingRepository findingRepository,
+        ICoverageRepository coverageRepository,
+        IFileRepository fileRepository,
+        Func<ISemanticReviewQueue> semanticQueueFactory,
         IDiagnosticSink diagnosticSink,
         ScanOrchestratorState state,
         Func<DateTimeOffset>? clock = null)
@@ -85,8 +119,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             ?? throw new ArgumentNullException(nameof(coverageRepository));
         _fileRepository = fileRepository
             ?? throw new ArgumentNullException(nameof(fileRepository));
-        _semanticQueue = semanticQueue
-            ?? throw new ArgumentNullException(nameof(semanticQueue));
+        _semanticQueueFactory = semanticQueueFactory
+            ?? throw new ArgumentNullException(nameof(semanticQueueFactory));
         _diagnosticSink = diagnosticSink
             ?? throw new ArgumentNullException(nameof(diagnosticSink));
         _state = state ?? throw new ArgumentNullException(nameof(state));
@@ -98,7 +132,32 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         ScanConfigurationSnapshot? snapshot,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var progress = new List<ScanProgress>();
+        Channel<ScanProgress> progressChannel = Channel.CreateUnbounded<ScanProgress>(
+            new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = true,
+                AllowSynchronousContinuations = false,
+            });
+
+        Task producer = ProduceRunAsync(
+            scanId, snapshot, progressChannel.Writer, cancellationToken);
+
+        await foreach (ScanProgress progress in progressChannel.Reader
+            .ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
+        {
+            yield return progress;
+        }
+
+        await producer.ConfigureAwait(false);
+    }
+
+    private async Task ProduceRunAsync(
+        ScanId scanId,
+        ScanConfigurationSnapshot? snapshot,
+        ChannelWriter<ScanProgress> progressWriter,
+        CancellationToken cancellationToken)
+    {
         ScanOutcome? outcome = null;
         Exception? failure = null;
 
@@ -117,7 +176,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         {
             await TransitionToRunningAsync(scanId, cancellationToken)
                 .ConfigureAwait(false);
-            outcome = await RunPipelineAsync(scanId, snapshot, progress, cancellationToken)
+            outcome = await RunPipelineAsync(
+                    scanId, snapshot, ReportProgress, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -133,7 +193,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                     Method = "RunAsync",
                 }));
 
-            progress.Add(ScanProgress.Empty with { Stage = ScanStage.Cancelled });
+            ReportProgress(ScanProgress.Empty with { Stage = ScanStage.Cancelled });
             outcome = new ScanOutcome(scanId, ScanStatus.Cancelled,
                 FindingCount: 0,
                 UnresolvedSemanticCount: 0,
@@ -153,7 +213,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                     Method = "RunAsync",
                 }));
 
-            progress.Add(ScanProgress.Empty with { Stage = ScanStage.Failed });
+            ReportProgress(ScanProgress.Empty with { Stage = ScanStage.Failed });
             outcome = new ScanOutcome(scanId, ScanStatus.Failed,
                 FindingCount: 0,
                 UnresolvedSemanticCount: 0,
@@ -162,29 +222,36 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             failure = new InvalidOperationException("Scan pipeline failed.");
         }
 
-        if (outcome is not null)
+        try
         {
-            await PersistOutcomeAsync(outcome).ConfigureAwait(false);
-            _state.Record(outcome);
+            if (outcome is not null)
+            {
+                await PersistOutcomeAsync(outcome).ConfigureAwait(false);
+                _state.Record(outcome);
+            }
+
+            if (failure is not null)
+            {
+                _diagnosticSink.Publish(new DiagnosticEvent(
+                    DiagnosticCode.ScanFailed, _clock(),
+                    scanId, "scan_failed",
+                    new DiagnosticFields
+                    {
+                        Stage = "scan.pipeline",
+                        ReasonCode = "pipeline_failed",
+                        Module = "Application.Scans",
+                        Method = "RunAsync",
+                    }));
+            }
+        }
+        finally
+        {
+            progressWriter.TryComplete();
         }
 
-        if (failure is not null)
+        void ReportProgress(ScanProgress progress)
         {
-            _diagnosticSink.Publish(new DiagnosticEvent(
-                DiagnosticCode.ScanFailed, _clock(),
-                scanId, "scan_failed",
-                new DiagnosticFields
-                {
-                    Stage = "scan.pipeline",
-                    ReasonCode = "pipeline_failed",
-                    Module = "Application.Scans",
-                    Method = "RunAsync",
-                }));
-        }
-
-        foreach (ScanProgress p in progress)
-        {
-            yield return p;
+            progressWriter.TryWrite(progress);
         }
     }
 
@@ -196,29 +263,31 @@ public sealed class ScanOrchestrator : IScanOrchestrator
     private async Task<ScanOutcome> RunPipelineAsync(
         ScanId scanId,
         ScanConfigurationSnapshot? snapshot,
-        List<ScanProgress> progressList,
+        Action<ScanProgress> reportProgress,
         CancellationToken cancellationToken)
     {
-        progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Preflight });
+        reportProgress(ScanProgress.Empty with { Stage = ScanStage.Preflight });
 
         if (snapshot is null)
         {
-            return new ScanOutcome(scanId, ScanStatus.Failed,
-                FindingCount: 0, UnresolvedSemanticCount: 0, GapCount: 0,
-                CompletedAtUtc: _clock());
+            reportProgress(ScanProgress.Empty with { Stage = ScanStage.Failed });
+            return FinaliseFailed(scanId, "snapshot_missing", 0, 0, 0);
         }
 
-        string firstRoot = snapshot.RootPaths.FirstOrDefault() ?? string.Empty;
+        string[] targets = snapshot.RootPaths;
+        string firstTarget = targets.FirstOrDefault() ?? string.Empty;
 
         // The preflight gate is a fail-closed set of infrastructure checks
         // (sandbox, baseline, app data, database health). Run once at the
         // top of every scan.
-        var preflightRequest = new ScanPreflightRequest(firstRoot);
+        var preflightRequest = new ScanPreflightRequest(firstTarget);
         ScanPreflightResult preflight = await _preflightService
             .ValidateAsync(preflightRequest, cancellationToken)
             .ConfigureAwait(false);
 
-        if (!preflight.CanStart)
+        bool hasInvalidAdditionalTarget = targets.Skip(1).Any(
+            target => !ScanPreflightService.IsExistingTarget(target));
+        if (!preflight.CanStart || hasInvalidAdditionalTarget)
         {
             _diagnosticSink.Publish(new DiagnosticEvent(
                 DiagnosticCode.ScanPreflightFailed, _clock(),
@@ -231,8 +300,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                     Method = "RunPipelineAsync",
                 }));
 
-            progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Failed });
-            return FinaliseFailed(scanId, "preflight_failed", progressList, 0, 0, 0);
+            reportProgress(ScanProgress.Empty with { Stage = ScanStage.Failed });
+            return FinaliseFailed(scanId, "preflight_failed", 0, 0, 0);
         }
 
         _diagnosticSink.Publish(new DiagnosticEvent(
@@ -246,24 +315,11 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                 Method = "RunPipelineAsync",
             }));
 
-        // ---- Step: Read manifest ----
-        ManifestReadResult manifestResult = await _manifestReader
-            .ReadAsync(firstRoot, cancellationToken)
-            .ConfigureAwait(false);
-
-        IReadOnlyList<AssetComponent> components =
-            manifestResult.Snapshot?.Manifest?.Components
-            ?? (IReadOnlyList<AssetComponent>)Array.Empty<AssetComponent>();
-
         // ---- Step: Build inventory ----
-        progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Inventory });
+        reportProgress(ScanProgress.Empty with { Stage = ScanStage.Inventory });
 
-        var inventoryRequest = new InventoryRequest(
-            scanId, firstRoot, components,
-            MaxStreams: 100_000, MaxTotalBytes: 10L * 1024 * 1024 * 1024);
-
-        InventoryResult inventory = await _inventoryService
-            .BuildAsync(inventoryRequest, cancellationToken)
+        InventoryResult inventory = await BuildInventoryAsync(
+                scanId, targets, cancellationToken)
             .ConfigureAwait(false);
 
         if (inventory.Outcome != InventoryOutcome.Completed)
@@ -279,9 +335,9 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                     Method = "RunPipelineAsync",
                 }));
 
-            progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Failed });
+            reportProgress(ScanProgress.Empty with { Stage = ScanStage.Failed });
             return FinaliseFailed(scanId, inventory.FailureCode ?? "inventory_failed",
-                progressList, 0, 0, 0);
+                0, 0, 0);
         }
 
         _diagnosticSink.Publish(new DiagnosticEvent(
@@ -331,7 +387,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                 Method = "RunPipelineAsync",
             }));
 
-        progressList.Add(new ScanProgress(ScanStage.Running,
+        reportProgress(new ScanProgress(ScanStage.Running,
             DiscoveredFiles: inventory.Files.Count,
             ProcessedFiles: 0, FailedFiles: 0,
             PlannedBytes: inventory.Files.Sum(f => f.Length),
@@ -344,6 +400,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         var pendingFileIds = new HashSet<FileId>(inventory.Files.Select(f => f.FileId));
         var fileShaMap = new Dictionary<FileId, string>();
         var filePathMap = new Dictionary<FileId, string>();
+        ISemanticReviewQueue semanticQueue = _semanticQueueFactory()
+            ?? throw new InvalidOperationException("Semantic review queue factory returned null.");
         int findingCount = 0;
         int llmUnresolvedCount = 0;
         bool workerCancelled = false;
@@ -360,6 +418,11 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         foreach (FileRecord file in inventory.Files)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (await IsCancellingAsync(scanId, cancellationToken).ConfigureAwait(false))
+            {
+                workerCancelled = true;
+                break;
+            }
 
             DateTimeOffset now = _clock();
             ParseLimits limits = ScanScheduler.CreateOrdinaryLimits(now);
@@ -375,7 +438,9 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                 DeclaredLength: file.Length,
                 Limits: limits,
                 IsOci: false,
-                InputFilePath: Path.Combine(firstRoot, file.RelativePath));
+                InputFilePath: Path.Combine(
+                    ResolveTargetRoot(snapshot.RootPaths[file.RootIndex]),
+                    file.RelativePath));
 
             await foreach (WorkerJobResult result in _processor
                 .ProcessAsync(item, cancellationToken)
@@ -389,6 +454,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                             await foreach (DetectionCandidate candidate in _detectionPipeline
                                 .DetectAsync(scanId, item.JobId, file.FileId,
                                     fileShaMap[file.FileId], virtualPath,
+                                    snapshot.ActiveRulePackHash,
+                                    file.ComponentAssetTypes,
                                     result.Chunk, cancellationToken)
                                 .ConfigureAwait(false))
                             {
@@ -431,13 +498,18 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                                         RulePackHash: snapshot!.ActiveRulePackHash,
                                         AdapterVersion: snapshot.DetectorAdapterVersion);
 
-                                    bool enqueued = await _semanticQueue
+                                    bool enqueued = await semanticQueue
                                         .EnqueueAsync(queueItem, cancellationToken)
                                         .ConfigureAwait(false);
                                     if (!enqueued)
                                     {
                                         llmUnresolvedCount++;
-                                        ledger.AddGap(BuildLlmUnresolvedGap(file, candidate.Id));
+                                        CoverageGap gap = BuildLlmUnresolvedGap(
+                                            scanId, file, candidate.Id);
+                                        ledger.AddGap(gap);
+                                        await _coverageRepository
+                                            .InsertAsync(gap, cancellationToken)
+                                            .ConfigureAwait(false);
                                     }
                                 }
                             }
@@ -477,7 +549,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                         break;
                 }
 
-                progressList.Add(new ScanProgress(ScanStage.Running,
+                reportProgress(new ScanProgress(ScanStage.Running,
                     DiscoveredFiles: inventory.Files.Count,
                     ProcessedFiles: inventory.Files.Count - pendingFileIds.Count,
                     FailedFiles: 0,
@@ -486,11 +558,14 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                         .Sum(f => f.Length),
                     ArchiveEntryCount: 0,
                     FindingCount: findingCount,
-                    LlmQueueCount: _semanticQueue.PendingCount,
+                    LlmQueueCount: semanticQueue.PendingCount,
                     ActiveWorkerCount: 0,
                     CurrentFileOrdinal: inventory.Files.Count - pendingFileIds.Count));
             }
         }
+
+        workerCancelled |= await IsCancellingAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
 
         // ---- Step: Drain semantic queue ----
         _diagnosticSink.Publish(new DiagnosticEvent(
@@ -500,35 +575,35 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             {
                 Stage = "scan.semantic_queue",
                 ReasonCode = "started",
-                Count = _semanticQueue.PendingCount,
+                Count = semanticQueue.PendingCount,
                 Module = "Application.Scans",
                 Method = "RunPipelineAsync",
             }));
 
-        if (!cancellationToken.IsCancellationRequested)
+        if (!cancellationToken.IsCancellationRequested && !workerCancelled)
         {
-            _semanticQueue.CompleteAdding();
+            semanticQueue.CompleteAdding();
             try
             {
-                await _semanticQueue.RunAsync(cancellationToken).ConfigureAwait(false);
+                await semanticQueue.RunAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                _semanticQueue.Cancel();
+                semanticQueue.Cancel();
             }
         }
         else
         {
-            _semanticQueue.Cancel();
+            semanticQueue.Cancel();
         }
 
-        SemanticQueueProgress semanticProgress = _semanticQueue.GetProgress();
+        SemanticQueueProgress semanticProgress = semanticQueue.GetProgress();
         llmUnresolvedCount += semanticProgress.UnresolvedCount
             + semanticProgress.FailedCount
             + semanticProgress.CancelledCount;
 
         // ---- Step: Final reconciliation ----
-        progressList.Add(ScanProgress.Empty with { Stage = ScanStage.Reconciling });
+        reportProgress(ScanProgress.Empty with { Stage = ScanStage.Reconciling });
         CoverageSummary summary = ledger.Reconcile();
 
         _diagnosticSink.Publish(new DiagnosticEvent(
@@ -551,7 +626,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             finalStatus = ScanStatus.Cancelled;
         }
 
-        progressList.Add(new ScanProgress(
+        reportProgress(new ScanProgress(
             finalStatus switch
             {
                 ScanStatus.Completed => ScanStage.Completed,
@@ -590,7 +665,129 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             CompletedAtUtc: _clock());
     }
 
-    private ScanOutcome FinaliseFailed(ScanId scanId, string reason, List<ScanProgress> progressList,
+    private async Task<InventoryResult> BuildInventoryAsync(
+        ScanId scanId,
+        string[] targets,
+        CancellationToken cancellationToken)
+    {
+        var files = new List<FileRecord>();
+        var metadata = new List<InventoryMetadataUnit>();
+        var gaps = new List<CoverageGap>();
+        var boundaries = new List<InventoryBoundaryRecord>();
+        var seenFileIds = new HashSet<FileId>();
+        long observedStreams = 0;
+        long observedBytes = 0;
+        AdsCapability adsCapability = AdsCapability.Available;
+
+        for (int rootIndex = 0; rootIndex < targets.Length; rootIndex++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            string target = targets[rootIndex];
+            string targetRoot = ResolveTargetRoot(target);
+
+            ManifestReadResult manifestResult = await _manifestReader
+                .ReadAsync(targetRoot, cancellationToken)
+                .ConfigureAwait(false);
+            IReadOnlyList<AssetComponent> components =
+                manifestResult.Snapshot?.Manifest?.Components
+                ?? (IReadOnlyList<AssetComponent>)Array.Empty<AssetComponent>();
+
+            long remainingStreams = InventoryRequest.DefaultMaxStreams - observedStreams;
+            long remainingBytes = InventoryRequest.DefaultMaxTotalBytes - observedBytes;
+            if (remainingStreams <= 0 || remainingBytes <= 0)
+            {
+                return new InventoryResult(
+                    [], [], [], [], InventoryOutcome.InputScopeExceeded,
+                    InventoryFailureCodes.InputScopeExceeded,
+                    observedStreams, observedBytes, adsCapability);
+            }
+
+            var request = new InventoryRequest(
+                scanId,
+                target,
+                components,
+                remainingStreams,
+                remainingBytes,
+                rootIndex);
+            InventoryResult result = await _inventoryService
+                .BuildAsync(request, cancellationToken)
+                .ConfigureAwait(false);
+
+            observedStreams += result.ObservedStreamCount;
+            observedBytes += result.ObservedTotalBytes;
+            if (result.AdsCapability == AdsCapability.NotAvailableForFileSystem)
+            {
+                adsCapability = AdsCapability.NotAvailableForFileSystem;
+            }
+
+            if (result.Outcome != InventoryOutcome.Completed)
+            {
+                return result with
+                {
+                    ObservedStreamCount = observedStreams,
+                    ObservedTotalBytes = observedBytes,
+                    AdsCapability = adsCapability,
+                };
+            }
+
+            var acceptedIds = new HashSet<FileId>();
+            foreach (FileRecord file in result.Files)
+            {
+                if (seenFileIds.Add(file.FileId))
+                {
+                    files.Add(file);
+                    acceptedIds.Add(file.FileId);
+                }
+                else
+                {
+                    boundaries.Add(new InventoryBoundaryRecord(
+                        file.RelativePath,
+                        InventoryBoundaryRecord.DuplicateIdentitySkipped));
+                }
+            }
+
+            metadata.AddRange(result.MetadataUnits.Where(
+                unit => acceptedIds.Contains(unit.FileId)));
+            gaps.AddRange(result.Gaps.Where(
+                gap => gap.FileId is null || acceptedIds.Contains(gap.FileId.Value)));
+            boundaries.AddRange(result.BoundaryRecords);
+        }
+
+        return new InventoryResult(
+            [.. InventoryOrdering.Order(files)],
+            metadata,
+            gaps,
+            boundaries,
+            InventoryOutcome.Completed,
+            null,
+            observedStreams,
+            observedBytes,
+            adsCapability);
+    }
+
+    private async Task<bool> IsCancellingAsync(
+        ScanId scanId,
+        CancellationToken cancellationToken)
+    {
+        ScanRun? scan = await _scanRepository
+            .GetByIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        return scan?.Status is ScanStatus.Cancelling or ScanStatus.Cancelled;
+    }
+
+    private static string ResolveTargetRoot(string target)
+    {
+        string fullPath = Path.GetFullPath(target);
+        if (!File.Exists(fullPath))
+        {
+            return fullPath;
+        }
+
+        return Path.GetDirectoryName(fullPath)
+            ?? throw new InvalidOperationException("File scan target has no parent directory.");
+    }
+
+    private ScanOutcome FinaliseFailed(ScanId scanId, string reason,
         int findingCount, int unresolvedCount, int gapCount)
     {
         _ = reason;
@@ -665,12 +862,15 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         }
     }
 
-    private static CoverageGap BuildLlmUnresolvedGap(FileRecord file, CandidateId candidateId)
+    private static CoverageGap BuildLlmUnresolvedGap(
+        ScanId scanId,
+        FileRecord file,
+        CandidateId candidateId)
     {
         _ = candidateId;
         return new CoverageGap(
             GapId: Guid.NewGuid(),
-            ScanId: new ScanId(Guid.Empty),
+            ScanId: scanId,
             FileId: file.FileId,
             VirtualPath: file.RelativePath,
             FormatId: file.FormatId ?? "unknown",
