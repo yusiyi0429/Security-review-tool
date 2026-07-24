@@ -140,42 +140,17 @@ public class RulePackageValidator : IRulePackValidator
             }
 
             // ── Step 5: Signer key allowlist ──────────────────────────
-            if (!signerStore.IsSignerTrusted(manifest.SignerKeyId))
-                return Fail("SIGNER_NOT_TRUSTED");
-
-            // ── Step 6: ECDSA signature ───────────────────────────────
-            var verifyResult = EcdsaRulePackSigner.VerifyPackage(zipBytes, manifest.SignerKeyId);
-            if (!verifyResult.IsValid)
-                return Fail(verifyResult.ErrorCode);
-
-            // Additional verification with the trusted public key
+            // A matching key ID alone is insufficient: it must also have a
+            // parseable public key before this package can be trusted.
             using var trustedKey = signerStore.TryGetPublicKey(manifest.SignerKeyId);
             if (trustedKey is null)
                 return Fail("SIGNER_NOT_TRUSTED");
 
-            var sigEntry = archive.GetEntry("signature.json");
-            Debug.Assert(sigEntry is not null, "signature.json must exist after VerifyPackage passed.");
-
-            byte[] sigBytes = ReadEntryBytes(sigEntry!);
-            byte[]? signature = ParseSignature(sigBytes);
-            if (signature is null)
-                return Fail("SIGNATURE_INVALID");
-
-            try
-            {
-                bool valid = trustedKey.VerifyData(
-                    manifestBytes,
-                    signature,
-                    HashAlgorithmName.SHA256,
-                    DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
-
-                if (!valid)
-                    return Fail("SIGNATURE_INVALID");
-            }
-            catch
-            {
-                return Fail("SIGNATURE_INVALID");
-            }
+            // ── Step 6: ECDSA signature ───────────────────────────────
+            var verifyResult = EcdsaRulePackSigner.VerifyPackageWithTrustedPublicKey(
+                zipBytes, manifest.SignerKeyId, trustedKey);
+            if (!verifyResult.IsValid)
+                return Fail(verifyResult.ErrorCode);
 
             // ── Step 7: Client/version ────────────────────────────────
             if (!Version.TryParse(manifest.MinClientVersion, out var minVersion))
@@ -255,31 +230,6 @@ public class RulePackageValidator : IRulePackValidator
         return ms.ToArray();
     }
 
-    /// <summary>
-    /// Parses the signature_base64 field from signature.json.
-    /// Returns <c>null</c> on any parse error.
-    /// </summary>
-    private static byte[]? ParseSignature(byte[] sigJsonBytes)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(sigJsonBytes);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("signature_base64", out var sigProp))
-                return null;
-
-            string? base64 = sigProp.GetString();
-            if (string.IsNullOrWhiteSpace(base64))
-                return null;
-
-            return Convert.FromBase64String(base64);
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     /// <summary>
     /// Reads and deserializes each document file from the ZIP and assembles a

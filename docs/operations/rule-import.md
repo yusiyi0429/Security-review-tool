@@ -38,7 +38,7 @@ Rule packs are distributed as **signed ZIP archives** with the extension
 
 The tool **only** accepts signed rule packs. Unsigned ZIP files, raw rule
 files, or manually placed configuration files are rejected. The signature
-check uses Ed25519 with public keys from `trusted-signers.json`.
+check uses ECDSA P-256 with public keys from `trusted-signers.json`.
 
 The built-in trusted signers file is part of the application distribution and
 is verified as part of the release package integrity check. It cannot be

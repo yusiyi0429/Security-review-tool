@@ -7,6 +7,7 @@ using SecurityReview.Domain.Rules;
 using SecurityReview.RulePack.Packaging;
 using SecurityReview.RulePack.Schema;
 using SecurityReview.RulePack.Signing;
+using SecurityReview.RulePack.Validation;
 
 namespace SecurityReview.ContractTests.Rules;
 
@@ -110,6 +111,22 @@ public sealed class RulePackageSignatureTests
 
         Assert.True(result.IsValid);
         Assert.Equal("", result.ErrorCode);
+    }
+
+    [Fact]
+    public void Empty_trusted_signer_key_is_not_accepted_as_trusted()
+    {
+        var signerStore = TrustedSignerStore.Load(
+            $$"""{"signers":[{"signer_key_id":"{{EcdsaRulePackSigner.DefaultSignerKeyId}}","public_key_base64":""}]}""");
+
+        Assert.False(signerStore.IsSignerTrusted(EcdsaRulePackSigner.DefaultSignerKeyId));
+
+        using var key = CreateTestKey();
+        byte[] signedPackage = BuildMinimalPackage(key);
+        var result = new RulePackageValidator().Validate(signedPackage, signerStore, "1.0.0");
+
+        Assert.False(result.IsValid);
+        Assert.Equal("SIGNER_NOT_TRUSTED", result.ErrorCode);
     }
 
     [Fact]

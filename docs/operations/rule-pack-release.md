@@ -23,17 +23,22 @@ documented approval.
   false-positive analysis).
 - [ ] Both reviewers documented their approval in the release tracking system.
 
-### 2. Workbook Validation
+### 2. Workbook Template and Validation
 
-- [ ] The rule workbook (`rules/workbook.xlsx`) passes schema validation.
-- [ ] All formulas resolve without errors.
-- [ ] Every rule has a non-empty `DetectorConfigId` and `AppliesToAssets`.
-- [ ] Every detector has a non-empty `ConfigId` and valid `Kind`.
+- [ ] Start from the supported eight-sheet template; do not reuse a legacy
+  English-sheet workbook.
+- [ ] The rule workbook passes schema validation and contains no formulas.
+- [ ] Every rule has a non-empty `配置ID` and `资产ID`.
+- [ ] Every detector has a non-empty `配置ID` and valid `类型`.
 - [ ] No duplicate rule IDs, detector IDs, or entity IDs.
 - [ ] All placeholder entries have valid, non-expired dates.
 - [ ] Workbook hash matches the committed version.
 
 ```powershell
+# Generate the supported template when starting a new rule pack.
+dotnet run --project tools/SecurityReview.RulePackBuilder -c Release -- template `
+  --output rules/workbook.xlsx
+
 # Validate workbook schema
 dotnet test tests/SecurityReview.ContractTests -c Release --filter "FullyQualifiedName~Workbook"
 ```
@@ -48,11 +53,13 @@ dotnet test tests/SecurityReview.ContractTests -c Release --filter "FullyQualifi
 Remove-Item -Recurse -Force artifacts/rules -ErrorAction SilentlyContinue
 dotnet build -c Release
 
-# Build the signed rule pack
+# Build the signed rule pack. The private key path must point to protected
+# release-only storage and is never committed to the repository.
 dotnet run --project tools/SecurityReview.RulePackBuilder -c Release -- build `
-  --workbook rules/workbook.xlsx `
+  --input rules/workbook.xlsx `
   --output artifacts/rules/security-review-rules-{VERSION}.zip `
-  --signer-key-id {SIGNER_KEY_ID}
+  --private-key-path {PROTECTED_PRIVATE_KEY_PATH} `
+  --expected-signer {SIGNER_KEY_ID}
 ```
 
 ### 4. Signature Verification
@@ -65,10 +72,16 @@ dotnet run --project tools/SecurityReview.RulePackBuilder -c Release -- build `
 
 ```powershell
 # Verify the signature
-dotnet run --project tools/SecurityReview.CorpusTool -c Release -- verify-signature `
-  --rules artifacts/rules/security-review-rules-{VERSION}.zip `
-  --trusted-signers config/trusted-signers.json
+dotnet run --project tools/SecurityReview.RulePackBuilder -c Release -- verify `
+  --input artifacts/rules/security-review-rules-{VERSION}.zip `
+  --expected-signer {SIGNER_KEY_ID} `
+  --public-key {TRUSTED_PUBLIC_KEY_BASE64}
 ```
+
+- [ ] Before shipping the desktop client, add the same non-empty public key to
+  `src/SecurityReview.Desktop/Assets/rules/trusted-signers.json` under the
+  matching `signer_key_id`. A blank or malformed key is intentionally treated
+  as untrusted and will block import.
 
 ### 5. Corpus Verification
 

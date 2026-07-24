@@ -214,6 +214,30 @@ public sealed class RuleWorkbookContractTests
     }
 
     [Fact]
+    public void Generated_template_matches_the_supported_workbook_schema()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"srt-rules-template-{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            RuleWorkbookTemplateWriter.Write(path);
+
+            using var stream = File.OpenRead(path);
+            var result = RuleWorkbookReader.Read(stream);
+
+            Assert.NotNull(result.Document);
+            Assert.Empty(result.Errors);
+            Assert.NotEmpty(result.Document!.Categories);
+            Assert.NotEmpty(result.Document.Rules);
+            Assert.NotEmpty(result.Document.Detectors);
+            Assert.NotEmpty(result.Document.ComplianceRules);
+        }
+        finally
+        {
+            try { File.Delete(path); } catch { }
+        }
+    }
+
+    [Fact]
     public void Missing_required_sheet_reports_MissingSheet()
     {
         using var stream = CreateWorkbook((doc, wbPart, sheets) =>

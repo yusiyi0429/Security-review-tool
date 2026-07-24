@@ -20,6 +20,13 @@ public static class BuildRulePackCommand
         ArgumentNullException.ThrowIfNull(inputPath);
         ArgumentNullException.ThrowIfNull(outputPath);
 
+        if (string.IsNullOrWhiteSpace(privateKeyPath))
+        {
+            Console.Error.WriteLine(
+                "Signature Error: --private-key-path is required. Unsigned rule packs cannot be imported.");
+            return 2;
+        }
+
         // Step 1: Open input xlsx and read
         RuleWorkbookReadResult readResult;
         try
@@ -89,7 +96,19 @@ public static class BuildRulePackCommand
         string rulePackId = packageInfo.TryGetValue("rulePackId", out var rpid) ? rpid : "default";
         string version = packageInfo.TryGetValue("version", out var ver) ? ver : "1.0.0";
         string minClientVersion = packageInfo.TryGetValue("minClientVersion", out var mcv) ? mcv : "1.0.0";
-        string signerKeyId = expectedSigner ?? EcdsaRulePackSigner.DefaultSignerKeyId;
+        string? workbookSignerKeyId = packageInfo.TryGetValue("signerKeyId", out var workbookSigner)
+            ? workbookSigner.Trim()
+            : null;
+        string signerKeyId = expectedSigner ?? workbookSignerKeyId ?? EcdsaRulePackSigner.DefaultSignerKeyId;
+
+        if (!string.IsNullOrWhiteSpace(expectedSigner)
+            && !string.IsNullOrWhiteSpace(workbookSignerKeyId)
+            && !string.Equals(expectedSigner, workbookSignerKeyId, StringComparison.Ordinal))
+        {
+            Console.Error.WriteLine(
+                "Validation Error: --expected-signer must match signerKeyId in the workbook.");
+            return 1;
+        }
         int schemaVersion = packageInfo.TryGetValue("schemaVersion", out var sv) && int.TryParse(sv, out var svv) ? svv : 1;
 
         var manifest = RulePackManifest.Create(
@@ -116,18 +135,16 @@ public static class BuildRulePackCommand
             return 3;
         }
 
-        // Step 7: Sign if private key provided
-        if (privateKeyPath is not null)
+        // Step 7: Sign the package. The private key is required above so a
+        // successfully built package is always importable after trust setup.
+        try
         {
-            try
-            {
-                zipBytes = SignPackage(zipBytes, privateKeyPath, signerKeyId);
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Signature Error: {ex.Message}");
-                return 2;
-            }
+            zipBytes = SignPackage(zipBytes, privateKeyPath, signerKeyId);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Signature Error: {ex.Message}");
+            return 2;
         }
 
         // Step 8: Write final ZIP to output

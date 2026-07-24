@@ -104,12 +104,13 @@ public sealed class TrustedSignerStore
     }
 
     /// <summary>
-    /// Returns <c>true</c> if a signer with the given key ID is in the trusted set.
+    /// Returns <c>true</c> only when a signer with the given key ID has usable
+    /// public-key material in the trusted set.
     /// </summary>
     public bool IsSignerTrusted(string keyId)
     {
-        return _signers.Any(
-            s => string.Equals(s.SignerKeyId, keyId, StringComparison.Ordinal));
+        using ECDsa? key = TryGetPublicKey(keyId);
+        return key is not null;
     }
 }
 

@@ -258,6 +258,52 @@ public static class EcdsaRulePackSigner
         }
     }
 
+    /// <summary>
+    /// Verifies a package and additionally requires its manifest signature to
+    /// validate against the caller-supplied trusted public key.
+    /// </summary>
+    public static VerifyResult VerifyPackageWithTrustedPublicKey(
+        byte[] zipBytes,
+        string expectedSignerKeyId,
+        ECDsa trustedPublicKey)
+    {
+        ArgumentNullException.ThrowIfNull(trustedPublicKey);
+
+        var packageResult = VerifyPackage(zipBytes, expectedSignerKeyId);
+        if (!packageResult.IsValid)
+            return packageResult;
+
+        try
+        {
+            using var stream = new MemoryStream(zipBytes);
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
+
+            var manifestEntry = archive.GetEntry("manifest.json");
+            var signatureEntry = archive.GetEntry("signature.json");
+            if (manifestEntry is null || signatureEntry is null)
+                return new VerifyResult(false, "MISSING_SIGNATURE");
+
+            byte[] manifestBytes = ReadEntryBytes(manifestEntry);
+            var signature = ParseSignatureJson(ReadEntryBytes(signatureEntry));
+            if (signature?.Signature is null)
+                return new VerifyResult(false, "SIGNATURE_INVALID");
+
+            bool isValid = trustedPublicKey.VerifyData(
+                manifestBytes,
+                signature.Signature,
+                HashAlgorithmName.SHA256,
+                DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+
+            return isValid
+                ? new VerifyResult(true, "")
+                : new VerifyResult(false, "SIGNATURE_INVALID");
+        }
+        catch
+        {
+            return new VerifyResult(false, "SIGNATURE_INVALID");
+        }
+    }
+
     // ── Public key import/export ──────────────────────────────────
 
     /// <summary>
