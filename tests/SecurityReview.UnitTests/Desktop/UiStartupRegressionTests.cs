@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
-using System.Windows.Media;
 using System.Xml.Linq;
 using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
@@ -252,14 +251,15 @@ public sealed partial class UiStartupRegressionTests
 
     private static IEnumerable<TextBlock> FindTextBlocks(DependencyObject root)
     {
-        int childCount = VisualTreeHelper.GetChildrenCount(root);
-        for (int index = 0; index < childCount; index++)
+        foreach (object child in LogicalTreeHelper.GetChildren(root))
         {
-            DependencyObject child = VisualTreeHelper.GetChild(root, index);
             if (child is TextBlock textBlock)
                 yield return textBlock;
 
-            foreach (TextBlock descendant in FindTextBlocks(child))
+            if (child is not DependencyObject dependencyObject)
+                continue;
+
+            foreach (TextBlock descendant in FindTextBlocks(dependencyObject))
                 yield return descendant;
         }
     }
