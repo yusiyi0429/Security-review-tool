@@ -39,11 +39,26 @@ function Extract-IdsFromFile($path, $pattern) {
         ForEach-Object { $_.Value }
 }
 
+function Extract-DefinitionIds($path, $pattern) {
+    if (-not (Test-Path $path)) { return @() }
+    Select-String -Path $path -Pattern $pattern -AllMatches |
+        ForEach-Object { $_.Matches } |
+        ForEach-Object { $_.Groups[1].Value }
+}
+
 # REQs and ACs can appear in both PRD and SRS; SRS-F and VT only in SRS.
 $foundReqs  = @(Extract-IdsFromFile $prdPath '\bREQ-\d{3}\b') + @(Extract-IdsFromFile $srsPath '\bREQ-\d{3}\b')
 $foundAcs   = @(Extract-IdsFromFile $prdPath '\bAC-\d{3}\b')  + @(Extract-IdsFromFile $srsPath '\bAC-\d{3}\b')
 $foundSrsFs = @(Extract-IdsFromFile $srsPath '\bSRS-F-\d{3}\b')
 $foundVts   = @(Extract-IdsFromFile $srsPath '\bVT-\d{3}\b')
+
+# Definitions are authoritative table rows. Cross-reference tables and linked
+# requirement columns intentionally repeat IDs and must not be treated as
+# duplicate definitions.
+$definedReqs = @(Extract-DefinitionIds $prdPath '^\|\s*(REQ-\d{3})\s*\|')
+$definedAcs = @(Extract-DefinitionIds $prdPath '^\|\s*(AC-\d{3})\s*\|')
+$definedSrsFs = @(Extract-DefinitionIds $srsPath '^\|\s*(SRS-F-\d{3})\s*\|')
+$definedVts = @(Extract-DefinitionIds $srsPath '^\|\s*(VT-\d{3})\s*\|')
 
 # ------------------------------------------------------------------
 # 4. Load acceptance manifest
@@ -121,26 +136,26 @@ $manifestSrsFs.Keys  | ForEach-Object { Test-CanId $_ $expectedSrsFs "SRS-F (man
 $manifestVts.Keys    | ForEach-Object { Test-CanId $_ $expectedVts   "VT (manifest)" }
 
 # ------------------------------------------------------------------
-# 7. Validate completeness — each expected ID must appear in the
-#    markdown documents
+# 7. Validate completeness — each expected ID must have exactly one
+#    authoritative definition row
 # ------------------------------------------------------------------
 $completenessErrors = @()
 
-$foundReqSet   = @{}; $foundReqs   | ForEach-Object { $foundReqSet[$_]   = $true }
-$foundAcSet    = @{}; $foundAcs    | ForEach-Object { $foundAcSet[$_]    = $true }
-$foundSrsfSet  = @{}; $foundSrsFs  | ForEach-Object { $foundSrsfSet[$_]  = $true }
-$foundVtSet    = @{}; $foundVts    | ForEach-Object { $foundVtSet[$_]    = $true }
+$foundReqSet   = @{}; $definedReqs   | ForEach-Object { $foundReqSet[$_]   = $true }
+$foundAcSet    = @{}; $definedAcs    | ForEach-Object { $foundAcSet[$_]    = $true }
+$foundSrsfSet  = @{}; $definedSrsFs  | ForEach-Object { $foundSrsfSet[$_]  = $true }
+$foundVtSet    = @{}; $definedVts    | ForEach-Object { $foundVtSet[$_]    = $true }
 
 $expectedReqs  | Where-Object { -not $foundReqSet.ContainsKey($_) }  | ForEach-Object { $completenessErrors += "Missing from docs: $_" }
 $expectedAcs   | Where-Object { -not $foundAcSet.ContainsKey($_) }   | ForEach-Object { $completenessErrors += "Missing from docs: $_" }
 $expectedSrsFs | Where-Object { -not $foundSrsfSet.ContainsKey($_) } | ForEach-Object { $completenessErrors += "Missing from docs: $_" }
 $expectedVts   | Where-Object { -not $foundVtSet.ContainsKey($_) }   | ForEach-Object { $completenessErrors += "Missing from docs: $_" }
 
-# Check for duplicates in markdown documents
-$reqDups   = $foundReqs   | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "Duplicate REQ in docs: $($_.Name) ($($_.Count)x)" }
-$acDups    = $foundAcs    | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "Duplicate AC in docs: $($_.Name) ($($_.Count)x)" }
-$srsfDups  = $foundSrsFs  | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "Duplicate SRS-F in docs: $($_.Name) ($($_.Count)x)" }
-$vtDups    = $foundVts    | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "Duplicate VT in docs: $($_.Name) ($($_.Count)x)" }
+# Check for duplicate authoritative definition rows, not valid references.
+$reqDups   = $definedReqs   | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "Duplicate REQ definition: $($_.Name) ($($_.Count)x)" }
+$acDups    = $definedAcs    | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "Duplicate AC definition: $($_.Name) ($($_.Count)x)" }
+$srsfDups  = $definedSrsFs  | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "Duplicate SRS-F definition: $($_.Name) ($($_.Count)x)" }
+$vtDups    = $definedVts    | Group-Object | Where-Object { $_.Count -gt 1 } | ForEach-Object { "Duplicate VT definition: $($_.Name) ($($_.Count)x)" }
 
 # ------------------------------------------------------------------
 # 8. Validate coverage: each SRS-F and VT must have >=1 scenario
