@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Windows security lane (WSL2 controller side).
 #
-# Publishes the probe worker (SECURITY_REVIEW_SANDBOX_PROBE) and the
-# WindowsSecurityTests project self-contained, stages them on the Windows
-# host, runs the lane there via powershell.exe interop, and copies evidence
-# back to artifacts/windows-security/.
+# Publishes both the fault-injection probe worker and the standard production
+# worker, plus the WindowsSecurityTests project self-contained. The production
+# variant proves the runtime self-test path shipped to users.
 #
 # Usage: build/windows-lane.sh [windows-staging-dir]
 #   default windows staging dir: C:\Users\yusiyi\AppData\Local\Temp\srt-winlane
@@ -22,7 +21,8 @@ WIN_STAGING_WSL="${1:-/mnt/c/Users/yusiyi/AppData/Local/Temp/srt-winlane}"
 WIN_STAGING_HOST='C:\Users\yusiyi\AppData\Local\Temp\srt-winlane'
 
 mkdir -p "$LANE_DIR" "$EVIDENCE_DIR"
-rm -rf "$LANE_DIR/WorkerProbe" "$LANE_DIR/WindowsSecurityTests"
+rm -rf "$LANE_DIR/WorkerProbe" "$LANE_DIR/WorkerProduction" \
+  "$LANE_DIR/WindowsSecurityTests"
 
 echo "== publish probe worker (self-contained) =="
 dotnet publish src/SecurityReview.Worker/SecurityReview.Worker.csproj \
@@ -30,13 +30,19 @@ dotnet publish src/SecurityReview.Worker/SecurityReview.Worker.csproj \
   -p:SecurityReviewSandboxProbe=true \
   -o "$LANE_DIR/WorkerProbe"
 
+echo "== publish production worker (self-contained) =="
+dotnet publish src/SecurityReview.Worker/SecurityReview.Worker.csproj \
+  -c Release -r win-x64 --self-contained true \
+  -o "$LANE_DIR/WorkerProduction"
+
 echo "== publish WindowsSecurityTests (self-contained) =="
 dotnet publish tests/SecurityReview.WindowsSecurityTests/SecurityReview.WindowsSecurityTests.csproj \
   -c Release -r win-x64 --self-contained true \
   -o "$LANE_DIR/WindowsSecurityTests"
 
-echo "== generate worker manifest (SHA-256) =="
-python3 - "$LANE_DIR/WorkerProbe" <<'PY'
+echo "== generate worker manifests (SHA-256) =="
+for worker_dir in "$LANE_DIR/WorkerProbe" "$LANE_DIR/WorkerProduction"; do
+python3 - "$worker_dir" <<'PY'
 import hashlib, json, os, sys
 root = sys.argv[1]
 files = {}
@@ -49,17 +55,21 @@ with open(os.path.join(root, "worker-manifest.json"), "w", encoding="utf-8") as 
     json.dump({"algorithm": "SHA256", "files": files}, handle, indent=1)
 print(f"manifest covers {len(files)} files")
 PY
+done
 
 echo "== stage to Windows host =="
 powershell.exe -NoProfile -Command "Get-Process -Name 'SecurityReview.Worker' -ErrorAction SilentlyContinue | Stop-Process -Force" || true
 rm -rf "$WIN_STAGING_WSL"
 mkdir -p "$WIN_STAGING_WSL"
-cp -r "$LANE_DIR/WorkerProbe" "$LANE_DIR/WindowsSecurityTests" "$WIN_STAGING_WSL/"
+cp -r "$LANE_DIR/WorkerProbe" "$LANE_DIR/WorkerProduction" \
+  "$LANE_DIR/WindowsSecurityTests" "$WIN_STAGING_WSL/"
 
 echo "== run lane on Windows =="
 powershell.exe -NoProfile -Command "
 [Console]::OutputEncoding = [Text.Encoding]::UTF8;
 \$env:SECURITY_REVIEW_RUN_WINDOWS_SECURITY = '1';
+\$env:SECURITY_REVIEW_PROBE_WORKER_DIR = '$WIN_STAGING_HOST\WorkerProbe';
+\$env:SECURITY_REVIEW_PRODUCTION_WORKER_DIR = '$WIN_STAGING_HOST\WorkerProduction';
 Set-Location '$WIN_STAGING_HOST\WindowsSecurityTests';
 .\SecurityReview.WindowsSecurityTests.exe;
 exit \$LASTEXITCODE

@@ -13,9 +13,8 @@ namespace SecurityReview.Desktop.ViewModels;
 /// - Re-enables after exception or cancellation.
 /// - Routes typed public error codes to <see cref="IUiErrorSink"/>.
 /// - Never uses .Result/.Wait — all execution is fully async.
-/// - Captures <see cref="SynchronizationContext"/> only for
-///   <see cref="INotifyPropertyChanged"/> events; command execution
-///   runs on the thread pool.
+/// - Preserves the caller's <see cref="SynchronizationContext"/> so WPF
+///   command and property notifications return to the UI thread.
 /// - Supports optional <see cref="CancellationToken"/> passed to the
 ///   execute delegate.
 /// </summary>
@@ -106,7 +105,7 @@ public sealed class AsyncRelayCommand : ICommand, INotifyPropertyChanged, IDispo
     {
         // ICommand.Execute is fire-and-forget; we route exceptions through
         // ExecuteAsync to the error sink.
-        await ExecuteAsync(parameter).ConfigureAwait(false);
+        await ExecuteAsync(parameter);
     }
 
     /// <summary>
@@ -130,11 +129,11 @@ public sealed class AsyncRelayCommand : ICommand, INotifyPropertyChanged, IDispo
         {
             if (_executeWithToken is not null)
             {
-                await _executeWithToken(parameter, cts.Token).ConfigureAwait(false);
+                await _executeWithToken(parameter, cts.Token);
             }
             else
             {
-                await _execute(parameter).ConfigureAwait(false);
+                await _execute(parameter);
             }
         }
         catch (OperationCanceledException)

@@ -68,41 +68,61 @@ jobs:
         shell: pwsh
         run: ./build/verify-traceability.ps1
 
-      - name: Publish worker probe for Windows security tests
+      - name: Publish worker variants for Windows security tests
         shell: pwsh
         run: |
-          $probeDir = Join-Path $PWD "artifacts/windows-security/WorkerProbe"
-          dotnet publish src/SecurityReview.Worker/SecurityReview.Worker.csproj `
-            -c Release -r win-x64 --self-contained true `
-            -p:SecurityReviewSandboxProbe=true `
-            -o $probeDir
-          if ($LASTEXITCODE -ne 0) {
-            throw "Worker probe publish failed."
+          function Publish-Worker {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $OutputDirectory,
+              [switch] $IncludeFaultProbes
+            )
+
+            $publishArgs = @(
+              "-c", "Release",
+              "-r", "win-x64",
+              "--self-contained", "true"
+            )
+            if ($IncludeFaultProbes) {
+              $publishArgs += "-p:SecurityReviewSandboxProbe=true"
+            }
+
+            dotnet publish src/SecurityReview.Worker/SecurityReview.Worker.csproj `
+              @publishArgs -o $OutputDirectory
+            if ($LASTEXITCODE -ne 0) {
+              throw "Worker publish failed."
+            }
+
+            $files = [ordered]@{}
+            Get-ChildItem -LiteralPath $OutputDirectory -File |
+              Where-Object { $_.Name -ne "worker-manifest.json" } |
+              Sort-Object -Property Name |
+              ForEach-Object {
+                $files[$_.Name] = (
+                  Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
+                ).Hash.ToLowerInvariant()
+              }
+            $manifest = [ordered]@{
+              algorithm = "SHA256"
+              files = $files
+            }
+            [System.IO.File]::WriteAllText(
+              (Join-Path $OutputDirectory "worker-manifest.json"),
+              ($manifest | ConvertTo-Json -Depth 4),
+              [System.Text.UTF8Encoding]::new($false))
           }
 
-          $files = [ordered]@{}
-          Get-ChildItem -LiteralPath $probeDir -File |
-            Where-Object { $_.Name -ne "worker-manifest.json" } |
-            Sort-Object -Property Name |
-            ForEach-Object {
-              $files[$_.Name] = (
-                Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
-              ).Hash.ToLowerInvariant()
-            }
-          $manifest = [ordered]@{
-            algorithm = "SHA256"
-            files = $files
-          }
-          [System.IO.File]::WriteAllText(
-            (Join-Path $probeDir "worker-manifest.json"),
-            ($manifest | ConvertTo-Json -Depth 4),
-            [System.Text.UTF8Encoding]::new($false))
+          $probeDir = Join-Path $PWD "artifacts/windows-security/WorkerProbe"
+          $productionDir = Join-Path $PWD "artifacts/windows-security/WorkerProduction"
+          Publish-Worker -OutputDirectory $probeDir -IncludeFaultProbes
+          Publish-Worker -OutputDirectory $productionDir
 
       - name: Run Windows security lane
         shell: pwsh
         env:
           SECURITY_REVIEW_RUN_WINDOWS_SECURITY: "1"
           SECURITY_REVIEW_PROBE_WORKER_DIR: ${{ github.workspace }}\artifacts\windows-security\WorkerProbe
+          SECURITY_REVIEW_PRODUCTION_WORKER_DIR: ${{ github.workspace }}\artifacts\windows-security\WorkerProduction
         run: ./build/test.ps1 -Lane WindowsSecurity -RequireWindowsSecurity
 
       - name: Install Inno Setup

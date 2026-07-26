@@ -258,7 +258,7 @@ public sealed class WindowsSandboxSelfTest : ISandboxSelfTest
         {
             var request = new WorkerLaunchRequest(scanId, jobId,
                 _environment.WorkerStagingDirectory, _environment.WorkerExecutableName,
-                allowedPath, jobs.ScanJob, workerJob, $"--probe {scenario}");
+                allowedPath, jobs.ScanJob, workerJob, $"--self-test {scenario}");
             process = await _launcher.LaunchAsync(request, cancellationToken)
                 .ConfigureAwait(false);
 

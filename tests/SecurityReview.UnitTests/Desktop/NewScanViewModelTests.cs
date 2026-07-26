@@ -405,6 +405,35 @@ public sealed class NewScanViewModelTests
         Assert.True(vm.StartScanCommand.CanExecute(null));
     }
 
+    [Fact]
+    public void Start_command_reenables_after_sandbox_health_recovers()
+    {
+        var health = new StartupHealthService();
+        var vm = new NewScanViewModel(
+            new TestErrorSink(),
+            () => throw new InvalidOperationException(),
+            () => throw new InvalidOperationException(),
+            startupHealth: health);
+        string testFile = Path.GetTempFileName();
+        try
+        {
+            vm.AddTargetFromDrop(testFile);
+            health.MarkBlocked("worker_launch_failed");
+
+            Assert.False(vm.StartScanCommand.CanExecute(null));
+            Assert.Contains("worker_launch_failed", vm.ScanReadinessMessage);
+
+            health.MarkReady();
+
+            Assert.True(vm.StartScanCommand.CanExecute(null));
+            Assert.Empty(vm.ScanReadinessMessage);
+        }
+        finally
+        {
+            File.Delete(testFile);
+        }
+    }
+
     // ------------------------------------------------------------------
     // PropertyChanged events
     // ------------------------------------------------------------------

@@ -45,6 +45,13 @@ public static class Program
                 return 4;
             }
 
+            if (arguments.SelfTestScenario is not null)
+            {
+                return await Probe.SandboxSelfTestRunner.RunAsync(
+                        arguments.SelfTestScenario, context)
+                    .ConfigureAwait(false);
+            }
+
 #if SECURITY_REVIEW_SANDBOX_PROBE
             if (arguments.ProbeScenario is not null)
             {
@@ -143,12 +150,13 @@ public static class Program
 internal sealed class WorkerArguments
 {
     private WorkerArguments(string pipeName, byte[] nonce, ScanId scanId, JobId jobId,
-        string? probeScenario, string? buildSha256Override)
+        string? selfTestScenario, string? probeScenario, string? buildSha256Override)
     {
         PipeName = pipeName;
         Nonce = nonce;
         ScanId = scanId;
         JobId = jobId;
+        SelfTestScenario = selfTestScenario;
         ProbeScenario = probeScenario;
         BuildSha256Override = buildSha256Override;
     }
@@ -157,6 +165,7 @@ internal sealed class WorkerArguments
     public byte[] Nonce { get; }
     public ScanId ScanId { get; }
     public JobId JobId { get; }
+    public string? SelfTestScenario { get; }
     public string? ProbeScenario { get; }
     public string? BuildSha256Override { get; }
 
@@ -193,10 +202,11 @@ internal sealed class WorkerArguments
             throw new ArgumentException("Invalid nonce.", ex);
         }
 
+        values.TryGetValue("self-test", out string? selfTest);
         values.TryGetValue("probe", out string? probe);
         values.TryGetValue("build-sha256", out string? buildOverride);
         return new WorkerArguments(pipe, nonce, new ScanId(scanGuid), new JobId(jobGuid),
-            probe, buildOverride);
+            selfTest, probe, buildOverride);
     }
 
     private static string HashOwnExecutable()

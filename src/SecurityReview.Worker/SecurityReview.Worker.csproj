@@ -26,8 +26,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <!-- Probe-only sandbox commands. Never set in release builds; the Windows
-       security lane publishes with -p:SecurityReviewSandboxProbe=true. -->
+  <!-- Fault-injection sandbox commands. Never set in release builds; the
+       bounded self-test runtime checks are compiled separately for
+       production. The Windows security lane enables the additional probes. -->
   <PropertyGroup Condition="'$(SecurityReviewSandboxProbe)' == 'true'">
     <DefineConstants>$(DefineConstants);SECURITY_REVIEW_SANDBOX_PROBE</DefineConstants>
   </PropertyGroup>

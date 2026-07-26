@@ -8,11 +8,20 @@ namespace SecurityReview.WindowsSecurityTests.Sandbox;
 
 public sealed class WindowsSandboxSelfTestTests
 {
-    private static SandboxSelfTestEnvironment CreateEnvironment()
+    private static SandboxSelfTestEnvironment CreateEnvironment(
+        string directoryVariable = WindowsSecurityGate.ProbeWorkerDirectoryVariable)
     {
         WindowsSecurityGate.AssertEnabled();
-        string staging = Environment.GetEnvironmentVariable(
-            WindowsSecurityGate.ProbeWorkerDirectoryVariable)
+        string? configured = Environment.GetEnvironmentVariable(directoryVariable);
+        if (configured is null &&
+            directoryVariable == WindowsSecurityGate.ProductionWorkerDirectoryVariable)
+        {
+            Assert.Fail(
+                $"Set {WindowsSecurityGate.ProductionWorkerDirectoryVariable} to a "
+                + "standard production worker publish directory.");
+        }
+
+        string staging = configured
             ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "WorkerProbe"));
         if (!File.Exists(Path.Combine(staging, "worker-manifest.json")))
         {
@@ -49,6 +58,21 @@ public sealed class WindowsSandboxSelfTestTests
         AppContainerProfileInfo profile = await launcher.PrepareAsync(
             environment.WorkerStagingDirectory, environment.WorkerExecutableName, ct);
         Assert.Equal(profile.SidString, result.ProfileSid);
+    }
+
+    [Fact]
+    public async Task production_worker_supports_runtime_self_test()
+    {
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        SandboxSelfTestEnvironment environment = CreateEnvironment(
+            WindowsSecurityGate.ProductionWorkerDirectoryVariable);
+        var launcher = new AppContainerWorkerLauncher();
+        var selfTest = new WindowsSandboxSelfTest(launcher, launcher, environment);
+
+        SandboxSelfTestResult result = await selfTest.RunAsync(ct);
+
+        Assert.True(result.Passed, $"production self-test failed: {result.Code}");
+        Assert.Equal(ExpectedWorkerSha256(environment), result.WorkerSha256);
     }
 
     [Fact]

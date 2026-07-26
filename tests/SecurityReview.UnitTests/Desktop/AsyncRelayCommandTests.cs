@@ -221,6 +221,43 @@ public sealed class AsyncRelayCommandTests
             $"Expected >= 2 PropertyChanged events for IsRunning; got {changedCount}");
     }
 
+    [Fact]
+    public async Task Completion_notifications_return_to_captured_synchronization_context()
+    {
+        SynchronizationContext? previous = SynchronizationContext.Current;
+        using var context = new PumpSynchronizationContext();
+        try
+        {
+            SynchronizationContext.SetSynchronizationContext(context);
+            int ownerThreadId = Environment.CurrentManagedThreadId;
+            var notificationThreadIds = new List<int>();
+            var cmd = new AsyncRelayCommand(async _ =>
+            {
+                await Task.Run(() => Thread.Sleep(20));
+            }, new TestErrorSink());
+
+            cmd.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(AsyncRelayCommand.IsRunning))
+                    notificationThreadIds.Add(Environment.CurrentManagedThreadId);
+            };
+            ((ICommand)cmd).CanExecuteChanged += (_, _) =>
+                notificationThreadIds.Add(Environment.CurrentManagedThreadId);
+
+            Task execution = cmd.ExecuteAsync(null);
+            context.PumpUntil(execution, TimeSpan.FromSeconds(5));
+            await execution;
+
+            Assert.NotEmpty(notificationThreadIds);
+            Assert.All(notificationThreadIds,
+                threadId => Assert.Equal(ownerThreadId, threadId));
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
     // ------------------------------------------------------------------
     // Cancellation support
     // ------------------------------------------------------------------
@@ -348,5 +385,41 @@ public sealed class AsyncRelayCommandTests
         await task;
 
         Assert.False(cmd.IsRunning);
+    }
+
+    private sealed class PumpSynchronizationContext : SynchronizationContext, IDisposable
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<
+            (SendOrPostCallback Callback, object? State)> _callbacks = new();
+        private readonly AutoResetEvent _callbackAvailable = new(initialState: false);
+
+        public override void Post(SendOrPostCallback d, object? state)
+        {
+            _callbacks.Enqueue((d, state));
+            _callbackAvailable.Set();
+        }
+
+        public void PumpUntil(Task task, TimeSpan timeout)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            while (!task.IsCompleted)
+            {
+                if (_callbacks.TryDequeue(out var work))
+                {
+                    work.Callback(work.State);
+                    continue;
+                }
+
+                if (stopwatch.Elapsed >= timeout)
+                    throw new TimeoutException("Synchronization context pump timed out.");
+
+                _callbackAvailable.WaitOne(TimeSpan.FromMilliseconds(20));
+            }
+
+            while (_callbacks.TryDequeue(out var remaining))
+                remaining.Callback(remaining.State);
+        }
+
+        public void Dispose() => _callbackAvailable.Dispose();
     }
 }
