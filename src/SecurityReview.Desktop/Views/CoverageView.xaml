@@ -39,7 +39,7 @@
                 <StackPanel>
                     <TextBlock Text="覆盖结论" Style="{StaticResource FieldLabelStyle}" />
                     <TextBlock FontFamily="Bahnschrift SemiBold" FontSize="21">
-                        <Run Text="{Binding ScanStatusDisplay}" />
+                        <Run Text="{Binding ScanStatusDisplay, Mode=OneWay}" />
                     </TextBlock>
                     <TextBlock Text="{Binding ConclusionHeader}" Style="{StaticResource PageSubtitleStyle}"
                                Margin="0,5,24,0" />
@@ -76,8 +76,8 @@
                                 <Button Content="上一页" Command="{Binding PreviousGapPageCommand}"
                                         IsEnabled="{Binding HasPreviousGapPage}" Margin="0,0,8,0" />
                                 <TextBlock VerticalAlignment="Center" Margin="4,0,12,0">
-                                    <Run Text="第 " /><Run Text="{Binding CurrentGapPage}" />
-                                    <Run Text=" / " /><Run Text="{Binding TotalGapPages}" /><Run Text=" 页" />
+                                    <Run Text="第 " /><Run Text="{Binding CurrentGapPage, Mode=OneWay}" />
+                                    <Run Text=" / " /><Run Text="{Binding TotalGapPages, Mode=OneWay}" /><Run Text=" 页" />
                                 </TextBlock>
                                 <Button Content="下一页" Command="{Binding NextGapPageCommand}"
                                         IsEnabled="{Binding HasNextGapPage}" />
@@ -133,8 +133,8 @@
                                 <Button Content="上一页" Command="{Binding PreviousFilePageCommand}"
                                         IsEnabled="{Binding HasPreviousFilePage}" Margin="0,0,8,0" />
                                 <TextBlock VerticalAlignment="Center" Margin="4,0,12,0">
-                                    <Run Text="第 " /><Run Text="{Binding CurrentFilePage}" />
-                                    <Run Text=" / " /><Run Text="{Binding TotalFilePages}" /><Run Text=" 页" />
+                                    <Run Text="第 " /><Run Text="{Binding CurrentFilePage, Mode=OneWay}" />
+                                    <Run Text=" / " /><Run Text="{Binding TotalFilePages, Mode=OneWay}" /><Run Text=" 页" />
                                 </TextBlock>
                                 <Button Content="下一页" Command="{Binding NextFilePageCommand}"
                                         IsEnabled="{Binding HasNextFilePage}" />

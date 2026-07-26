@@ -20,7 +20,7 @@
             <StackPanel>
                 <TextBlock Text="ASSESSMENT RESULT" Style="{StaticResource PageEyebrowStyle}" />
                 <TextBlock Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0">
-                    <Run Text="扫描结果 / " /><Run Text="{Binding ScanStatusDisplay}" />
+                    <Run Text="扫描结果 / " /><Run Text="{Binding ScanStatusDisplay, Mode=OneWay}" />
                 </TextBlock>
                 <TextBlock Text="{Binding ConclusionDisplay}" Style="{StaticResource PageSubtitleStyle}"
                            Margin="0,5,20,0" />
@@ -84,7 +84,7 @@
                             <Button Content="‹" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding HasPreviousPage}"
                                     MinWidth="36" Padding="8,5" Margin="0,0,7,0" />
                             <TextBlock VerticalAlignment="Center" Margin="3,0,10,0" FontSize="12">
-                                <Run Text="{Binding CurrentPage}" /><Run Text=" / " /><Run Text="{Binding TotalPages}" />
+                                <Run Text="{Binding CurrentPage, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding TotalPages, Mode=OneWay}" />
                             </TextBlock>
                             <Button Content="›" Command="{Binding NextPageCommand}" IsEnabled="{Binding HasNextPage}"
                                     MinWidth="36" Padding="8,5" />
@@ -107,8 +107,8 @@
                                             <Border Width="4" CornerRadius="2" Background="{StaticResource BrushWarn}" />
                                             <StackPanel Grid.Column="1" Margin="9,0,10,0">
                                                 <TextBlock FontWeight="SemiBold">
-                                                    <Run Text="{Binding KindDisplay}" /><Run Text="  /  " Foreground="{StaticResource BrushTextDisabled}" />
-                                                    <Run Text="{Binding SeverityDisplay}" Foreground="{StaticResource BrushError}" />
+                                                    <Run Text="{Binding KindDisplay, Mode=OneWay}" /><Run Text="  /  " Foreground="{StaticResource BrushTextDisabled}" />
+                                                    <Run Text="{Binding SeverityDisplay, Mode=OneWay}" Foreground="{StaticResource BrushError}" />
                                                 </TextBlock>
                                                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                                                     <TextBlock Text="FP  " FontFamily="Bahnschrift SemiBold" FontSize="10"

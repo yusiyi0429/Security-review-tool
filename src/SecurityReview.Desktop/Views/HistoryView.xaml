@@ -83,9 +83,9 @@
                                                 HorizontalAlignment="Left" VerticalAlignment="Center" />
                                         <StackPanel Grid.Column="1">
                                             <TextBlock FontWeight="SemiBold" FontSize="14">
-                                                <Run Text="{Binding CreatedAtDisplay}" />
+                                                <Run Text="{Binding CreatedAtDisplay, Mode=OneWay}" />
                                                 <Run Text="  /  " Foreground="{StaticResource BrushTextDisabled}" />
-                                                <Run Text="{Binding StatusDisplay}" />
+                                                <Run Text="{Binding StatusDisplay, Mode=OneWay}" />
                                             </TextBlock>
                                             <TextBlock Text="本地安全扫描记录" Style="{StaticResource PageSubtitleStyle}"
                                                        FontSize="11" Margin="0,3,0,0" />

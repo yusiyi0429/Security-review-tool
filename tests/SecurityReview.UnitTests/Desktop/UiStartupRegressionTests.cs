@@ -1,8 +1,14 @@
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Media;
 using System.Xml.Linq;
 using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
+using SecurityReview.Desktop.ViewModels;
+using SecurityReview.Desktop.Views;
 
 namespace SecurityReview.UnitTests.Desktop;
 
@@ -53,6 +59,67 @@ public sealed partial class UiStartupRegressionTests
             .ToArray();
 
         Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void Bound_run_text_elements_are_explicitly_one_way()
+    {
+        string desktopRoot = Path.Combine(FindRepositoryRoot(),
+            "src", "SecurityReview.Desktop");
+
+        var runBindings = Directory.GetFiles(
+                desktopRoot, "*.xaml", SearchOption.AllDirectories)
+            .SelectMany(path => XDocument.Load(path).Descendants())
+            .Where(element => element.Name.LocalName == "Run")
+            .Select(element => element.Attribute("Text")?.Value)
+            .OfType<string>()
+            .Where(value => value.StartsWith("{Binding", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.All(runBindings, binding =>
+            Assert.Contains("Mode=OneWay", binding, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Scan_results_status_binding_is_one_way_and_renders_on_sta_thread()
+    {
+        Exception? startupException = null;
+        BindingMode? bindingMode = null;
+        string? renderedStatus = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var viewModel = new ScanResultsViewModel(
+                    new TestErrorSink(),
+                    () => throw new InvalidOperationException("Query service is not used by this UI test."));
+                var view = new ScanResultsView { DataContext = viewModel };
+
+                Run statusRun = FindStatusRun(view);
+                Binding binding = Assert.IsType<Binding>(
+                    BindingOperations.GetBinding(statusRun, Run.TextProperty));
+                bindingMode = binding.Mode;
+
+                BindingOperations.GetBindingExpression(statusRun, Run.TextProperty)
+                    ?.UpdateTarget();
+                renderedStatus = statusRun.Text;
+            }
+            catch (Exception ex)
+            {
+                startupException = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+
+        bool completed = thread.Join(TimeSpan.FromSeconds(15));
+
+        Assert.True(completed,
+            "Scan results XAML loading did not finish within 15 seconds.");
+        Assert.Null(startupException);
+        Assert.Equal(BindingMode.OneWay, bindingMode);
+        Assert.False(string.IsNullOrWhiteSpace(renderedStatus));
     }
 
     [Fact]
@@ -156,6 +223,36 @@ public sealed partial class UiStartupRegressionTests
         }
 
         Directory.Delete(path, recursive: true);
+    }
+
+    private static Run FindStatusRun(DependencyObject root)
+    {
+        foreach (TextBlock textBlock in FindTextBlocks(root))
+        {
+            foreach (Run run in textBlock.Inlines.OfType<Run>())
+            {
+                BindingBase? binding = BindingOperations.GetBinding(run, Run.TextProperty);
+                if (binding is Binding { Path.Path: nameof(ScanResultsViewModel.ScanStatusDisplay) })
+                    return run;
+            }
+        }
+
+        throw new InvalidOperationException(
+            "Scan results status Run binding was not found in the visual tree.");
+    }
+
+    private static IEnumerable<TextBlock> FindTextBlocks(DependencyObject root)
+    {
+        int childCount = VisualTreeHelper.GetChildrenCount(root);
+        for (int index = 0; index < childCount; index++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(root, index);
+            if (child is TextBlock textBlock)
+                yield return textBlock;
+
+            foreach (TextBlock descendant in FindTextBlocks(child))
+                yield return descendant;
+        }
     }
 
     [Fact]

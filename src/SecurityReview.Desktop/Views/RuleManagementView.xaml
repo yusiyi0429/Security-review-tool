@@ -49,7 +49,7 @@
                                    FontSize="20" Foreground="{StaticResource BrushTextPrimary}" />
                         <TextBlock Margin="0,7,0,0">
                             <Run Text="版本  " Foreground="{StaticResource BrushTextSecondary}" />
-                            <Run Text="{Binding ActiveVersion}" FontWeight="SemiBold" />
+                            <Run Text="{Binding ActiveVersion, Mode=OneWay}" FontWeight="SemiBold" />
                         </TextBlock>
                     </StackPanel>
                     <Border Grid.Column="1" Background="{StaticResource BrushSurface1}" CornerRadius="6"
