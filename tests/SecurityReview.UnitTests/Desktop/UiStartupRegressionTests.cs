@@ -8,6 +8,7 @@ using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
 using SecurityReview.Desktop.Views;
+using SecurityReview.Domain.Scans;
 
 namespace SecurityReview.UnitTests.Desktop;
 
@@ -97,6 +98,7 @@ public sealed partial class UiStartupRegressionTests
                     var viewModel = new ScanResultsViewModel(
                         new TestErrorSink(),
                         () => throw new InvalidOperationException("Query service is not used by this UI test."));
+                    viewModel.ScanStatus = ScanStatus.Completed;
                     var view = new ScanResultsView { DataContext = viewModel };
 
                     Run statusRun = FindStatusRun(view);
@@ -104,6 +106,7 @@ public sealed partial class UiStartupRegressionTests
                         BindingOperations.GetBinding(statusRun, Run.TextProperty));
                     bindingMode = binding.Mode;
 
+                    statusRun.DataContext = viewModel;
                     BindingOperations.GetBindingExpression(statusRun, Run.TextProperty)
                         ?.UpdateTarget();
                     renderedStatus = statusRun.Text;
@@ -127,7 +130,7 @@ public sealed partial class UiStartupRegressionTests
             "Scan results XAML loading did not finish within 15 seconds.");
         Assert.Null(startupException);
         Assert.Equal(BindingMode.OneWay, bindingMode);
-        Assert.False(string.IsNullOrWhiteSpace(renderedStatus));
+        Assert.Equal("已完成", renderedStatus);
     }
 
     [Fact]
