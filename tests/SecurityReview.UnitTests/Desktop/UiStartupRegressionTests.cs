@@ -100,15 +100,19 @@ public sealed partial class UiStartupRegressionTests
                         () => throw new InvalidOperationException("Query service is not used by this UI test."));
                     viewModel.ScanStatus = ScanStatus.Completed;
                     var view = new ScanResultsView { DataContext = viewModel };
+                    var host = new ContentControl { Content = view };
+                    host.Measure(new Size(1280, 760));
+                    host.Arrange(new Rect(0, 0, 1280, 760));
+                    host.UpdateLayout();
 
                     Run statusRun = FindStatusRun(view);
                     Binding binding = Assert.IsType<Binding>(
                         BindingOperations.GetBinding(statusRun, Run.TextProperty));
                     bindingMode = binding.Mode;
 
-                    statusRun.DataContext = viewModel;
-                    BindingOperations.GetBindingExpression(statusRun, Run.TextProperty)
-                        ?.UpdateTarget();
+                    BindingExpression expression = Assert.IsType<BindingExpression>(
+                        BindingOperations.GetBindingExpression(statusRun, Run.TextProperty));
+                    expression.UpdateTarget();
                     renderedStatus = statusRun.Text;
                 }
                 finally
