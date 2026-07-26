@@ -1656,17 +1656,50 @@
       "Format": "openxml",
       "ExpectedParser": "openxml",
       "ExpectedParserVersion": "1.0.0",
-      "ExpectedChunks": [],
+      "ExpectedChunks": [
+        {
+          "Label": "0afd0d24531d609beab0db22004ed8cb03264e42388695ea005a7211a147a1cc",
+          "SourceStart": 597,
+          "SourceLength": 42,
+          "VirtualPath": "Office/sample.pptm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "ascii"
+        },
+        {
+          "Label": "6ff63f1f8fa5ff645ac0f1836eea241fe634bbae5714a52f5e24291c029ca683",
+          "SourceStart": 722,
+          "SourceLength": 72,
+          "VirtualPath": "Office/sample.pptm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "utf-16le"
+        },
+        {
+          "Label": "95c5a2ff0480fd03a8195bcebbdc0f8861806fb87b55d4a2e5c8a4b1c9f1d40e",
+          "SourceStart": 798,
+          "SourceLength": 14,
+          "VirtualPath": "Office/sample.pptm",
+          "FormatId": "openxml",
+          "ContentKind": "Binary",
+          "Encoding": "utf-16le"
+        }
+      ],
       "ExpectedGaps": [
         {
           "Reason": "Corrupt",
           "DetailCode": "openxml_parse_failed: OpenXmlPackageException: Package could not be opened for stream. See inner exception for details and be aware that there are behavior differences in stream support between .NET Framework and Core.",
           "VirtualPath": "Office/sample.pptm"
+        },
+        {
+          "Reason": "UnsupportedRegion",
+          "DetailCode": "macro_semantics_not_analyzed",
+          "VirtualPath": "Office/sample.pptm"
         }
       ],
       "MaxDurationMs": 30000,
       "MaxMemoryMb": 512,
-      "Coverage": "NotCovered"
+      "Coverage": "Partial"
     },
     {
       "CaseId": "office/sample_pptx",
