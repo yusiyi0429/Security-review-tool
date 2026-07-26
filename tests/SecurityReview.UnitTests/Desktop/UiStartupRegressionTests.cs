@@ -8,7 +8,6 @@ using System.Xml.Linq;
 using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
-using SecurityReview.Desktop.Views;
 
 namespace SecurityReview.UnitTests.Desktop;
 
@@ -83,6 +82,9 @@ public sealed partial class UiStartupRegressionTests
     [Fact]
     public void Scan_results_status_binding_is_one_way_and_renders_on_sta_thread()
     {
+        string tempDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"security-review-scan-results-{Guid.NewGuid():N}");
         Exception? startupException = null;
         BindingMode? bindingMode = null;
         string? renderedStatus = null;
@@ -91,12 +93,19 @@ public sealed partial class UiStartupRegressionTests
         {
             try
             {
+                using var root = new CompositionRoot(
+                    CompositionRoot.Args.ForTest(tempDirectory));
+                var window = new MainWindow(root.MainWindowViewModel, root);
                 var viewModel = new ScanResultsViewModel(
                     new TestErrorSink(),
                     () => throw new InvalidOperationException("Query service is not used by this UI test."));
-                var view = new ScanResultsView { DataContext = viewModel };
 
-                Run statusRun = FindStatusRun(view);
+                root.MainWindowViewModel.CurrentView = viewModel;
+                window.Measure(new Size(1280, 760));
+                window.Arrange(new Rect(0, 0, 1280, 760));
+                window.UpdateLayout();
+
+                Run statusRun = FindStatusRun(window);
                 Binding binding = Assert.IsType<Binding>(
                     BindingOperations.GetBinding(statusRun, Run.TextProperty));
                 bindingMode = binding.Mode;
@@ -104,6 +113,7 @@ public sealed partial class UiStartupRegressionTests
                 BindingOperations.GetBindingExpression(statusRun, Run.TextProperty)
                     ?.UpdateTarget();
                 renderedStatus = statusRun.Text;
+                window.Close();
             }
             catch (Exception ex)
             {
@@ -114,12 +124,19 @@ public sealed partial class UiStartupRegressionTests
         thread.Start();
 
         bool completed = thread.Join(TimeSpan.FromSeconds(15));
-
-        Assert.True(completed,
-            "Scan results XAML loading did not finish within 15 seconds.");
-        Assert.Null(startupException);
-        Assert.Equal(BindingMode.OneWay, bindingMode);
-        Assert.False(string.IsNullOrWhiteSpace(renderedStatus));
+        try
+        {
+            Assert.True(completed,
+                "Scan results XAML loading did not finish within 15 seconds.");
+            Assert.Null(startupException);
+            Assert.Equal(BindingMode.OneWay, bindingMode);
+            Assert.False(string.IsNullOrWhiteSpace(renderedStatus));
+        }
+        finally
+        {
+            if (completed && Directory.Exists(tempDirectory))
+                DeleteTestDirectory(tempDirectory);
+        }
     }
 
     [Fact]
