@@ -29,7 +29,7 @@
                 <StackPanel>
                     <TextBlock Text="当前阶段" Style="{StaticResource FieldLabelStyle}" />
                     <TextBlock Text="{Binding StageDisplay}" FontFamily="Bahnschrift SemiBold" FontSize="22" />
-                    <ProgressBar Value="{Binding ProgressPercentage}" Minimum="0" Maximum="100"
+                    <ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}" Minimum="0" Maximum="100"
                                  Style="{StaticResource WorkbenchProgressBarStyle}" Margin="0,14,0,0" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="{Binding ProgressPercentage, StringFormat='{}{0:F1}%'}"

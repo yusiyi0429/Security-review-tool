@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.10 - 2026-07-26
+
+### 修复
+
+- 修复扫描进度页的 `ProgressBar.Value` 默认双向绑定只读 `ProgressPercentage` 而导致的 WPF 绑定异常。
+
+### 验证
+
+- 新增进度条值绑定静态检查，以及加载真实扫描进度页并验证 `ProgressPercentage` 单向绑定和渲染数值的 Windows STA 回归测试。
+
 ## 1.0.9 - 2026-07-26
 
 ### 修复

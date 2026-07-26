@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Xml.Linq;
+using SecurityReview.Application.Scans;
 using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
@@ -81,6 +82,25 @@ public sealed partial class UiStartupRegressionTests
     }
 
     [Fact]
+    public void Bound_progress_bar_values_are_explicitly_one_way()
+    {
+        string desktopRoot = Path.Combine(FindRepositoryRoot(),
+            "src", "SecurityReview.Desktop");
+
+        var valueBindings = Directory.GetFiles(
+                desktopRoot, "*.xaml", SearchOption.AllDirectories)
+            .SelectMany(path => XDocument.Load(path).Descendants())
+            .Where(element => element.Name.LocalName == "ProgressBar")
+            .Select(element => element.Attribute("Value")?.Value)
+            .OfType<string>()
+            .Where(value => value.StartsWith("{Binding", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.All(valueBindings, binding =>
+            Assert.Contains("Mode=OneWay", binding, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Scan_results_status_binding_is_one_way_and_renders_on_sta_thread()
     {
         Exception? startupException = null;
@@ -135,6 +155,70 @@ public sealed partial class UiStartupRegressionTests
         Assert.Null(startupException);
         Assert.Equal(BindingMode.OneWay, bindingMode);
         Assert.Equal("已完成", renderedStatus);
+    }
+
+    [Fact]
+    public void Scan_progress_percentage_binding_is_one_way_and_renders_on_sta_thread()
+    {
+        Exception? startupException = null;
+        BindingMode? bindingMode = null;
+        double renderedPercentage = 0;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var app = new App();
+                app.InitializeComponent();
+                try
+                {
+                    var viewModel = new ScanProgressViewModel(
+                        new TestErrorSink(),
+                        () => throw new InvalidOperationException(
+                            "Cancel handler is not used by this UI test."));
+                    viewModel.ApplyProgress(ScanProgress.Empty with
+                    {
+                        Stage = ScanStage.Running,
+                        DiscoveredFiles = 10,
+                        ProcessedFiles = 4,
+                    });
+
+                    var view = new ScanProgressView { DataContext = viewModel };
+                    var host = new ContentControl { Content = view };
+                    host.Measure(new Size(1280, 760));
+                    host.Arrange(new Rect(0, 0, 1280, 760));
+                    host.UpdateLayout();
+
+                    ProgressBar progressBar = FindProgressBar(view);
+                    Binding binding = Assert.IsType<Binding>(
+                        BindingOperations.GetBinding(progressBar, ProgressBar.ValueProperty));
+                    bindingMode = binding.Mode;
+
+                    BindingExpression expression = Assert.IsType<BindingExpression>(
+                        BindingOperations.GetBindingExpression(progressBar, ProgressBar.ValueProperty));
+                    expression.UpdateTarget();
+                    renderedPercentage = progressBar.Value;
+                }
+                finally
+                {
+                    app.Shutdown();
+                }
+            }
+            catch (Exception ex)
+            {
+                startupException = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+
+        bool completed = thread.Join(TimeSpan.FromSeconds(15));
+
+        Assert.True(completed,
+            "Scan progress XAML loading did not finish within 15 seconds.");
+        Assert.Null(startupException);
+        Assert.Equal(BindingMode.OneWay, bindingMode);
+        Assert.Equal(40, renderedPercentage);
     }
 
     [Fact]
@@ -254,6 +338,30 @@ public sealed partial class UiStartupRegressionTests
 
         throw new InvalidOperationException(
             "Scan results status Run binding was not found in the visual tree.");
+    }
+
+    private static ProgressBar FindProgressBar(DependencyObject root)
+    {
+        foreach (object child in LogicalTreeHelper.GetChildren(root))
+        {
+            if (child is ProgressBar progressBar)
+                return progressBar;
+
+            if (child is not DependencyObject dependencyObject)
+                continue;
+
+            try
+            {
+                return FindProgressBar(dependencyObject);
+            }
+            catch (InvalidOperationException)
+            {
+                // Continue searching sibling branches.
+            }
+        }
+
+        throw new InvalidOperationException(
+            "Scan progress Value binding was not found in the logical tree.");
     }
 
     private static IEnumerable<TextBlock> FindTextBlocks(DependencyObject root)
