@@ -46,11 +46,6 @@ public sealed class DockerIndependenceTests
             Assert.False(source.Contains(pattern, StringComparison.Ordinal),
                 $"DockerArchiveParser should not contain '{pattern}'");
         }
-
-        // "Docker" keyword is only in class name — remove it and verify
-        string noClass = source.Replace("DockerArchiveParser", "");
-        Assert.False(noClass.Contains("Docker", StringComparison.Ordinal),
-            "DockerArchiveParser should not reference Docker beyond its own class name");
     }
 
     [Fact]

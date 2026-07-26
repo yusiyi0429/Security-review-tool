@@ -95,7 +95,7 @@ public sealed class OpenXmlNoExecutionTests
 
         // VBA strings should be extracted as text, never executed
         Assert.Contains(events, e => e is ParserEvent.ChunkProduced cp &&
-            cp.Chunk.Text.Contains("tok_vba_ascii_canary_hello"));
+            cp.Chunk.Text.Contains("tok_vba_ascii_multiplier"));
 
         // macro_semantics_not_analyzed gap must be present
         Assert.Contains(events, e => e is ParserEvent.GapProduced gp &&
