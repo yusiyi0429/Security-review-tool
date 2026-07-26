@@ -42,15 +42,17 @@ internal static class ProbeRunner
         switch (scenario)
         {
             case ProbeScenario.ProtocolSkipSequence:
+                await ReadParseJobAsync(context).ConfigureAwait(false);
                 await context.SendAsync(MessageType.ContentChunk, "{}", sequenceOverride: 5)
                     .ConfigureAwait(false);
-                return 0;
+                return await WaitForParentTerminationAsync().ConfigureAwait(false);
             case ProbeScenario.ProtocolConflictingDuplicate:
+                await ReadParseJobAsync(context).ConfigureAwait(false);
                 await context.SendAsync(MessageType.ContentChunk, "{\"marker\":\"a\"}",
                     sequenceOverride: 1).ConfigureAwait(false);
                 await context.SendAsync(MessageType.ContentChunk, "{\"marker\":\"b\"}",
                     sequenceOverride: 1).ConfigureAwait(false);
-                return 0;
+                return await WaitForParentTerminationAsync().ConfigureAwait(false);
             case ProbeScenario.ProtocolExactRetransmit:
             {
                 byte[] chunk = context.SerializeFrame(MessageType.ContentChunk, "{}", 1);
@@ -67,13 +69,14 @@ internal static class ProbeRunner
 
             case ProbeScenario.ProtocolOversizedFrame:
             {
+                await ReadParseJobAsync(context).ConfigureAwait(false);
                 byte[] header = new byte[4];
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
                     header, ProtocolConstants.MaxFrameBytes + 1);
                 await context.Pipe.WriteAsync(header).ConfigureAwait(false);
                 await context.Pipe.WriteAsync(new byte[64]).ConfigureAwait(false);
                 await context.Pipe.FlushAsync().ConfigureAwait(false);
-                return 0;
+                return await WaitForParentTerminationAsync().ConfigureAwait(false);
             }
 
             case ProbeScenario.ProtocolWrongNonce:
@@ -228,6 +231,24 @@ internal static class ProbeRunner
         };
         await context.SendAsync(MessageType.ParseCompleted, Serialize(result))
             .ConfigureAwait(false);
+        return 0;
+    }
+
+    // Protocol-violation probes must let the parent finish writing ParseJob before
+    // emitting the malformed response. They then remain alive until the validator
+    // kills their job, which proves the parent enforced the protocol violation.
+    private static async Task ReadParseJobAsync(WorkerSessionContext context)
+    {
+        ProtocolEnvelope message = await context.ReadAsync().ConfigureAwait(false);
+        if (message.MessageType != MessageType.ParseJob)
+        {
+            throw new ProtocolException("Probe expected ParseJob before response.");
+        }
+    }
+
+    private static async Task<int> WaitForParentTerminationAsync()
+    {
+        await Task.Delay(Timeout.InfiniteTimeSpan).ConfigureAwait(false);
         return 0;
     }
 
