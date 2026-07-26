@@ -101,11 +101,13 @@ public sealed partial class UiStartupRegressionTests
     }
 
     [Fact]
-    public void Scan_results_status_binding_is_one_way_and_renders_on_sta_thread()
+    public void Scan_results_and_progress_bindings_are_one_way_and_render_on_sta_thread()
     {
         Exception? startupException = null;
-        BindingMode? bindingMode = null;
+        BindingMode? statusBindingMode = null;
         string? renderedStatus = null;
+        BindingMode? progressBindingMode = null;
+        double renderedPercentage = 0;
 
         var thread = new Thread(() =>
         {
@@ -128,75 +130,38 @@ public sealed partial class UiStartupRegressionTests
                     Run statusRun = FindStatusRun(view);
                     Binding binding = Assert.IsType<Binding>(
                         BindingOperations.GetBinding(statusRun, Run.TextProperty));
-                    bindingMode = binding.Mode;
+                    statusBindingMode = binding.Mode;
 
                     BindingExpression expression = Assert.IsType<BindingExpression>(
                         BindingOperations.GetBindingExpression(statusRun, Run.TextProperty));
                     expression.UpdateTarget();
                     renderedStatus = statusRun.Text;
-                }
-                finally
-                {
-                    app.Shutdown();
-                }
-            }
-            catch (Exception ex)
-            {
-                startupException = ex;
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
 
-        bool completed = thread.Join(TimeSpan.FromSeconds(15));
-
-        Assert.True(completed,
-            "Scan results XAML loading did not finish within 15 seconds.");
-        Assert.Null(startupException);
-        Assert.Equal(BindingMode.OneWay, bindingMode);
-        Assert.Equal("已完成", renderedStatus);
-    }
-
-    [Fact]
-    public void Scan_progress_percentage_binding_is_one_way_and_renders_on_sta_thread()
-    {
-        Exception? startupException = null;
-        BindingMode? bindingMode = null;
-        double renderedPercentage = 0;
-
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                var app = new App();
-                app.InitializeComponent();
-                try
-                {
-                    var viewModel = new ScanProgressViewModel(
+                    var progressViewModel = new ScanProgressViewModel(
                         new TestErrorSink(),
                         () => throw new InvalidOperationException(
                             "Cancel handler is not used by this UI test."));
-                    viewModel.ApplyProgress(ScanProgress.Empty with
+                    progressViewModel.ApplyProgress(ScanProgress.Empty with
                     {
                         Stage = ScanStage.Running,
                         DiscoveredFiles = 10,
                         ProcessedFiles = 4,
                     });
 
-                    var view = new ScanProgressView { DataContext = viewModel };
-                    var host = new ContentControl { Content = view };
-                    host.Measure(new Size(1280, 760));
-                    host.Arrange(new Rect(0, 0, 1280, 760));
-                    host.UpdateLayout();
+                    var progressView = new ScanProgressView { DataContext = progressViewModel };
+                    var progressHost = new ContentControl { Content = progressView };
+                    progressHost.Measure(new Size(1280, 760));
+                    progressHost.Arrange(new Rect(0, 0, 1280, 760));
+                    progressHost.UpdateLayout();
 
-                    ProgressBar progressBar = FindProgressBar(view);
-                    Binding binding = Assert.IsType<Binding>(
+                    ProgressBar progressBar = FindProgressBar(progressView);
+                    Binding progressBinding = Assert.IsType<Binding>(
                         BindingOperations.GetBinding(progressBar, ProgressBar.ValueProperty));
-                    bindingMode = binding.Mode;
+                    progressBindingMode = progressBinding.Mode;
 
-                    BindingExpression expression = Assert.IsType<BindingExpression>(
+                    BindingExpression progressExpression = Assert.IsType<BindingExpression>(
                         BindingOperations.GetBindingExpression(progressBar, ProgressBar.ValueProperty));
-                    expression.UpdateTarget();
+                    progressExpression.UpdateTarget();
                     renderedPercentage = progressBar.Value;
                 }
                 finally
@@ -215,9 +180,11 @@ public sealed partial class UiStartupRegressionTests
         bool completed = thread.Join(TimeSpan.FromSeconds(15));
 
         Assert.True(completed,
-            "Scan progress XAML loading did not finish within 15 seconds.");
+            "Scan results and progress XAML loading did not finish within 15 seconds.");
         Assert.Null(startupException);
-        Assert.Equal(BindingMode.OneWay, bindingMode);
+        Assert.Equal(BindingMode.OneWay, statusBindingMode);
+        Assert.Equal("已完成", renderedStatus);
+        Assert.Equal(BindingMode.OneWay, progressBindingMode);
         Assert.Equal(40, renderedPercentage);
     }
 
