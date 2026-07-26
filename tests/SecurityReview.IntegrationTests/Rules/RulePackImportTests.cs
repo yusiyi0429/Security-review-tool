@@ -21,11 +21,9 @@ namespace SecurityReview.IntegrationTests.Rules;
 /// Integration tests for the full rule pack import pipeline:
 /// validation, downgrade/duplicate guards, atomic store, and active-pointer switch.
 ///
-/// Known limitation: The manifest includes signature.json's hash, and the signature
-/// signs the manifest. These two constraints form a circular dependency. The
-/// CreateValidPackage helper resolves this by iterating the sign-hash-manifest loop
-/// until the manifest bytes converge (the sig.json body is fixed-length across
-/// iterations, allowing the fixed-point to be reached in practice).
+/// Test packages follow the production writer contract: the manifest hashes
+/// content entries but not signature.json, then signature.json signs the final
+/// canonical manifest bytes.
 /// </summary>
 public sealed class RulePackImportTests
 {
@@ -113,13 +111,9 @@ public sealed class RulePackImportTests
     /// <summary>
     /// Creates a signed rule pack ZIP.
     ///
-    /// In the current design the manifest includes the SHA-256 of every file in
-    /// the ZIP (including signature.json) and the signature.json signs the
-    /// manifest bytes. Because these two constraints are circular, we iterate
-    /// the sign→hash→manifest loop until the manifest bytes stabilise (fixed
-    /// point). Since signature.json has a fixed length (the signature is always
-    /// 64 bytes → 88 base64 chars), the loop converges when the same manifest
-    /// bytes are produced in two consecutive iterations.
+    /// The signature entry is deliberately excluded from the manifest file
+    /// hashes, matching <see cref="RulePackWriter.Write"/> and avoiding a
+    /// signature/hash circular dependency.
     /// </summary>
     private static (byte[] ZipBytes, string Sha256) CreateValidPackage(
         RulePackDocument document,
@@ -147,51 +141,7 @@ public sealed class RulePackImportTests
         byte[] licensesBytes = JsonSerializer.SerializeToUtf8Bytes(
             Array.Empty<ThirdPartyLicense>());
 
-        string publicKeyBase64 = EcdsaRulePackSigner.GetPublicKeyBase64(privateKey);
-
-        // Start with a placeholder signature and iterate to convergence.
-        byte[] sigBytes = Encoding.UTF8.GetBytes(
-            """{"algorithm":"","signer_key_id":"","signature_base64":""}""");
-        byte[]? prevManifestBytes = null;
-
-        const int maxIterations = 10;
-        for (int i = 0; i < maxIterations; i++)
-        {
-            var fileContents = new Dictionary<string, byte[]>(StringComparer.Ordinal)
-            {
-                ["categories.json"] = categoriesBytes,
-                ["assets.json"] = assetsBytes,
-                ["rules.json"] = rulesBytes,
-                ["detectors.json"] = detectorsBytes,
-                ["compliance.json"] = complianceBytes,
-                ["dictionaries/entities.json"] = entitiesBytes,
-                ["placeholders.json"] = placeholdersBytes,
-                ["licenses.json"] = licensesBytes,
-                ["signature.json"] = sigBytes,
-            };
-
-            var manifest = RulePackWriter.CreateManifest(
-                rulePackId, version, minClientVersion, signerKeyId, 1, fileContents);
-            byte[] manifestBytes = manifest.ToCanonicalUtf8Bytes();
-
-            // Check for convergence.
-            if (prevManifestBytes is not null
-                && manifestBytes.AsSpan().SequenceEqual(prevManifestBytes))
-            {
-                break;
-            }
-
-            prevManifestBytes = manifestBytes;
-
-            // Sign the manifest and produce the next iteration's sig.json.
-            byte[] signature = EcdsaRulePackSigner.SignManifest(manifestBytes, privateKey);
-            string signatureBase64 = Convert.ToBase64String(signature);
-            sigBytes = Encoding.UTF8.GetBytes(
-                $$"""{"algorithm":"{{EcdsaRulePackSigner.AlgorithmName}}","signer_key_id":"{{EscapeJson(signerKeyId)}}","signature_base64":"{{signatureBase64}}","signer_public_key_base64":"{{publicKeyBase64}}"}""");
-        }
-
-        // Build the final ZIP from the converged state.
-        var finalFileContents = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        var contentFiles = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             ["categories.json"] = categoriesBytes,
             ["assets.json"] = assetsBytes,
@@ -201,19 +151,25 @@ public sealed class RulePackImportTests
             ["dictionaries/entities.json"] = entitiesBytes,
             ["placeholders.json"] = placeholdersBytes,
             ["licenses.json"] = licensesBytes,
-            ["signature.json"] = sigBytes,
         };
 
         var finalManifest = RulePackWriter.CreateManifest(
-            rulePackId, version, minClientVersion, signerKeyId, 1, finalFileContents);
+            rulePackId, version, minClientVersion, signerKeyId, 1, contentFiles);
         byte[] finalManifestBytes = finalManifest.ToCanonicalUtf8Bytes();
+        byte[] signature = EcdsaRulePackSigner.SignManifest(
+            finalManifestBytes, privateKey);
+        byte[] signatureBytes = EcdsaRulePackSigner.WriteSignatureJson(
+            signature,
+            signerKeyId,
+            EcdsaRulePackSigner.GetPublicKeyBase64(privateKey));
 
         using var ms = new MemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
         {
             WriteZipEntry(archive, "manifest.json", finalManifestBytes);
+            WriteZipEntry(archive, "signature.json", signatureBytes);
 
-            foreach (var (path, content) in finalFileContents
+            foreach (var (path, content) in contentFiles
                 .OrderBy(kv => kv.Key, StringComparer.Ordinal))
             {
                 WriteZipEntry(archive, path, content);
