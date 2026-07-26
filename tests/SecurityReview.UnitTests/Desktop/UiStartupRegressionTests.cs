@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Threading;
 using System.Xml.Linq;
 using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
@@ -100,20 +101,27 @@ public sealed partial class UiStartupRegressionTests
                     new TestErrorSink(),
                     () => throw new InvalidOperationException("Query service is not used by this UI test."));
 
-                root.MainWindowViewModel.CurrentView = viewModel;
-                window.Measure(new Size(1280, 760));
-                window.Arrange(new Rect(0, 0, 1280, 760));
-                window.UpdateLayout();
+                try
+                {
+                    root.MainWindowViewModel.CurrentView = viewModel;
+                    window.Show();
+                    window.Dispatcher.Invoke(
+                        static () => { }, DispatcherPriority.ApplicationIdle);
+                    window.UpdateLayout();
 
-                Run statusRun = FindStatusRun(window);
-                Binding binding = Assert.IsType<Binding>(
-                    BindingOperations.GetBinding(statusRun, Run.TextProperty));
-                bindingMode = binding.Mode;
+                    Run statusRun = FindStatusRun(window);
+                    Binding binding = Assert.IsType<Binding>(
+                        BindingOperations.GetBinding(statusRun, Run.TextProperty));
+                    bindingMode = binding.Mode;
 
-                BindingOperations.GetBindingExpression(statusRun, Run.TextProperty)
-                    ?.UpdateTarget();
-                renderedStatus = statusRun.Text;
-                window.Close();
+                    BindingOperations.GetBindingExpression(statusRun, Run.TextProperty)
+                        ?.UpdateTarget();
+                    renderedStatus = statusRun.Text;
+                }
+                finally
+                {
+                    window.Close();
+                }
             }
             catch (Exception ex)
             {
