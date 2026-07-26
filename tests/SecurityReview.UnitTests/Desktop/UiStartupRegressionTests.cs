@@ -4,11 +4,11 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Media;
-using System.Windows.Threading;
 using System.Xml.Linq;
 using SecurityReview.Desktop;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
+using SecurityReview.Desktop.Views;
 
 namespace SecurityReview.UnitTests.Desktop;
 
@@ -83,9 +83,6 @@ public sealed partial class UiStartupRegressionTests
     [Fact]
     public void Scan_results_status_binding_is_one_way_and_renders_on_sta_thread()
     {
-        string tempDirectory = Path.Combine(
-            Path.GetTempPath(),
-            $"security-review-scan-results-{Guid.NewGuid():N}");
         Exception? startupException = null;
         BindingMode? bindingMode = null;
         string? renderedStatus = null;
@@ -94,22 +91,16 @@ public sealed partial class UiStartupRegressionTests
         {
             try
             {
-                using var root = new CompositionRoot(
-                    CompositionRoot.Args.ForTest(tempDirectory));
-                var window = new MainWindow(root.MainWindowViewModel, root);
-                var viewModel = new ScanResultsViewModel(
-                    new TestErrorSink(),
-                    () => throw new InvalidOperationException("Query service is not used by this UI test."));
-
+                var app = new App();
+                app.InitializeComponent();
                 try
                 {
-                    root.MainWindowViewModel.CurrentView = viewModel;
-                    window.Show();
-                    window.Dispatcher.Invoke(
-                        static () => { }, DispatcherPriority.ApplicationIdle);
-                    window.UpdateLayout();
+                    var viewModel = new ScanResultsViewModel(
+                        new TestErrorSink(),
+                        () => throw new InvalidOperationException("Query service is not used by this UI test."));
+                    var view = new ScanResultsView { DataContext = viewModel };
 
-                    Run statusRun = FindStatusRun(window);
+                    Run statusRun = FindStatusRun(view);
                     Binding binding = Assert.IsType<Binding>(
                         BindingOperations.GetBinding(statusRun, Run.TextProperty));
                     bindingMode = binding.Mode;
@@ -120,7 +111,7 @@ public sealed partial class UiStartupRegressionTests
                 }
                 finally
                 {
-                    window.Close();
+                    app.Shutdown();
                 }
             }
             catch (Exception ex)
@@ -132,19 +123,12 @@ public sealed partial class UiStartupRegressionTests
         thread.Start();
 
         bool completed = thread.Join(TimeSpan.FromSeconds(15));
-        try
-        {
-            Assert.True(completed,
-                "Scan results XAML loading did not finish within 15 seconds.");
-            Assert.Null(startupException);
-            Assert.Equal(BindingMode.OneWay, bindingMode);
-            Assert.False(string.IsNullOrWhiteSpace(renderedStatus));
-        }
-        finally
-        {
-            if (completed && Directory.Exists(tempDirectory))
-                DeleteTestDirectory(tempDirectory);
-        }
+
+        Assert.True(completed,
+            "Scan results XAML loading did not finish within 15 seconds.");
+        Assert.Null(startupException);
+        Assert.Equal(BindingMode.OneWay, bindingMode);
+        Assert.False(string.IsNullOrWhiteSpace(renderedStatus));
     }
 
     [Fact]
