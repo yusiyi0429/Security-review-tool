@@ -16,8 +16,9 @@ public sealed class SqliteMaintenanceService : IDatabaseMaintenanceService
     // FK cascade deletion order — must execute in this order to satisfy FK constraints.
     private static readonly string[] CascadeDeleteTables =
     [
+        "llm_review_attempts", // FK: scan_id
+        "scan_config_snapshots", // FK: scan_id
         "review_decisions",    // FKs: scan_id, group_id, occurrence_id
-        "finding_occurrences", // FKs: group_id, file_id
         "finding_groups",      // FK: scan_id
         "coverage_gaps",       // FKs: scan_id, file_id
         "llm_reviews",         // FK: scan_id
@@ -61,7 +62,8 @@ public sealed class SqliteMaintenanceService : IDatabaseMaintenanceService
 
         try
         {
-            int deleted = await DeleteScanCascadeAsync(connection, scanIds, cancellationToken)
+            int deleted = await DeleteScanCascadeAsync(
+                    connection, tx, scanIds, cancellationToken)
                 .ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
             return deleted;
@@ -75,6 +77,7 @@ public sealed class SqliteMaintenanceService : IDatabaseMaintenanceService
 
     private static async Task<int> DeleteScanCascadeAsync(
         SqliteConnection connection,
+        SqliteTransaction transaction,
         IReadOnlyList<ScanId> scanIds,
         CancellationToken cancellationToken)
     {
@@ -83,26 +86,76 @@ public sealed class SqliteMaintenanceService : IDatabaseMaintenanceService
         // Delete from child tables first.
         foreach (var table in CascadeDeleteTables)
         {
-            await DeleteByScanIdsAsync(connection, table, "scan_id", idStrings, cancellationToken)
+            if (string.Equals(
+                table,
+                "finding_groups",
+                StringComparison.Ordinal))
+            {
+                // Occurrences do not have a scan_id column. Resolve their
+                // owning groups/files after review_decisions are gone but
+                // while the parent group and file rows still exist.
+                await DeleteOccurrencesByScanIdsAsync(
+                        connection,
+                        transaction,
+                        idStrings,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            await DeleteByScanIdsAsync(
+                    connection,
+                    transaction,
+                    table,
+                    "scan_id",
+                    idStrings,
+                    cancellationToken)
                 .ConfigureAwait(false);
         }
 
         // Delete the scan_runs themselves.
         await using var cmd = connection.CreateCommand();
+        cmd.Transaction = transaction;
         var placeholders = BuildParameterList(cmd, "@sid", idStrings);
         cmd.CommandText = $"DELETE FROM scan_runs WHERE scan_id IN ({placeholders});";
         int rows = await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         return rows;
     }
 
+    private static async Task DeleteOccurrencesByScanIdsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        List<string> idStrings,
+        CancellationToken cancellationToken)
+    {
+        await using var cmd = connection.CreateCommand();
+        cmd.Transaction = transaction;
+        var placeholders = BuildParameterList(cmd, "@sid", idStrings);
+        cmd.CommandText = $"""
+            DELETE FROM finding_occurrences
+            WHERE group_id IN (
+                SELECT group_id
+                FROM finding_groups
+                WHERE scan_id IN ({placeholders})
+            )
+            OR file_id IN (
+                SELECT file_id
+                FROM file_records
+                WHERE scan_id IN ({placeholders})
+            );
+            """;
+        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static async Task DeleteByScanIdsAsync(
         SqliteConnection connection,
+        SqliteTransaction transaction,
         string table,
         string column,
         List<string> idStrings,
         CancellationToken cancellationToken)
     {
         await using var cmd = connection.CreateCommand();
+        cmd.Transaction = transaction;
         var placeholders = BuildParameterList(cmd, "@sid", idStrings);
         cmd.CommandText = $"DELETE FROM {table} WHERE {column} IN ({placeholders});";
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -119,6 +172,7 @@ public sealed class SqliteMaintenanceService : IDatabaseMaintenanceService
         {
             int total = 0;
             await using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
 
             // Delete cache entries whose source_scan_id references a deleted scan.
             cmd.CommandText = """

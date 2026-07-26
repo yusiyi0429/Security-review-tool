@@ -1,0 +1,11 @@
+[
+  {
+    "placeholder_id": "PLACEHOLDER-001",
+    "match_type": "exact",
+    "value": "REPLACE_WITH_REAL_SECRET",
+    "allowed_context": "*",
+    "category_id": "SENS-001",
+    "valid_from": "",
+    "valid_until": ""
+  }
+]

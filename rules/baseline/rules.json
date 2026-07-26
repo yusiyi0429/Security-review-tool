@@ -1,0 +1,122 @@
+[
+  {
+    "id": "RULE-SECRET-KNOWN-FORMAT",
+    "category_id": "SENS-001",
+    "finding_kind": "SensitiveContent",
+    "severity": "Critical",
+    "confidence": "High",
+    "detector_id": "DET-KNOWN-SECRETS",
+    "detector_config_id": "known-secrets",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": false,
+    "enabled": true
+  },
+  {
+    "id": "RULE-SECRET-ENTROPY",
+    "category_id": "SENS-001",
+    "finding_kind": "SensitiveContent",
+    "severity": "High",
+    "confidence": "Medium",
+    "detector_id": "DET-ENTROPY-CONTEXT",
+    "detector_config_id": "entropy-with-context",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": true,
+    "enabled": true
+  },
+  {
+    "id": "RULE-INFRA-NETWORK",
+    "category_id": "SENS-002",
+    "finding_kind": "SensitiveContent",
+    "severity": "Medium",
+    "confidence": "Medium",
+    "detector_id": "DET-NETWORK-ADDRESS",
+    "detector_config_id": "network-address",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": false,
+    "enabled": true
+  },
+  {
+    "id": "RULE-PII-PHONE",
+    "category_id": "SENS-003",
+    "finding_kind": "SensitiveContent",
+    "severity": "High",
+    "confidence": "Medium",
+    "detector_id": "DET-KNOWN-PHONE",
+    "detector_config_id": "known-phone",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": true,
+    "enabled": true
+  },
+  {
+    "id": "RULE-PII-CNID",
+    "category_id": "SENS-003",
+    "finding_kind": "SensitiveContent",
+    "severity": "Critical",
+    "confidence": "High",
+    "detector_id": "DET-CHECKSUM-CNID",
+    "detector_config_id": "checksum-cnid",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": false,
+    "enabled": true
+  },
+  {
+    "id": "RULE-FINANCIAL-LUHN",
+    "category_id": "SENS-004",
+    "finding_kind": "SensitiveContent",
+    "severity": "High",
+    "confidence": "High",
+    "detector_id": "DET-CHECKSUM-LUHN",
+    "detector_config_id": "checksum-luhn",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": true,
+    "enabled": true
+  },
+  {
+    "id": "RULE-SESSION-STRUCTURED-FIELD",
+    "category_id": "SENS-005",
+    "finding_kind": "SensitiveContent",
+    "severity": "High",
+    "confidence": "Medium",
+    "detector_id": "DET-STRUCTURED-FIELD",
+    "detector_config_id": "structured-sensitive-fields",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": true,
+    "enabled": true
+  },
+  {
+    "id": "RULE-CREDENTIAL-METADATA-FIELD",
+    "category_id": "SENS-006",
+    "finding_kind": "SensitiveContent",
+    "severity": "High",
+    "confidence": "Medium",
+    "detector_id": "DET-STRUCTURED-FIELD",
+    "detector_config_id": "structured-sensitive-fields",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": true,
+    "enabled": true
+  },
+  {
+    "id": "RULE-RISK-CONTROL-TERMS",
+    "category_id": "SENS-007",
+    "finding_kind": "SensitiveContent",
+    "severity": "High",
+    "confidence": "High",
+    "detector_id": "DET-RISK-DICTIONARY",
+    "detector_config_id": "risk-control-terms",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": true,
+    "enabled": true
+  },
+  {
+    "id": "RULE-THIRD-PARTY-LICENSE",
+    "category_id": "SENS-008",
+    "finding_kind": "SensitiveContent",
+    "severity": "Medium",
+    "confidence": "High",
+    "detector_id": "DET-LICENSE-MARKERS",
+    "detector_config_id": "license-markers",
+    "applies_to_assets": ["ASSET-001", "ASSET-002", "ASSET-003", "ASSET-004", "ASSET-005", "ASSET-006", "ASSET-007", "ASSET-008", "ASSET-009", "ASSET-010", "ASSET-011"],
+    "requires_semantic_review": true,
+    "enabled": true
+  }
+]

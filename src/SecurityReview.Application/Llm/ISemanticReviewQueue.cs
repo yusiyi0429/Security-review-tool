@@ -141,6 +141,15 @@ public interface ISemanticReviewPersister
     Task PersistAsync(PersistedLlmReview review, CancellationToken cancellationToken);
 }
 
+public interface ISemanticReviewMetadataProvider
+{
+    PersistedLlmReview CreatePersistenceRecord(
+        SemanticQueueItem item,
+        LlmReviewResult result,
+        DateTimeOffset startedAtUtc,
+        TimeSpan duration);
+}
+
 /// <summary>
 /// Stable, non-PII record of one semantic review attempt. Endpoint
 /// host, model id, candidate value, and context never appear.
@@ -179,4 +188,14 @@ public interface ISemanticReviewProgressSink
 public sealed class NullSemanticReviewProgressSink : ISemanticReviewProgressSink
 {
     public void Publish(SemanticQueueProgress progress) { _ = progress; }
+}
+
+public sealed class AlwaysCurrentSemanticCandidateLifetime
+    : ISemanticCandidateLifetime
+{
+    public bool IsCurrent(CandidateId candidateId)
+    {
+        _ = candidateId;
+        return true;
+    }
 }

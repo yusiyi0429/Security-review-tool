@@ -71,7 +71,8 @@ public sealed class AcceptanceScenarioRunner : IAsyncDisposable
             ? Directory.GetFiles(_tempRoot, "*", SearchOption.AllDirectories).Length
             : 0;
 
-        // Create SQLite DB + run initial migration (same pattern as CompleteScanWorkflowTests).
+        // Create SQLite DB and apply the same complete migration set used
+        // by production. The workflow writes immutable scan snapshots.
         _factory = new SqliteConnectionFactory(_databasePath);
 
         byte[] masterKey = new byte[32];
@@ -82,7 +83,13 @@ public sealed class AcceptanceScenarioRunner : IAsyncDisposable
 
         using var init = new SqliteConnection($"Data Source={_databasePath};Mode=ReadWriteCreate");
         init.Open();
-        await new Migration001Initial().ApplyAsync(init, "accept-integration", linked.Token);
+        foreach (IMigration migration in DefaultMigrations.Create())
+        {
+            await migration.ApplyAsync(
+                init,
+                "accept-integration",
+                linked.Token);
+        }
         init.Close();
 
         await Task.CompletedTask;

@@ -3,10 +3,13 @@ using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Input;
+using SecurityReview.Application.Llm;
 using SecurityReview.Application.Scans;
 using SecurityReview.Application.Scans.Preflight;
 using SecurityReview.Domain.Assets;
 using SecurityReview.Desktop.Services;
+using SecurityReview.Domain.Llm;
+using SecurityReview.Infrastructure.Llm;
 using SecurityReview.Infrastructure.Rules;
 
 namespace SecurityReview.Desktop.ViewModels;
@@ -26,6 +29,9 @@ public sealed class NewScanViewModel : ObservableObject
     private readonly Func<StartScanHandler> _startScanHandlerFactory;
     private readonly IScanTargetPicker _targetPicker;
     private readonly ActiveRulePackRuntimeProvider? _rulePackRuntimeProvider;
+    private readonly ILlmConfigurationStore? _llmConfigurationStore;
+    private readonly ILlmCredentialStore? _llmCredentialStore;
+    private readonly IManifestReader? _manifestReader;
     private readonly ISandboxSelfTest? _sandboxSelfTest;
     private readonly StartupHealthService? _startupHealth;
 
@@ -66,7 +72,10 @@ public sealed class NewScanViewModel : ObservableObject
         IScanTargetPicker? targetPicker = null,
         ActiveRulePackRuntimeProvider? rulePackRuntimeProvider = null,
         ISandboxSelfTest? sandboxSelfTest = null,
-        StartupHealthService? startupHealth = null)
+        StartupHealthService? startupHealth = null,
+        ILlmConfigurationStore? llmConfigurationStore = null,
+        IManifestReader? manifestReader = null,
+        ILlmCredentialStore? llmCredentialStore = null)
     {
         _errorSink = errorSink ?? throw new ArgumentNullException(nameof(errorSink));
         _createScanHandlerFactory = createScanHandlerFactory
@@ -75,6 +84,9 @@ public sealed class NewScanViewModel : ObservableObject
             ?? throw new ArgumentNullException(nameof(startScanHandlerFactory));
         _targetPicker = targetPicker ?? new WpfScanTargetPicker();
         _rulePackRuntimeProvider = rulePackRuntimeProvider;
+        _llmConfigurationStore = llmConfigurationStore;
+        _llmCredentialStore = llmCredentialStore;
+        _manifestReader = manifestReader;
         _sandboxSelfTest = sandboxSelfTest;
         _startupHealth = startupHealth;
         if (_startupHealth is not null)
@@ -165,8 +177,14 @@ public sealed class NewScanViewModel : ObservableObject
     public bool LlmAvailable
     {
         get => _llmAvailable;
-        set => SetProperty(ref _llmAvailable, value);
+        set
+        {
+            if (SetProperty(ref _llmAvailable, value))
+                OnPropertyChanged(nameof(LlmStatus));
+        }
     }
+
+    public string LlmStatus => LlmAvailable ? "已配置" : "未配置";
 
     public string LlmWarning
     {
@@ -229,6 +247,9 @@ public sealed class NewScanViewModel : ObservableObject
 
             if (_exclusionEntries.Count > 0 && !_exclusionPartialAcknowledged)
                 return "存在排除项，请先确认其对扫描完整性的影响。";
+
+            if (_exclusionEntries.Any(entry => !entry.Entry.IsValid))
+                return "每个排除项都必须填写匹配模式和原因。";
 
             return "";
         }
@@ -318,20 +339,30 @@ public sealed class NewScanViewModel : ObservableObject
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        if (_initialized && _rulePackRuntimeProvider is null)
+        if (_initialized
+            && _rulePackRuntimeProvider is null
+            && _llmConfigurationStore is null)
         {
             return;
         }
 
         _initialized = true;
-        if (_rulePackRuntimeProvider is null)
+        if (_rulePackRuntimeProvider is not null)
         {
-            return;
+            await LoadActiveRulePackAsync(cancellationToken).ConfigureAwait(true);
         }
 
+        if (_llmConfigurationStore is not null)
+        {
+            await LoadLlmStateAsync(cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    private async Task LoadActiveRulePackAsync(CancellationToken cancellationToken)
+    {
         try
         {
-            _activeRulePack = await _rulePackRuntimeProvider
+            _activeRulePack = await _rulePackRuntimeProvider!
                 .GetActiveAsync(cancellationToken)
                 .ConfigureAwait(true);
             if (_activeRulePack is null)
@@ -362,6 +393,36 @@ public sealed class NewScanViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(ScanReadinessMessage));
             ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
+        }
+    }
+
+    private async Task LoadLlmStateAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var options = await _llmConfigurationStore!
+                .LoadAsync(cancellationToken)
+                .ConfigureAwait(true);
+            bool credentialReady = options is not null
+                && (options.AuthMode == LlmAuthMode.None
+                    || options.CredentialReference is { Length: > 0 } reference
+                    && _llmCredentialStore?.HasCredential(reference) == true);
+            ApplyLlmState(
+                options is not null && credentialReady,
+                options is null
+                    ? "LLM 未配置；核心规则扫描仍可独立运行。"
+                    : credentialReady
+                        ? ""
+                        : "LLM 配置存在，但凭据缺失；核心规则扫描仍可独立运行。");
+        }
+        catch (Exception)
+        {
+            ApplyLlmState(
+                available: false,
+                "LLM 配置加载失败；核心规则扫描仍可独立运行。");
+            _errorSink.Report(
+                "llm_config_load_failed",
+                "加载 LLM 配置失败，请前往「LLM 设置」检查配置。");
         }
     }
 
@@ -396,6 +457,7 @@ public sealed class NewScanViewModel : ObservableObject
             Pattern = "",
             Reason = "",
         };
+        entry.PropertyChanged += OnExclusionEntryChanged;
         _exclusionEntries.Add(new ExclusionEntry(entry));
         OnPropertyChanged(nameof(ScanReadinessMessage));
         ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
@@ -406,11 +468,24 @@ public sealed class NewScanViewModel : ObservableObject
     {
         if (parameter is ExclusionEntry entry)
         {
+            entry.Entry.PropertyChanged -= OnExclusionEntryChanged;
             _exclusionEntries.Remove(entry);
             OnPropertyChanged(nameof(ScanReadinessMessage));
             ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
         }
         return Task.CompletedTask;
+    }
+
+    private void OnExclusionEntryChanged(
+        object? sender,
+        PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ExclusionEntryViewModel.Pattern)
+            or nameof(ExclusionEntryViewModel.Reason))
+        {
+            OnPropertyChanged(nameof(ScanReadinessMessage));
+            ((AsyncRelayCommand)StartScanCommand).RaiseCanExecuteChanged();
+        }
     }
 
     private bool CanStartScan()
@@ -429,6 +504,9 @@ public sealed class NewScanViewModel : ObservableObject
 
         // If there are exclusions, the user must acknowledge Partial status.
         if (_exclusionEntries.Count > 0 && !_exclusionPartialAcknowledged)
+            return false;
+
+        if (_exclusionEntries.Any(entry => !entry.Entry.IsValid))
             return false;
 
         return true;
@@ -473,13 +551,35 @@ public sealed class NewScanViewModel : ObservableObject
                 .Select(t => t.Path)
                 .ToArray();
 
-            ManifestSnapshot manifest = _manifestSnapshot
-                ?? new ManifestSnapshot(null, null, true, Array.Empty<ManifestValidationError>());
+            ManifestSnapshot[] rootManifests = await CaptureRootManifestsAsync(
+                    rootPaths, cancellationToken)
+                .ConfigureAwait(true);
+            if (rootManifests.Any(manifest => !manifest.Valid))
+            {
+                _errorSink.Report(
+                    "manifest_invalid",
+                    "至少一个扫描根目录包含无效资产清单；请修复后重试。");
+                return;
+            }
+
+            ManifestSnapshot manifest = rootManifests.FirstOrDefault()
+                ?? new ManifestSnapshot(
+                    null, null, true, Array.Empty<ManifestValidationError>());
 
             string[] exclusions = _exclusionEntries
                 .Select(e => e.Entry.Pattern)
                 .Where(p => !string.IsNullOrWhiteSpace(p))
                 .ToArray();
+            ScanExclusion[] exclusionRecords = _exclusionEntries
+                .Select(entry => new ScanExclusion(
+                    entry.Entry.Pattern.Trim(),
+                    entry.Entry.Reason.Trim()))
+                .ToArray();
+            LlmEndpointOptions? llmOptions = _llmConfigurationStore is null
+                ? null
+                : await _llmConfigurationStore
+                    .LoadAsync(cancellationToken)
+                    .ConfigureAwait(true);
 
             var command = new CreateScanCommand(
                 RootPaths: rootPaths,
@@ -490,8 +590,12 @@ public sealed class NewScanViewModel : ObservableObject
                     ?? _rulePackVersion,
                 PolicySha256: _activeRulePack?.Package.Policy.PolicySha256
                     ?? "0000000000000000000000000000000000000000000000000000000000000000",
-                LlmEndpointFingerprint: "",
-                LlmModelFingerprint: "",
+                LlmEndpointFingerprint: llmOptions?.OriginFingerprint()
+                    ?? string.Empty,
+                LlmModelFingerprint: llmOptions is null
+                    ? string.Empty
+                    : OpenAiSemanticReviewer.ComputeModelFingerprint(
+                        llmOptions.Model),
                 ClientVersion: typeof(NewScanViewModel).Assembly
                     .GetName().Version?.ToString(3) ?? "0.0.0",
                 ParserAdapterVersion: "1.0.0",
@@ -502,7 +606,9 @@ public sealed class NewScanViewModel : ObservableObject
                     .ActiveDetectorVersions
                     .Select(pair => $"{pair.Key}:{pair.Value}")
                     .ToArray()
-                    ?? Array.Empty<string>());
+                    ?? Array.Empty<string>(),
+                RootManifests: rootManifests,
+                Exclusions: exclusionRecords);
 
             // Create the scan (Draft).
             CreateScanHandler createHandler = _createScanHandlerFactory();
@@ -564,6 +670,46 @@ public sealed class NewScanViewModel : ObservableObject
         {
             IsStartingScan = false;
         }
+    }
+
+    private async Task<ManifestSnapshot[]> CaptureRootManifestsAsync(
+        string[] rootPaths,
+        CancellationToken cancellationToken)
+    {
+        if (_manifestReader is null)
+        {
+            return rootPaths
+                .Select((_, index) => index == 0 && _manifestSnapshot is not null
+                    ? _manifestSnapshot
+                    : new ManifestSnapshot(
+                        null, null, true,
+                        Array.Empty<ManifestValidationError>()))
+                .ToArray();
+        }
+
+        var snapshots = new ManifestSnapshot[rootPaths.Length];
+        for (int index = 0; index < rootPaths.Length; index++)
+        {
+            string fullPath = Path.GetFullPath(rootPaths[index]);
+            string root = File.Exists(fullPath)
+                ? Path.GetDirectoryName(fullPath)
+                    ?? throw new InvalidOperationException(
+                        "扫描文件没有可用的父目录。")
+                : fullPath;
+            ManifestReadResult result = await _manifestReader
+                .ReadAsync(root, cancellationToken)
+                .ConfigureAwait(true);
+            snapshots[index] = result.Snapshot
+                ?? new ManifestSnapshot(
+                    null, null, true,
+                    Array.Empty<ManifestValidationError>());
+            if (index == 0)
+            {
+                ApplyManifest(result);
+            }
+        }
+
+        return snapshots;
     }
 
     private void OnStartupHealthChanged(

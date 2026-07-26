@@ -76,6 +76,38 @@ public sealed class StructuredParserTests
     }
 
     [Fact]
+    public async Task json_parser_preserves_string_spanning_read_buffers()
+    {
+        string marker = "tail-marker-7f3c";
+        string json = $$"""{"payload":"{{new string('a', 200_000)}}{{marker}}"}""";
+        byte[] bytes = Encoding.UTF8.GetBytes(json);
+
+        var parser = new JsonFormatParser();
+        await using var stream = new MemoryStream(bytes);
+        await using var input = new ParserInput(stream, bytes.Length);
+        ParseContext context = CreateContext("test/buffer-boundary.json", bytes.Length);
+
+        var events = new List<ParserEvent>();
+        await foreach (ParserEvent evt in parser.ParseAsync(
+            input,
+            context,
+            CancellationToken.None))
+        {
+            events.Add(evt);
+        }
+
+        Assert.DoesNotContain(
+            events.OfType<ParserEvent.GapProduced>(),
+            gap => gap.Gap.Reason == GapReason.Corrupt);
+        Assert.Contains(
+            events.OfType<ParserEvent.ChunkProduced>(),
+            chunk => chunk.Chunk.Text?.Contains(
+                marker,
+                StringComparison.Ordinal) == true);
+        Assert.Contains(events, evt => evt is ParserEvent.ParseCompleted);
+    }
+
+    [Fact]
     public async Task json_parser_rejects_duplicate_keys()
     {
         string path = Path.Combine(CorpusDir, "json", "adversarial_duplicate_keys.json");

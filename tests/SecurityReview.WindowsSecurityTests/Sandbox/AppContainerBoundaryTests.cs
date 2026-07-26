@@ -1,6 +1,7 @@
 using SecurityReview.Infrastructure.Windows;
 using SecurityReview.Infrastructure.Windows.Sandbox;
 using SecurityReview.ParserContracts.Protocol;
+using System.Security.Cryptography;
 
 namespace SecurityReview.WindowsSecurityTests.Sandbox;
 
@@ -135,6 +136,44 @@ public sealed class AppContainerBoundaryTests
             var launcher = new AppContainerWorkerLauncher();
             await Assert.ThrowsAsync<WindowsSecurityException>(() =>
                 launcher.PrepareAsync(fake.FullName, SandboxProbeHost.WorkerExecutableName, ct));
+        }
+        finally
+        {
+            fake.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task worker_is_reverified_after_preparation_cache_is_warm()
+    {
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        WindowsSecurityGate.AssertEnabled();
+        DirectoryInfo fake = Directory.CreateTempSubdirectory("srt-warm-worker-");
+        try
+        {
+            string exePath = Path.Combine(fake.FullName, SandboxProbeHost.WorkerExecutableName);
+            byte[] original = [1, 2, 3, 4];
+            await File.WriteAllBytesAsync(exePath, original, ct);
+            string correctHash = Convert.ToHexString(SHA256.HashData(original))
+                .ToLowerInvariant();
+            await File.WriteAllTextAsync(
+                Path.Combine(fake.FullName, SandboxProbeHost.ManifestFileName),
+                $"{{\"algorithm\":\"SHA256\",\"files\":{{\"{SandboxProbeHost.WorkerExecutableName}\":\"{correctHash}\"}}}}",
+                ct);
+
+            var launcher = new AppContainerWorkerLauncher();
+            await launcher.PrepareAsync(
+                fake.FullName,
+                SandboxProbeHost.WorkerExecutableName,
+                ct);
+
+            await File.WriteAllBytesAsync(exePath, [4, 3, 2, 1], ct);
+
+            await Assert.ThrowsAsync<WindowsSecurityException>(() =>
+                launcher.PrepareAsync(
+                    fake.FullName,
+                    SandboxProbeHost.WorkerExecutableName,
+                    ct));
         }
         finally
         {

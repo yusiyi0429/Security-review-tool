@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using SecurityReview.Application.Llm;
 using SecurityReview.Application.Scans;
 using SecurityReview.Application.Scans.Preflight;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
 using SecurityReview.Domain.Assets;
+using SecurityReview.Domain.Llm;
 
 namespace SecurityReview.UnitTests.Desktop;
 
@@ -321,7 +323,43 @@ public sealed class NewScanViewModelTests
         vm.ApplyLlmState(true, "");
 
         Assert.True(vm.LlmAvailable);
+        Assert.Equal("已配置", vm.LlmStatus);
         Assert.Empty(vm.LlmWarning);
+    }
+
+    [Fact]
+    public async Task Initialize_loads_saved_llm_configuration()
+    {
+        var vm = new NewScanViewModel(
+            new TestErrorSink(),
+            () => throw new InvalidOperationException(),
+            () => throw new InvalidOperationException(),
+            llmConfigurationStore: new TestLlmConfigurationStore(
+                LlmEndpointOptions.Create(
+                    new Uri("https://llm.example.test"),
+                    model: "review-model")));
+
+        await vm.InitializeAsync();
+
+        Assert.True(vm.LlmAvailable);
+        Assert.Equal("已配置", vm.LlmStatus);
+        Assert.Empty(vm.LlmWarning);
+    }
+
+    [Fact]
+    public async Task Initialize_shows_optional_warning_when_llm_is_not_configured()
+    {
+        var vm = new NewScanViewModel(
+            new TestErrorSink(),
+            () => throw new InvalidOperationException(),
+            () => throw new InvalidOperationException(),
+            llmConfigurationStore: new TestLlmConfigurationStore(null));
+
+        await vm.InitializeAsync();
+
+        Assert.False(vm.LlmAvailable);
+        Assert.Equal("未配置", vm.LlmStatus);
+        Assert.Contains("核心规则扫描仍可独立运行", vm.LlmWarning);
     }
 
     // ------------------------------------------------------------------
@@ -337,6 +375,8 @@ public sealed class NewScanViewModelTests
         // Add an exclusion via the command.
         vm.AddExclusionCommand.Execute(null);
         Assert.NotEmpty(vm.ExclusionEntries);
+        vm.ExclusionEntries[0].Entry.Pattern = "**/generated/**";
+        vm.ExclusionEntries[0].Entry.Reason = "生成文件不在审查范围";
 
         // Without acknowledgement, Start should be disabled.
         Assert.False(vm.StartScanCommand.CanExecute(null));
@@ -417,5 +457,22 @@ public sealed class NewScanViewModelTests
         public IReadOnlyList<string> PickFiles() => files;
 
         public IReadOnlyList<string> PickFolders() => folders;
+    }
+
+    private sealed class TestLlmConfigurationStore(
+        LlmEndpointOptions? options) : ILlmConfigurationStore
+    {
+        public Task<LlmConfigurationReference> SaveAsync(
+            LlmEndpointOptions value,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<LlmEndpointOptions?> LoadAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(options);
+
+        public Task ClearAsync(
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }

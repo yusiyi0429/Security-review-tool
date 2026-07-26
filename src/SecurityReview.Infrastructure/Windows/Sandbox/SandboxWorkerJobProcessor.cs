@@ -56,6 +56,17 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
         {
             results.Add(Failed(item, WorkerFailure.ProtocolViolation));
         }
+        catch (WindowsSecurityException ex)
+            when (string.Equals(ex.ApiName, "ValidateInputHash", StringComparison.Ordinal))
+        {
+            var gap = new CoverageGap(
+                Guid.NewGuid(), item.ScanId, item.FileId, item.VirtualPath,
+                item.FormatHint, "snapshot", GapReason.FileUnstable,
+                "content_changed_before_parse", item.DeclaredLength, 0,
+                DateTimeOffset.UtcNow);
+            results.Add(new WorkerJobResult(item.JobId, item.FileId,
+                WorkerResultKind.Failed, null, gap, null, null, null));
+        }
         catch (Exception)
         {
             results.Add(Failed(item, WorkerFailure.Crash));
@@ -71,7 +82,7 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
         CancellationToken cancellationToken)
     {
         string? inputPath = item.InputFilePath;
-        if (string.IsNullOrWhiteSpace(inputPath) || !File.Exists(inputPath))
+        if (string.IsNullOrWhiteSpace(inputPath))
         {
             var gap = new CoverageGap(
                 Guid.NewGuid(), item.ScanId, item.FileId, item.VirtualPath,
@@ -95,7 +106,8 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
             inputPath,
             jobs.ScanJob,
             workerJob,
-            AdditionalWorkerArguments: null);
+            AdditionalWorkerArguments: null,
+            ExpectedContentSha256: item.ExpectedContentSha256);
 
         using SandboxedWorkerProcess process = await _launcher
             .LaunchAsync(request, cancellationToken).ConfigureAwait(false);
@@ -154,6 +166,12 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
         List<WorkerJobResult> results,
         CancellationToken cancellationToken)
     {
+        var declaredLengths = new Dictionary<string, long>(
+            StringComparer.Ordinal)
+        {
+            [item.VirtualPath] = item.DeclaredLength,
+        };
+
         while (true)
         {
             (ProtocolEnvelope envelope, byte[] rawFrame) = await LengthPrefixedJsonProtocol
@@ -169,8 +187,13 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
                 case MessageType.ContentChunk:
                     ContentChunk? chunk = JsonSerializer.Deserialize(
                         envelope.PayloadJson, ProtocolJsonContext.Default.ContentChunk);
+                    long declaredLength = chunk is not null
+                        && declaredLengths.TryGetValue(chunk.VirtualPath, out long childLength)
+                            ? childLength
+                            : -1;
                     if (chunk is null || chunk.JobId != item.JobId
-                        || chunk.Validate(item.DeclaredLength).Count != 0)
+                        || declaredLength < 0
+                        || chunk.Validate(declaredLength).Count != 0)
                     {
                         throw new ProtocolException("Worker returned an invalid content chunk.");
                     }
@@ -201,8 +224,12 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
                 case MessageType.ChildDiscovered:
                     WorkerChildPayload? child = JsonSerializer.Deserialize(
                         envelope.PayloadJson, ProtocolJsonContext.Default.WorkerChildPayload);
-                    if (child is null)
+                    if (child is null
+                        || child.DeclaredLength < 0
+                        || child.DeclaredLength > item.Limits.MaxExpandedBytesRemaining
+                        || !IsChildVirtualPath(item.VirtualPath, child.VirtualPath))
                         throw new ProtocolException("Worker returned invalid child metadata.");
+                    declaredLengths[child.VirtualPath] = child.DeclaredLength;
                     var detected = DetectedFormat.Create(child.FormatId, child.Confidence,
                         ["sandbox-worker"], mismatch: false);
                     var probe = new FormatProbe(ReadOnlyMemory<byte>.Empty,
@@ -238,6 +265,11 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
             }
         }
     }
+
+    private static bool IsChildVirtualPath(string rootPath, string childPath) =>
+        childPath.Length > rootPath.Length
+        && childPath.StartsWith(rootPath, StringComparison.Ordinal)
+        && childPath[rootPath.Length] == '!';
 
     private static async Task TrySendCancelAsync(
         SandboxedWorkerProcess process,

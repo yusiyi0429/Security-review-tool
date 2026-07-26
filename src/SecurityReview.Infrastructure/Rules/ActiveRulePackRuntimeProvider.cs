@@ -20,7 +20,9 @@ namespace SecurityReview.Infrastructure.Rules;
 public sealed record LoadedRulePack(
     string Sha256,
     EffectivePolicy Policy,
-    IReadOnlyList<RestrictedEntityEntry> RestrictedEntities);
+    IReadOnlyList<RestrictedEntityEntry> RestrictedEntities,
+    IReadOnlyList<SecurityPlaceholder> SecurityPlaceholders,
+    IReadOnlyList<ThirdPartyLicense> ThirdPartyLicenses);
 
 public sealed record ActiveRulePackRuntime(
     ActivePointer Active,
@@ -168,6 +170,14 @@ public sealed class ActiveRulePackRuntimeProvider : IEffectivePolicyProvider
             ReadModelList<RestrictedEntityEntry>(
             archive,
             "dictionaries/entities.json");
+        IReadOnlyList<SecurityPlaceholder> placeholders =
+            ReadModelList<SecurityPlaceholder>(
+                archive,
+                "placeholders.json");
+        IReadOnlyList<ThirdPartyLicense> licenses =
+            ReadModelList<ThirdPartyLicense>(
+                archive,
+                "licenses.json");
 
         EffectivePolicy policy = EffectivePolicyBuilder.Build(
             document,
@@ -175,7 +185,8 @@ public sealed class ActiveRulePackRuntimeProvider : IEffectivePolicyProvider
             localSupplementJson: null,
             packageHash: sha256,
             localHash: null);
-        return new LoadedRulePack(sha256, policy, entities);
+        return new LoadedRulePack(
+            sha256, policy, entities, placeholders, licenses);
     }
 
     private static IReadOnlyList<T> ReadList<T>(

@@ -34,7 +34,7 @@ public sealed class LlmLogRedactionTests
     private const string TokenCanary = "PLAINTEXT-TOKEN-CANARY-8k9l0m1n";
 
     [Fact]
-    public async Task Reviewer_emits_no_canary_in_request_url_query_or_header()
+    public async Task Reviewer_limits_semantic_content_to_the_request_body()
     {
         var handler = new RecordingHttpHandler(LlmResponses.Ok(BuildCandidateId()));
         var sink = new RecordingSink();
@@ -70,14 +70,13 @@ public sealed class LlmLogRedactionTests
             Assert.False(url.Contains(TokenCanary, StringComparison.Ordinal),
                 $"Request URL leaked token canary: {url}");
 
-            Assert.False(body.Contains(ValueCanary, StringComparison.Ordinal),
-                $"Request body leaked candidate value canary.");
-            Assert.False(body.Contains(ContextCanary, StringComparison.Ordinal),
-                $"Request body leaked context canary.");
             Assert.False(body.Contains(TokenCanary, StringComparison.Ordinal),
                 $"Request body leaked token canary.");
-            Assert.False(body.Contains(ModelCanary, StringComparison.Ordinal),
-                $"Request body leaked model canary.");
+            Assert.False(body.Contains(HostCanary, StringComparison.OrdinalIgnoreCase),
+                $"Request body leaked endpoint/path host canary.");
+            Assert.Contains(ValueCanary, body, StringComparison.Ordinal);
+            Assert.Contains(ContextCanary, body, StringComparison.Ordinal);
+            Assert.Contains(ModelCanary, body, StringComparison.Ordinal);
         }
     }
 
@@ -228,7 +227,7 @@ public sealed class LlmLogRedactionTests
 
     private static LlmEndpointOptions BuildOptions(string origin) =>
         LlmEndpointOptions.Create(
-            baseUri: new Uri(origin + "/"),
+            baseUri: new Uri(origin.TrimEnd('/') + "/"),
             chatCompletionsPath: "/v1/chat/completions",
             model: ModelCanary,
             reference: "Llm.Endpoint.Default",
@@ -465,6 +464,7 @@ public sealed class LlmLogRedactionTests
         }
 
         public Task DeleteByScanIdAsync(ScanId scanId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task DeleteByStageAsync(string stage, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<long> GetTotalSizeBytesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0L);
         public Task<IReadOnlyList<CacheEntry>> ListByStageOldestFirstAsync(string stage, int limit, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<CacheEntry>>(Array.Empty<CacheEntry>());

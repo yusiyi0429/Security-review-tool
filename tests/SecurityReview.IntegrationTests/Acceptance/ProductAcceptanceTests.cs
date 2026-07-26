@@ -76,10 +76,30 @@ public sealed class ProductAcceptanceTests
         if (s_manifest is not null)
             return s_manifest;
 
-        string repoRoot = Path.GetFullPath(Path.Combine(
-            AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-        string manifestPath = Path.Combine(
-            repoRoot, "tests", "Acceptance", "acceptance-manifest.json");
+        string? manifestPath = null;
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            string candidate = Path.Combine(
+                current.FullName,
+                "tests",
+                "Acceptance",
+                "acceptance-manifest.json");
+            if (File.Exists(candidate))
+            {
+                manifestPath = candidate;
+                break;
+            }
+
+            current = current.Parent;
+        }
+
+        if (manifestPath is null)
+        {
+            throw new FileNotFoundException(
+                "Could not locate tests/Acceptance/acceptance-manifest.json " +
+                "from the test assembly directory.");
+        }
 
         string json = File.ReadAllText(manifestPath);
         s_manifest = JsonSerializer.Deserialize(

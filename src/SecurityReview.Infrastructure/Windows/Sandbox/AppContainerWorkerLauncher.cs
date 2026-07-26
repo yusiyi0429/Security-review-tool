@@ -81,6 +81,34 @@ public sealed class AppContainerWorkerLauncher : IWorkerLauncher, IWorkerLaunchP
             using (var input = new FileStream(request.InputFilePath, FileMode.Open,
                 FileAccess.Read, FileShare.Read))
             {
+                if (!string.IsNullOrWhiteSpace(request.ExpectedContentSha256))
+                {
+                    byte[] expected;
+                    try
+                    {
+                        expected = Convert.FromHexString(request.ExpectedContentSha256);
+                    }
+                    catch (FormatException)
+                    {
+                        throw new WindowsSecurityException("ValidateInputHash", 87);
+                    }
+
+                    if (expected.Length != SHA256.HashSizeInBytes)
+                    {
+                        throw new WindowsSecurityException("ValidateInputHash", 87);
+                    }
+
+                    byte[] actual = await SHA256.HashDataAsync(input, cancellationToken)
+                        .ConfigureAwait(false);
+                    if (!CryptographicOperations.FixedTimeEquals(actual, expected))
+                    {
+                        throw new WindowsSecurityException("ValidateInputHash",
+                            unchecked((int)0x800706F0));
+                    }
+
+                    input.Position = 0;
+                }
+
                 inputHandleValue = await _handleBroker.DuplicateReadOnlyAsync(
                     input.SafeFileHandle, processHandle, cancellationToken)
                     .ConfigureAwait(false);
@@ -356,18 +384,24 @@ public sealed class AppContainerWorkerLauncher : IWorkerLauncher, IWorkerLaunchP
     private async Task<PreparedWorker> EnsurePreparedAsync(string stagingDirectory,
         string executableName, CancellationToken cancellationToken)
     {
+        // Re-verify on every preparation/launch. A cached profile is safe to
+        // reuse, but a cached hash verdict is not: the portable worker
+        // directory may be modified after the first self-test.
+        string workerHash = await WorkerManifestVerifier
+            .VerifyAndGetWorkerHashAsync(stagingDirectory, executableName, cancellationToken)
+            .ConfigureAwait(false);
+
         if (_prepared is not null
             && string.Equals(_prepared.StagingDirectory, stagingDirectory,
                 StringComparison.OrdinalIgnoreCase)
             && string.Equals(_prepared.ExecutableName, executableName,
+                StringComparison.OrdinalIgnoreCase)
+            && string.Equals(_prepared.WorkerBuildSha256, workerHash,
                 StringComparison.OrdinalIgnoreCase))
         {
             return _prepared;
         }
 
-        string workerHash = await WorkerManifestVerifier
-            .VerifyAndGetWorkerHashAsync(stagingDirectory, executableName, cancellationToken)
-            .ConfigureAwait(false);
         var profile = new AppContainerProfile(_options.ProfileName);
         AppContainerProfileInfo info = await profile
             .EnsureAsync(stagingDirectory, cancellationToken).ConfigureAwait(false);

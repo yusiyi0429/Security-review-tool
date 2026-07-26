@@ -7,6 +7,7 @@ using SecurityReview.Domain.Findings;
 using SecurityReview.Domain.Rules;
 using SecurityReview.ParserContracts.Parsing;
 using SecurityReview.RulePack.Detection;
+using SecurityReview.RulePack.Packaging.Models;
 using RuleDetectorPipeline = SecurityReview.RulePack.Detection.DetectorPipeline;
 using RuleDetector = SecurityReview.RulePack.Detection.IDetector;
 
@@ -59,7 +60,15 @@ public sealed class RulePackDetectionPipelineAdapter : IDetectionPipeline
             yield break;
         }
 
-        PipelineResult result = await runtime.Pipeline
+        var detectors = new List<RuleDetector>(runtime.BaseDetectors);
+        List<(string Name, string EntityId, string RuleId)> entityTerms =
+            BuildEntityTerms(runtime.Package.RestrictedEntities, assetTypes);
+        if (entityTerms.Count > 0)
+        {
+            detectors.Add(new RestrictedEntityDetector(entityTerms));
+        }
+
+        PipelineResult result = await new RuleDetectorPipeline(detectors)
             .ExecuteAsync(
                 chunk,
                 applicableRules,
@@ -74,6 +83,19 @@ public sealed class RulePackDetectionPipelineAdapter : IDetectionPipeline
 
         foreach (DetectionCandidate candidate in result.Candidates)
         {
+            RuleDefinition? rule = applicableRules.FirstOrDefault(
+                candidateRule => candidateRule.Id == candidate.RuleId);
+            string categoryScope = rule?.CategoryId.Value
+                ?? candidate.FindingKind.ToString();
+            PlaceholderMatchResult placeholder = runtime.PlaceholderMatcher.Match(
+                candidate.Value,
+                candidate.RuleId.Value,
+                categoryScope);
+            if (placeholder.Disposition == PlaceholderDisposition.ApprovedExample)
+            {
+                continue;
+            }
+
             yield return candidate;
         }
     }
@@ -96,24 +118,24 @@ public sealed class RulePackDetectionPipelineAdapter : IDetectionPipeline
             .GetByHashAsync(rulePackHash, CancellationToken.None)
             .ConfigureAwait(false);
 
-        var entityTerms = new List<(string Name, string EntityId, string RuleId)>();
-        foreach (var entity in package.RestrictedEntities)
-        {
-            if (!string.IsNullOrWhiteSpace(entity.StandardName))
+        var licenseAuthorizations = package.ThirdPartyLicenses
+            .Where(IsCurrentlyValid)
+            .Where(license => !string.IsNullOrWhiteSpace(license.LicenseId))
+            .Select(license => new LicenseFingerprintDetector.LicenseAuthorization
             {
-                entityTerms.Add((
-                    entity.StandardName,
-                    entity.EntityId,
-                    entity.CategoryId));
-            }
-            if (!string.IsNullOrWhiteSpace(entity.Variant))
-            {
-                entityTerms.Add((
-                    entity.Variant,
-                    entity.EntityId,
-                    entity.CategoryId));
-            }
-        }
+                LicenseId = license.LicenseId,
+                AuthorizedAssetScope = "*",
+                AuthorizedUntil = ParseOptionalDate(license.ValidUntil),
+                AuthorizationId = license.EvidenceRef,
+            })
+            .ToArray();
+
+        var fingerprints = package.ThirdPartyLicenses
+            .Where(IsCurrentlyValid)
+            .Select(TryBuildFingerprint)
+            .Where(entry => entry is not null)
+            .Cast<ContentFingerprintDetector.FingerprintEntry>()
+            .ToArray();
 
         var detectors = new List<RuleDetector>
         {
@@ -122,13 +144,25 @@ public sealed class RulePackDetectionPipelineAdapter : IDetectionPipeline
             new ChecksumDetector(),
             new NetworkAddressDetector(),
             new EntropyContextDetector(),
-            new LicenseFingerprintDetector([]),
-            new ContentFingerprintDetector([], []),
+            new LicenseFingerprintDetector(licenseAuthorizations),
+            new ContentFingerprintDetector(fingerprints, []),
         };
-        if (entityTerms.Count > 0)
-        {
-            detectors.Add(new RestrictedEntityDetector(entityTerms));
-        }
+
+        var placeholderEntries = package.SecurityPlaceholders
+            .Where(placeholder => string.Equals(
+                placeholder.MatchType, "exact", StringComparison.OrdinalIgnoreCase))
+            .Where(IsCurrentlyValid)
+            .Where(placeholder => !string.IsNullOrWhiteSpace(placeholder.Value))
+            .Select(placeholder => new ApprovedPlaceholderMatcher.PlaceholderEntry
+            {
+                PlaceholderId = placeholder.PlaceholderId,
+                Value = placeholder.Value,
+                ContextScope = string.IsNullOrWhiteSpace(placeholder.AllowedContext)
+                    ? placeholder.CategoryId
+                    : placeholder.AllowedContext,
+                Expiry = ParseOptionalDate(placeholder.ValidUntil),
+            })
+            .ToArray();
 
         IReadOnlyDictionary<DetectorId, DetectorDefinition> definitions =
             package.Policy.Rules.Detectors.ToDictionary(
@@ -136,8 +170,96 @@ public sealed class RulePackDetectionPipelineAdapter : IDetectionPipeline
                 detector => detector);
         return new RuntimePipeline(
             package,
-            new RuleDetectorPipeline(detectors),
-            definitions);
+            detectors,
+            definitions,
+            new ApprovedPlaceholderMatcher(placeholderEntries));
+    }
+
+    private static List<(string Name, string EntityId, string RuleId)>
+        BuildEntityTerms(
+            IReadOnlyList<RestrictedEntityEntry> entities,
+            IReadOnlyList<AssetTypeId> assetTypes)
+    {
+        var terms = new List<(string Name, string EntityId, string RuleId)>();
+        foreach (RestrictedEntityEntry entity in entities)
+        {
+            if (!IsCurrentlyValid(entity)
+                || !ScopeApplies(entity.AssetScope, assetTypes))
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(entity.StandardName))
+            {
+                terms.Add((entity.StandardName, entity.EntityId, entity.CategoryId));
+            }
+            if (!string.IsNullOrWhiteSpace(entity.Variant))
+            {
+                terms.Add((entity.Variant, entity.EntityId, entity.CategoryId));
+            }
+        }
+
+        return terms;
+    }
+
+    private static bool ScopeApplies(
+        string scope,
+        IReadOnlyList<AssetTypeId> assetTypes) =>
+        string.IsNullOrWhiteSpace(scope)
+        || scope is "*" or "all"
+        || assetTypes.Any(type => string.Equals(
+            type.Value, scope, StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsCurrentlyValid(SecurityPlaceholder entry) =>
+        IsCurrentlyValid(entry.ValidFrom, entry.ValidUntil);
+
+    private static bool IsCurrentlyValid(ThirdPartyLicense entry) =>
+        IsCurrentlyValid(entry.ValidFrom, entry.ValidUntil);
+
+    private static bool IsCurrentlyValid(RestrictedEntityEntry entry) =>
+        IsCurrentlyValid(entry.ValidFrom, entry.ValidUntil);
+
+    private static bool IsCurrentlyValid(string validFrom, string validUntil)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        DateTimeOffset? from = ParseOptionalDate(validFrom);
+        DateTimeOffset? until = ParseOptionalDate(validUntil);
+        return (!from.HasValue || from.Value <= now)
+            && (!until.HasValue || until.Value > now);
+    }
+
+    private static DateTimeOffset? ParseOptionalDate(string value) =>
+        DateTimeOffset.TryParse(
+            value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal,
+            out DateTimeOffset parsed)
+            ? parsed
+            : null;
+
+    private static ContentFingerprintDetector.FingerprintEntry? TryBuildFingerprint(
+        ThirdPartyLicense license)
+    {
+        if (string.IsNullOrWhiteSpace(license.Fingerprint))
+        {
+            return null;
+        }
+
+        string[] parts = license.Fingerprint.Split(':', 2);
+        string algorithm = parts.Length == 2 ? parts[0] : "sha256";
+        string hash = parts.Length == 2 ? parts[1] : parts[0];
+        if (hash.Length == 0 || !hash.All(Uri.IsHexDigit))
+        {
+            return null;
+        }
+
+        return new ContentFingerprintDetector.FingerprintEntry
+        {
+            FingerprintId = license.LicenseId,
+            Algorithm = algorithm,
+            HashValue = hash,
+            ComponentName = license.SourceName,
+        };
     }
 
     private static bool AppliesTo(
@@ -154,6 +276,7 @@ public sealed class RulePackDetectionPipelineAdapter : IDetectionPipeline
 
     private sealed record RuntimePipeline(
         LoadedRulePack Package,
-        RuleDetectorPipeline Pipeline,
-        IReadOnlyDictionary<DetectorId, DetectorDefinition> Detectors);
+        IReadOnlyList<RuleDetector> BaseDetectors,
+        IReadOnlyDictionary<DetectorId, DetectorDefinition> Detectors,
+        ApprovedPlaceholderMatcher PlaceholderMatcher);
 }

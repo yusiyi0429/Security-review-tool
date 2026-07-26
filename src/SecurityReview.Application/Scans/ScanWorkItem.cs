@@ -15,7 +15,8 @@ public sealed record ScanWorkItem(
     long DeclaredLength,
     ParseLimits Limits,
     bool IsOci,
-    string? InputFilePath = null);
+    string? InputFilePath = null,
+    string? ExpectedContentSha256 = null);
 
 /// <summary>
 /// Result produced by a parser worker for a single <see cref="ScanWorkItem"/>.

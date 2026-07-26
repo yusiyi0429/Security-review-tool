@@ -5,6 +5,11 @@
       "signer_key_id": "rules-team-prod-01",
       "public_key_base64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVdl9ZCjkoGrJHpBUNXKoKZFI4yILGOtNxmriZw7jb5fo0COZX60gPP9SUtMHlqh94jVNkVxtJE3P8H1AMNyqjA==",
       "public_key_pem": ""
+    },
+    {
+      "signer_key_id": "security-review-bundled-baseline-01",
+      "public_key_base64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAFYEn1AFdfR/xCwne0tJGm7mF7HF7Y/97LbqSByRF8sq/Ug9ymUv4xKHNORa530KgegZqcO8ZII4AzzY8epmkQ==",
+      "public_key_pem": ""
     }
   ]
 }

@@ -20,13 +20,11 @@
             <StackPanel>
                 <TextBlock Text="AUDIT TRAIL" Style="{StaticResource PageEyebrowStyle}" />
                 <TextBlock Text="任务历史" Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0" />
-                <TextBlock Text="回看扫描结论，基于历史配置重新执行，或清理不再需要的任务记录。"
+                <TextBlock Text="回看扫描结论，或清理不再需要的任务记录。"
                            Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,0" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
                 <Button Content="刷新记录" Command="{Binding RefreshCommand}" Margin="0,0,8,0" />
-                <Button Content="重新扫描" Command="{Binding RescanCommand}"
-                        Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" Padding="14,7" Margin="0,0,8,0" />
                 <Button Content="删除记录" Command="{Binding DeleteCommand}" />
             </StackPanel>
         </Grid>
@@ -39,7 +37,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="i" FontFamily="Bahnschrift SemiBold" FontSize="13"
                            Foreground="{StaticResource BrushAccentHover}" Margin="0,0,9,0" />
-                <TextBlock Grid.Column="1" Text="选择一条任务记录后，可执行重新扫描或删除操作。"
+                <TextBlock Grid.Column="1" Text="选择一条任务记录后，可删除该记录及其关联数据。"
                            Foreground="{StaticResource BrushAccentHover}" />
             </Grid>
         </Border>
@@ -60,9 +58,18 @@
                     <TextBlock Grid.Column="1" Text="风险摘要" Style="{StaticResource FieldLabelStyle}"
                                FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,5,18,0" />
                 </Grid>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding Scans}" Margin="12,10">
-                        <ItemsControl.ItemTemplate>
+                <ListBox Grid.Row="1" ItemsSource="{Binding Scans}"
+                         SelectedItem="{Binding SelectedScan, Mode=TwoWay}"
+                         Margin="12,10" Background="Transparent" BorderThickness="0"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,0,0,1"
                                         Padding="7,12" Background="Transparent">
@@ -89,9 +96,8 @@
                                     </Grid>
                                 </Border>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
             </Grid>
         </Border>
     </Grid>

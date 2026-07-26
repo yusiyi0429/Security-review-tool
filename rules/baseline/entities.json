@@ -1,0 +1,35 @@
+[
+  {
+    "dictionary_id": "risk-control-terms",
+    "entity_id": "RISK-TERM-001",
+    "standard_name": "risk threshold",
+    "variant": "risk_threshold",
+    "category_id": "RULE-RISK-CONTROL-TERMS",
+    "severity": "High",
+    "asset_scope": "*",
+    "valid_from": "",
+    "valid_until": ""
+  },
+  {
+    "dictionary_id": "risk-control-terms",
+    "entity_id": "RISK-TERM-002",
+    "standard_name": "风控阈值",
+    "variant": "风险阈值",
+    "category_id": "RULE-RISK-CONTROL-TERMS",
+    "severity": "High",
+    "asset_scope": "*",
+    "valid_from": "",
+    "valid_until": ""
+  },
+  {
+    "dictionary_id": "risk-control-terms",
+    "entity_id": "RISK-TERM-003",
+    "standard_name": "黑名单规则",
+    "variant": "白名单规则",
+    "category_id": "RULE-RISK-CONTROL-TERMS",
+    "severity": "High",
+    "asset_scope": "*",
+    "valid_from": "",
+    "valid_until": ""
+  }
+]

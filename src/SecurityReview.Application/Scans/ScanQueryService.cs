@@ -121,17 +121,67 @@ public sealed class ScanQueryService
         int offset,
         int limit = DefaultGroupsPageSize,
         CancellationToken cancellationToken = default)
+        => await GetGroupsPagedAsync(
+            scanId,
+            offset,
+            limit,
+            findingKind: null,
+            severity: null,
+            cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+    public async Task<PagedResult<FindingGroupDiagnosticRecord>> GetGroupsPagedAsync(
+        ScanId scanId,
+        int offset,
+        int limit,
+        FindingKind? findingKind,
+        Severity? severity,
+        CancellationToken cancellationToken = default)
     {
         IReadOnlyList<FindingGroup> groups = await _findingRepository
             .GetGroupsByScanIdAsync(scanId, cancellationToken)
             .ConfigureAwait(false);
-        IReadOnlyList<FindingGroupDiagnosticRecord> page = groups
+        IEnumerable<FindingGroup> filtered = groups;
+        if (findingKind.HasValue)
+            filtered = filtered.Where(g => g.FindingKind == findingKind.Value);
+        if (severity.HasValue)
+            filtered = filtered.Where(g => g.Severity == severity.Value);
+
+        List<FindingGroup> ordered = filtered
             .OrderBy(g => g.Id.Value)
+            .ToList();
+        IReadOnlyList<FindingGroupDiagnosticRecord> page = ordered
             .Skip(offset)
             .Take(limit)
             .Select(g => g.ToDiagnosticRecord())
             .ToList();
-        return new PagedResult<FindingGroupDiagnosticRecord>(page, offset, limit, groups.Count);
+        return new PagedResult<FindingGroupDiagnosticRecord>(page, offset, limit, ordered.Count);
+    }
+
+    public async Task<PagedResult<FindingOccurrenceSummary>> GetOccurrencesPagedAsync(
+        FindingGroupId groupId,
+        int offset,
+        int limit = DefaultOccurrencesPageSize,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<FindingOccurrence> occurrences = await _findingRepository
+            .GetOccurrencesByGroupIdAsync(groupId, cancellationToken)
+            .ConfigureAwait(false);
+        IReadOnlyList<FindingOccurrenceSummary> page = occurrences
+            .OrderBy(o => o.Id.Value)
+            .Skip(offset)
+            .Take(limit)
+            .Select(o => new FindingOccurrenceSummary(
+                o.Id,
+                o.GroupId,
+                RedactVirtualPath(o.VirtualPath),
+                o.CanonicalLocator.ToCanonicalDisplay()))
+            .ToList();
+        return new PagedResult<FindingOccurrenceSummary>(
+            page,
+            offset,
+            limit,
+            occurrences.Count);
     }
 
     // ---------------------------------------------------------------
@@ -161,7 +211,7 @@ public sealed class ScanQueryService
         return new PagedResult<CoverageGapSummary>(page, offset, limit, gaps.Count);
     }
 
-    public async Task<PagedResult<CoverageGapSummary>> GetFilesPagedAsync(
+    public async Task<PagedResult<CoverageFileSummary>> GetFilesPagedAsync(
         ScanId scanId,
         int offset,
         int limit = DefaultGapsOrFilesPageSize,
@@ -170,18 +220,20 @@ public sealed class ScanQueryService
         IReadOnlyList<FileRecord> files = await _fileRepository
             .GetByScanIdAsync(scanId, cancellationToken)
             .ConfigureAwait(false);
-        IReadOnlyList<CoverageGapSummary> page = files
+        IReadOnlyList<CoverageFileSummary> page = files
             .OrderBy(f => f.RelativePath, StringComparer.Ordinal)
             .Skip(offset)
             .Take(limit)
-            .Select(f => new CoverageGapSummary(
-                GapId: Guid.NewGuid(),
-                Stage: "file",
-                Reason: GapReason.UnexpectedGitMetadata,
-                DetailCode: f.ContentSha256 ?? string.Empty,
-                CreatedAtUtc: f.LastWriteUtc))
+            .Select(f => new CoverageFileSummary(
+                f.FileId,
+                RedactVirtualPath(f.RelativePath, f.RootIndex, f.StreamName),
+                f.FormatId ?? "unknown",
+                f.Coverage,
+                f.ContentSha256 is { Length: >= 12 } hash ? hash[..12] : f.ContentSha256 ?? string.Empty,
+                f.Length,
+                f.LastWriteUtc))
             .ToList();
-        return new PagedResult<CoverageGapSummary>(page, offset, limit, files.Count);
+        return new PagedResult<CoverageFileSummary>(page, offset, limit, files.Count);
     }
 
     // ---------------------------------------------------------------
@@ -189,13 +241,14 @@ public sealed class ScanQueryService
     // ---------------------------------------------------------------
 
     public async Task<DisposableOccurrenceDetail?> GetOccurrenceDetailsAsync(
+        ScanId scanId,
         FindingOccurrenceId occurrenceId,
         CancellationToken cancellationToken = default)
     {
         // The detail DTO is sensitive; the caller is responsible for
         // disposing it once it has rendered the value.
         IReadOnlyList<FindingGroup> groups = await _findingRepository
-            .GetGroupsByScanIdAsync(new ScanId(Guid.Empty), cancellationToken)
+            .GetGroupsByScanIdAsync(scanId, cancellationToken)
             .ConfigureAwait(false);
         foreach (FindingGroup group in groups)
         {
@@ -212,6 +265,27 @@ public sealed class ScanQueryService
                 SensitiveValue: new SensitiveString(match.RawValue),
                 SensitiveContext: new SensitiveString(match.RawContext));
         }
+        return null;
+    }
+
+    public async Task<DisposableOccurrenceDetail?> GetOccurrenceDetailsAsync(
+        FindingOccurrenceId occurrenceId,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<ScanRun> scans = await _scanRepository
+            .ListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        foreach (ScanRun scan in scans)
+        {
+            DisposableOccurrenceDetail? detail = await GetOccurrenceDetailsAsync(
+                    scan.ScanId,
+                    occurrenceId,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (detail is not null)
+                return detail;
+        }
+
         return null;
     }
 
@@ -242,6 +316,22 @@ public sealed class ScanQueryService
         _ = cancellationToken;
         _ = gapId;
         return Task.FromResult<DisposableCoverageDetail?>(null);
+    }
+
+    private static string RedactVirtualPath(
+        string virtualPath,
+        int? rootIndex = null,
+        string? streamName = null)
+    {
+        string normalized = virtualPath.Replace('\\', '/').TrimEnd('/');
+        int separator = normalized.LastIndexOf('/');
+        string leaf = separator >= 0 ? normalized[(separator + 1)..] : normalized;
+        if (leaf.Length == 0)
+            leaf = "(root)";
+
+        string prefix = rootIndex.HasValue ? $"root-{rootIndex.Value + 1}/…/" : "…/";
+        string stream = string.IsNullOrWhiteSpace(streamName) ? string.Empty : $":{streamName}";
+        return $"{prefix}{leaf}{stream}";
     }
 }
 
@@ -275,6 +365,21 @@ public sealed record CoverageGapSummary(
     GapReason Reason,
     string DetailCode,
     DateTimeOffset CreatedAtUtc);
+
+public sealed record FindingOccurrenceSummary(
+    FindingOccurrenceId OccurrenceId,
+    FindingGroupId GroupId,
+    string RedactedVirtualPath,
+    string LocatorDisplay);
+
+public sealed record CoverageFileSummary(
+    FileId FileId,
+    string RedactedPath,
+    string FormatId,
+    CoverageStatus Coverage,
+    string ContentHashPrefix,
+    long Length,
+    DateTimeOffset LastWriteUtc);
 
 public sealed record PagedResult<T>(
     IReadOnlyList<T> Items,

@@ -76,7 +76,7 @@ public static class ScanSmokeCommand
 
             string formatHint = Path.GetExtension(filePath).ToLowerInvariant() switch
             {
-                ".txt" or ".csv" or ".log" or ".md" or ".xml" or ".json"
+                ".txt" or ".csv" or ".log" or ".md" or ".xml" or ".json" or ".jsonl"
                     or ".yaml" or ".yml" or ".ini" or ".cfg" or ".conf"
                     or ".html" or ".htm" or ".css" or ".js" or ".ts"
                     or ".py" or ".java" or ".cs" or ".c" or ".h" or ".cpp"

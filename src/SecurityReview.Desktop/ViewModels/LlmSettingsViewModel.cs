@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
+using SecurityReview.Application.Abstractions;
 using SecurityReview.Application.Llm;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Domain.Llm;
@@ -22,6 +23,8 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
     private readonly ILlmConnectionTestService _testService;
     private readonly ILlmCredentialStore _credentialStore;
     private readonly IUiErrorSink _errorSink;
+    private readonly Func<Task>? _configurationChanged;
+    private readonly ICacheRepository? _cacheRepository;
 
     // Config fields
     private string _baseUri = "";
@@ -54,12 +57,16 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
         ILlmConfigurationStore configStore,
         ILlmConnectionTestService testService,
         ILlmCredentialStore credentialStore,
-        IUiErrorSink errorSink)
+        IUiErrorSink errorSink,
+        Func<Task>? configurationChanged = null,
+        ICacheRepository? cacheRepository = null)
     {
         _configStore = configStore;
         _testService = testService;
         _credentialStore = credentialStore;
         _errorSink = errorSink;
+        _configurationChanged = configurationChanged;
+        _cacheRepository = cacheRepository;
 
         SaveCommand = new AsyncRelayCommand(_ => SaveConfigAsync(), errorSink,
             _ => !IsTesting);
@@ -243,6 +250,8 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
             {
                 HasConfig = false;
                 HasStoredCredential = HasCredential(DefaultCredentialReference);
+                if (_configurationChanged is not null)
+                    await _configurationChanged();
                 return;
             }
 
@@ -254,6 +263,8 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
             _lastSavedModel = options.Model;
             LastTestOrigin = options.BaseUri.GetLeftPart(UriPartial.Authority);
             LastTestTime = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            if (_configurationChanged is not null)
+                await _configurationChanged();
         }
         catch (Exception)
         {
@@ -327,9 +338,17 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
             HasConfig = true;
             LastTestOrigin = options.BaseUri.GetLeftPart(UriPartial.Authority);
             LastTestTime = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            if (_configurationChanged is not null)
+                await _configurationChanged();
 
             if (cacheShouldClear)
             {
+                if (_cacheRepository is not null)
+                {
+                    await _cacheRepository
+                        .DeleteByStageAsync("llm_review")
+                        .ConfigureAwait(true);
+                }
                 MessageBox.Show("LLM 配置已保存。\n\n检测到目标端点或模型更改，语义缓存已清除。",
                     "配置", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -453,6 +472,8 @@ public sealed class LlmSettingsViewModel : ObservableObject, IDisposable
             LastTestTime = "";
             _lastSavedTarget = "";
             _lastSavedModel = "";
+            if (_configurationChanged is not null)
+                await _configurationChanged();
         }
         catch (Exception)
         {

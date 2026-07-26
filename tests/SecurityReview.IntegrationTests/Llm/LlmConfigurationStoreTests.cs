@@ -56,7 +56,7 @@ public sealed class LlmConfigurationStoreTests : IAsyncDisposable
             chatCompletionsPath: "/llm/v1/chat/completions",
             model: ModelCanary,
             reference: "Llm.Endpoint.Default",
-            authMode: LlmAuthMode.Bearer,
+            authMode: LlmAuthMode.CustomHeader,
             credentialReference: "Llm.Credential.Default",
             customHeaderName: HeaderCanary,
             timeout: TimeSpan.FromSeconds(45),
@@ -101,7 +101,7 @@ public sealed class LlmConfigurationStoreTests : IAsyncDisposable
             chatCompletionsPath: "/v1/chat/completions",
             model: ModelCanary,
             reference: "Llm.Endpoint.Default",
-            authMode: LlmAuthMode.Bearer,
+            authMode: LlmAuthMode.CustomHeader,
             credentialReference: "Llm.Credential.Default",
             customHeaderName: HeaderCanary);
         _secretStore.Save("Llm.Credential.Default", TokenCanary);
@@ -131,7 +131,7 @@ public sealed class LlmConfigurationStoreTests : IAsyncDisposable
             chatCompletionsPath: "/v1/chat/completions",
             model: ModelCanary,
             reference: "Llm.Endpoint.Default",
-            authMode: LlmAuthMode.Bearer,
+            authMode: LlmAuthMode.CustomHeader,
             credentialReference: "Llm.Credential.Default",
             customHeaderName: HeaderCanary);
         _secretStore.Save("Llm.Credential.Default", TokenCanary);
@@ -234,7 +234,7 @@ public sealed class LlmConfigurationStoreTests : IAsyncDisposable
             chatCompletionsPath: "/v1/chat/completions",
             model: ModelCanary,
             reference: "Llm.Endpoint.Default",
-            authMode: LlmAuthMode.Bearer,
+            authMode: LlmAuthMode.CustomHeader,
             credentialReference: "Llm.Credential.Default",
             customHeaderName: HeaderCanary);
         _secretStore.Save("Llm.Credential.Default", TokenCanary);

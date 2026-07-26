@@ -45,6 +45,12 @@ public sealed class SqliteLlmReviewRepository : ILlmAttemptRepository, ISemantic
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(record);
+        if (record.ScanId is null)
+        {
+            throw new ArgumentException(
+                "A scan id is required for persisted LLM attempts.",
+                nameof(record));
+        }
 
         await using var connection = await _factory.OpenAsync(cancellationToken).ConfigureAwait(false);
         await using var cmd = connection.CreateCommand();
@@ -68,7 +74,9 @@ public sealed class SqliteLlmReviewRepository : ILlmAttemptRepository, ISemantic
 
         cmd.Parameters.AddWithValue("@attemptId", attemptId);
         cmd.Parameters.AddWithValue("@reviewId", reviewId);
-        cmd.Parameters.AddWithValue("@scanId", string.Empty);
+        cmd.Parameters.AddWithValue(
+            "@scanId",
+            record.ScanId.Value.Value.ToString("D"));
         cmd.Parameters.AddWithValue("@candidateId", record.Result.CandidateId.Value.ToString("D"));
         cmd.Parameters.AddWithValue("@attemptNumber", record.AttemptNumber);
         cmd.Parameters.AddWithValue("@statusCode",

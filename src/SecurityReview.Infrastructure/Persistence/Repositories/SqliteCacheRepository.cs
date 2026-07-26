@@ -100,6 +100,19 @@ public sealed class SqliteCacheRepository : ICacheRepository
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task DeleteByStageAsync(
+        string stage,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(stage);
+        await using var connection = await _factory.OpenAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "DELETE FROM cache_entries WHERE stage = @stage;";
+        cmd.Parameters.AddWithValue("@stage", stage);
+        await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<long> GetTotalSizeBytesAsync(
         CancellationToken cancellationToken = default)
     {

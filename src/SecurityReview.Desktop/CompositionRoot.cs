@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.IO;
+using System.Net.Http;
 using SecurityReview.Application.Abstractions;
+using SecurityReview.Application.Caching;
 using SecurityReview.Application.Diagnostics;
 using SecurityReview.Application.History;
 using SecurityReview.Application.Llm;
@@ -21,6 +23,7 @@ using SecurityReview.Infrastructure.Persistence.Migrations;
 using SecurityReview.Infrastructure.Persistence.Repositories;
 using SecurityReview.Infrastructure.Rules;
 using SecurityReview.Infrastructure.Windows.Files;
+using SecurityReview.Infrastructure.Windows.Identity;
 using SecurityReview.Infrastructure.Windows.Sandbox;
 using SecurityReview.RulePack.Signing;
 using SecurityReview.RulePack.Validation;
@@ -180,6 +183,8 @@ public sealed class CompositionRoot : IDisposable
             // SqliteScanSnapshotRepository(ISqliteConnectionFactory) — 1 param
             Register<IScanSnapshotRepository>(
                 new SqliteScanSnapshotRepository(connectionFactory));
+            Register<IScanCreationRepository>(
+                new SqliteScanCreationRepository(connectionFactory, protector));
 
             // SqliteFindingRepository(ISqliteConnectionFactory, IPayloadProtector, IValueFingerprintService)
             Register<IFindingRepository>(
@@ -194,20 +199,33 @@ public sealed class CompositionRoot : IDisposable
                 new SqliteFileRepository(connectionFactory, protector, fp));
 
             // SqliteCacheRepository(ISqliteConnectionFactory) — 1 param
-            Register<ICacheRepository>(
-                new SqliteCacheRepository(connectionFactory));
+            var cacheRepository = new SqliteCacheRepository(connectionFactory);
+            Register<ICacheRepository>(cacheRepository);
+            RegisterConcrete(cacheRepository);
+            var cacheCoordinator = new CacheCoordinator(
+                cacheRepository,
+                protector,
+                new FileSystemDiskCapacityProvider(paths.Data));
+            RegisterConcrete(cacheCoordinator);
 
             // SqliteReviewRepository(ISqliteConnectionFactory, IPayloadProtector)
             Register<IReviewRepository>(
                 new SqliteReviewRepository(connectionFactory, protector));
 
             // SqliteLlmReviewRepository(ISqliteConnectionFactory, IPayloadProtector)
-            Register<ILlmAttemptRepository>(
-                new SqliteLlmReviewRepository(connectionFactory, protector));
+            var llmRepository = new SqliteLlmReviewRepository(
+                connectionFactory, protector);
+            Register<ILlmAttemptRepository>(llmRepository);
+            Register<ISemanticReviewPersister>(llmRepository);
+            RegisterConcrete(llmRepository);
 
             // SqliteRulePackMetadataRepository(ISqliteConnectionFactory) — 1 param
             Register<IRulePackMetadataRepository>(
                 new SqliteRulePackMetadataRepository(connectionFactory));
+
+            var maintenance = new SqliteMaintenanceService(connectionFactory);
+            Register<IDatabaseMaintenanceService>(maintenance);
+            RegisterConcrete(maintenance);
         }
 
         // --- Step 5: Rule store ---
@@ -243,6 +261,10 @@ public sealed class CompositionRoot : IDisposable
             typeof(CompositionRoot).Assembly.GetName().Version?.ToString(3)
                 ?? "0.0.0");
         RegisterConcrete(ruleImportService);
+        EnsureBundledBaselineIsActive(
+            ruleStore,
+            ruleRuntimeProvider,
+            ruleImportService);
 
         // --- Step 6: Sandbox / worker ---
         if (!_args.IsTest)
@@ -308,7 +330,11 @@ public sealed class CompositionRoot : IDisposable
 
         if (sr is not null && ssr is not null && protector is not null)
         {
-            var createScan = new CreateScanHandler(sr, ssr, protector);
+            var createScan = new CreateScanHandler(
+                sr,
+                ssr,
+                protector,
+                creationRepository: TryGet<IScanCreationRepository>());
             RegisterConcrete(createScan);
 
             if (sandbox is not null)
@@ -318,8 +344,12 @@ public sealed class CompositionRoot : IDisposable
                     _args.IsTest
                         ? new StubBaselineProvider()
                         : new ActiveRulePackBaselineProvider(ruleRuntimeProvider),
-                    new StubSpaceProbe(),
-                    new StubDbHealthCheck());
+                    _args.IsTest
+                        ? new StubSpaceProbe()
+                        : new AppDataSpaceProbe(paths.Data),
+                    _args.IsTest
+                        ? new StubDbHealthCheck()
+                        : new SqliteDatabaseHealthCheck(connectionFactory));
                 RegisterConcrete(preflight);
                 var startScan = new StartScanHandler(sr, ssr, preflight, protector);
                 RegisterConcrete(startScan);
@@ -338,8 +368,9 @@ public sealed class CompositionRoot : IDisposable
 
             if (rr is not null && fpSvc is not null)
             {
-                // IWindowsIdentityProvider is Windows-only; stub for test.
-                var identityProvider = new StubWindowsIdentityProvider();
+                IWindowsIdentityProvider identityProvider = _args.IsTest
+                    ? new StubWindowsIdentityProvider()
+                    : new WindowsIdentityProvider();
                 var reviewSvc = new ReviewService(rr, protector, fpSvc, identityProvider);
                 Register<IReviewService>(reviewSvc);
 
@@ -370,13 +401,20 @@ public sealed class CompositionRoot : IDisposable
                             fr,
                             cr,
                             flr,
-                            () => new UnavailableSemanticReviewQueue(),
+                            CreateSemanticReviewQueue,
                             diagnostics,
-                            orchestratorState);
+                            orchestratorState,
+                            fileSnapshotService: new WindowsFileSnapshotService());
                         Register<IScanOrchestrator>(orchestrator);
                         RegisterConcrete(orchestrator);
                     }
                 }
+            }
+
+            if (TryGet<IDatabaseMaintenanceService>() is { } maintenance)
+            {
+                var retention = new RetentionService(sr, maintenance);
+                RegisterConcrete(retention);
             }
         }
 
@@ -395,6 +433,78 @@ public sealed class CompositionRoot : IDisposable
         var explorerService = new Services.ExplorerService(
             path => true); // Warning dialog will be shown by the ViewModel
         RegisterConcrete(explorerService);
+    }
+
+    private void EnsureBundledBaselineIsActive(
+        FileRulePackStore ruleStore,
+        ActiveRulePackRuntimeProvider runtimeProvider,
+        RulePackImportService importService)
+    {
+        try
+        {
+            ActivePointer? active = ruleStore
+                .GetActiveAsync(CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+            if (active is not null)
+            {
+                try
+                {
+                    ActiveRulePackRuntime? runtime = runtimeProvider
+                        .GetActiveAsync(CancellationToken.None)
+                        .GetAwaiter()
+                        .GetResult();
+                    if (runtime is not null)
+                        return;
+                }
+                catch (Exception ex) when (ex is IOException
+                    or InvalidDataException
+                    or InvalidOperationException
+                    or UnauthorizedAccessException)
+                {
+                    // A stale/corrupt active pointer must not permanently
+                    // disable scanning. The signed bundled package below is
+                    // revalidated before it can replace the pointer.
+                }
+            }
+
+            string bundledPath = System.IO.Path.Combine(
+                AppContext.BaseDirectory,
+                "Assets",
+                "rules",
+                "default-rule-pack.zip");
+            if (!File.Exists(bundledPath))
+            {
+                ErrorSink.Report(
+                    "bundled_rule_pack_missing",
+                    "内置基线规则包缺失，请重新安装完整的应用程序。");
+                return;
+            }
+
+            byte[] packageBytes = File.ReadAllBytes(bundledPath);
+            ImportResult result = importService
+                .ImportAsync(
+                    new ImportRulePackCommand
+                    {
+                        ZipBytes = packageBytes,
+                        AllowDowngrade = active is not null,
+                    },
+                    CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+            if (!result.Success)
+            {
+                ErrorSink.Report(
+                    "bundled_rule_pack_invalid",
+                    "内置基线规则包无法通过完整性校验，请重新安装应用程序。");
+            }
+        }
+        catch (Exception)
+        {
+            ErrorSink.Report(
+                "bundled_rule_pack_activation_failed",
+                "内置基线规则包激活失败，请查看诊断信息。");
+        }
     }
 
     // ------------------------------------------------------------------ Service resolution
@@ -462,7 +572,10 @@ public sealed class CompositionRoot : IDisposable
             targetPicker,
             ruleRuntimeProvider,
             sandbox,
-            Health);
+            Health,
+            TryGet<ILlmConfigurationStore>(),
+            new JsonManifestReader(),
+            TryGet<ILlmCredentialStore>());
     }
 
     public ScanProgressViewModel GetScanProgressViewModel(ScanId scanId)
@@ -477,9 +590,76 @@ public sealed class CompositionRoot : IDisposable
         };
     }
 
+    private ISemanticReviewQueue CreateSemanticReviewQueue()
+    {
+        ILlmConfigurationStore? configuration = TryGet<ILlmConfigurationStore>();
+        ILlmCredentialStore? credentials = TryGet<ILlmCredentialStore>();
+        IValueFingerprintService? fingerprints = TryGet<IValueFingerprintService>();
+        CacheCoordinator? cache = TryGet<CacheCoordinator>();
+        ILlmAttemptRepository? attempts = TryGet<ILlmAttemptRepository>();
+        ISemanticReviewPersister? persister = TryGet<ISemanticReviewPersister>();
+        IDiagnosticSink? diagnostics = TryGet<IDiagnosticSink>();
+        if (configuration is null || credentials is null || fingerprints is null
+            || cache is null || attempts is null || persister is null
+            || diagnostics is null)
+        {
+            return new UnavailableSemanticReviewQueue();
+        }
+
+        try
+        {
+            LlmEndpointOptions? options = configuration
+                .LoadAsync(CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
+            if (options is null)
+            {
+                return new UnavailableSemanticReviewQueue();
+            }
+
+            bool credentialReady = options.AuthMode == LlmAuthMode.None
+                || options.CredentialReference is { Length: > 0 } reference
+                && credentials.HasCredential(reference);
+            if (!credentialReady)
+            {
+                return new UnavailableSemanticReviewQueue();
+            }
+
+            HttpClient client = OpenAiHttpClientFactory.Create(options, credentials);
+            var reviewer = new OpenAiSemanticReviewer(
+                options,
+                fingerprints,
+                client,
+                cache,
+                attempts,
+                diagnostics,
+                ownsHttpClient: true,
+                credentialStore: credentials);
+            return new SemanticReviewQueue(
+                new SemanticReviewQueueOptions
+                {
+                    MaxConsumerCount = options.MaxConcurrency,
+                    ReviewDeadline = options.Timeout,
+                },
+                reviewer,
+                new AlwaysCurrentSemanticCandidateLifetime(),
+                persister,
+                new NullSemanticReviewProgressSink());
+        }
+        catch (Exception ex) when (ex is IOException
+            or InvalidDataException
+            or InvalidOperationException
+            or UnauthorizedAccessException)
+        {
+            return new UnavailableSemanticReviewQueue();
+        }
+    }
+
     public async Task InitializeRuntimeAsync(
         CancellationToken cancellationToken = default)
     {
+        await RefreshShellStatusAsync(cancellationToken);
+
         if (Health.State == StartupHealthState.Blocked)
         {
             return;
@@ -503,6 +683,62 @@ public sealed class CompositionRoot : IDisposable
         {
             Health.MarkBlocked(result.Code);
         }
+
+        await RefreshShellStatusAsync(cancellationToken);
+    }
+
+    public async Task RefreshShellStatusAsync(
+        CancellationToken cancellationToken = default)
+    {
+        MainWindowViewModel.AppVersion =
+            typeof(CompositionRoot).Assembly.GetName().Version?.ToString(3)
+            ?? "0.0.0";
+
+        ActiveRulePackRuntimeProvider? ruleProvider =
+            TryGet<ActiveRulePackRuntimeProvider>();
+        try
+        {
+            ActiveRulePackRuntime? active = ruleProvider is null
+                ? null
+                : await ruleProvider
+                    .GetActiveAsync(cancellationToken)
+                    .ConfigureAwait(true);
+            MainWindowViewModel.RulePackageVersion =
+                active?.Active.Version ?? "未配置";
+        }
+        catch (Exception)
+        {
+            MainWindowViewModel.RulePackageVersion = "不可用";
+        }
+
+        ILlmConfigurationStore? configStore = TryGet<ILlmConfigurationStore>();
+        if (configStore is null)
+        {
+            MainWindowViewModel.LlmState = "不可用";
+            return;
+        }
+
+        try
+        {
+            LlmEndpointOptions? options = await configStore
+                .LoadAsync(cancellationToken)
+                .ConfigureAwait(true);
+            if (options is null)
+            {
+                MainWindowViewModel.LlmState = "未配置";
+                return;
+            }
+
+            bool credentialReady = options.AuthMode == LlmAuthMode.None
+                || (options.CredentialReference is { Length: > 0 } reference
+                    && TryGet<ILlmCredentialStore>()?.HasCredential(reference) == true);
+            MainWindowViewModel.LlmState =
+                credentialReady ? "已配置" : "凭据缺失";
+        }
+        catch (Exception)
+        {
+            MainWindowViewModel.LlmState = "加载失败";
+        }
     }
 
     public HistoryViewModel GetHistoryViewModel()
@@ -520,9 +756,12 @@ public sealed class CompositionRoot : IDisposable
     public RuleManagementViewModel GetRuleManagementViewModel()
     {
         var importSvc = TryGet<RulePackImportService>();
+        var ruleStore = TryGet<IRulePackStore>();
         return new RuleManagementViewModel(
             importSvc is not null ? () => importSvc : null!,
-            ErrorSink);
+            ErrorSink,
+            ruleStore is not null ? () => ruleStore : null,
+            () => RefreshShellStatusAsync());
     }
 
     public LlmSettingsViewModel GetLlmSettingsViewModel()
@@ -534,13 +773,23 @@ public sealed class CompositionRoot : IDisposable
             configStore ?? new NullLlmConfigStore(),
             testSvc ?? new NullLlmTestService(),
             credentialStore ?? new NullLlmCredentialStore(),
-            ErrorSink);
+            ErrorSink,
+            () => RefreshShellStatusAsync(),
+            TryGet<ICacheRepository>());
     }
 
     public CoverageViewModel GetCoverageViewModel()
     {
         var query = TryGet<ScanQueryService>();
         return new CoverageViewModel(
+            ErrorSink,
+            query is not null ? () => query : null!);
+    }
+
+    public ScanResultsViewModel GetScanResultsViewModel()
+    {
+        var query = TryGet<ScanQueryService>();
+        return new ScanResultsViewModel(
             ErrorSink,
             query is not null ? () => query : null!);
     }

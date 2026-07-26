@@ -79,6 +79,21 @@ public sealed class CompositionRootTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Bundled_baseline_rule_pack_is_activated_on_first_start()
+    {
+        using var root = BuildRoot();
+        var store = root.GetService<IRulePackStore>();
+
+        ActivePointer? active = await store.GetActiveAsync(
+            TestContext.Current.CancellationToken);
+
+        Assert.NotNull(active);
+        Assert.Equal("security-review-bundled-baseline", active.RulePackId);
+        Assert.Equal("1.0.0", active.Version);
+        Assert.Equal(64, active.Sha256.Length);
+    }
+
+    [Fact]
     public void Singleton_sandbox_self_test_is_exactly_one_instance()
     {
         using var root = BuildRoot();

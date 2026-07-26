@@ -92,6 +92,25 @@ public sealed class FileRulePackStore : IRulePackStore
             string finalPath = Path.Combine(packagesRoot, relativeFinal);
             Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
 
+            if (File.Exists(finalPath))
+            {
+                byte[] existingBytes = await File.ReadAllBytesAsync(
+                        finalPath, cancellationToken)
+                    .ConfigureAwait(false);
+                byte[] expectedHash = Convert.FromHexString(sha256);
+                byte[] existingHash = SHA256.HashData(existingBytes);
+                if (!CryptographicOperations.FixedTimeEquals(
+                        existingHash, expectedHash))
+                {
+                    throw new IOException(
+                        "An existing rule package has an unexpected content hash.");
+                }
+
+                File.Delete(tempFile);
+                Directory.Delete(stagingDir, recursive: true);
+                return new StoreResult(true, finalPath);
+            }
+
             File.Move(tempFile, finalPath, overwrite: false);
 
             // 7. Mark final file as read-only.

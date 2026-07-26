@@ -38,10 +38,11 @@ public sealed class CandidateMerger
         foreach (var candidate in candidates)
         {
             var fp = _fingerprint.Compute(candidate.Value);
-            if (!groupsByFingerprint.TryGetValue(fp.HexString, out var builder))
+            string groupKey = $"{(int)candidate.FindingKind}|{fp.HexString}";
+            if (!groupsByFingerprint.TryGetValue(groupKey, out var builder))
             {
                 builder = new GroupBuilder(candidate.FindingKind, fp);
-                groupsByFingerprint[fp.HexString] = builder;
+                groupsByFingerprint[groupKey] = builder;
             }
 
             string locatorKey = candidate.Locator.ToCanonicalDisplay();
@@ -154,8 +155,9 @@ public sealed class CandidateMerger
                 FindingGroupId groupId, ScanId scanId, JobId jobId,
                 string fileSha256, string virtualPath)
             {
-                // Occurrence key: scanId + fileSha256 + virtualPath + canonicalLocator
-                string occKey = $"{_scanId.Value:N}|{_fileSha256}|{_virtualPath}|{_canonicalLocator.ToCanonicalDisplay()}";
+                // JobId separates identical relative paths from different scan
+                // roots while preserving overlap deduplication within a file.
+                string occKey = $"{_scanId.Value:N}|{_jobId.Value:N}|{_fileSha256}|{_virtualPath}|{_canonicalLocator.ToCanonicalDisplay()}";
                 var occId = new FindingOccurrenceId(MakeUuidV5(occKey));
 
                 return new FindingOccurrence(

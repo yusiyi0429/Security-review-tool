@@ -28,7 +28,7 @@ public sealed class JarFormatParser : IFormatParser
     public bool CanParse(FormatProbe probe)
     {
         ArgumentNullException.ThrowIfNull(probe);
-        return probe.Format.FormatId is "jar" or "zip";
+        return probe.Format.FormatId == "jar";
     }
 
     public async IAsyncEnumerable<ParserEvent> ParseAsync(

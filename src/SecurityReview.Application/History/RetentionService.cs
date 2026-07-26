@@ -87,6 +87,25 @@ public sealed class RetentionService
             .Select(s => s.ScanId)
             .ToList();
     }
+
+    public async Task<bool> DeleteScanAsync(
+        ScanId scanId,
+        CancellationToken cancellationToken = default)
+    {
+        int deleted = await _maintenanceService
+            .DeleteExpiredScansAsync([scanId], cancellationToken)
+            .ConfigureAwait(false);
+        if (deleted == 0)
+            return false;
+
+        await _maintenanceService
+            .DeleteUnreferencedCacheAsync(null, cancellationToken)
+            .ConfigureAwait(false);
+        await _maintenanceService
+            .CheckpointWalAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return true;
+    }
 }
 
 /// <summary>

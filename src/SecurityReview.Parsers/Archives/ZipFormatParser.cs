@@ -19,7 +19,7 @@ public sealed class ZipFormatParser : IFormatParser
     public bool CanParse(FormatProbe probe)
     {
         ArgumentNullException.ThrowIfNull(probe);
-        return probe.Format.FormatId is "zip" or "jar" or "openxml";
+        return probe.Format.FormatId == "zip";
     }
 
     public async IAsyncEnumerable<ParserEvent> ParseAsync(

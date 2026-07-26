@@ -55,8 +55,17 @@ public partial class MainWindow : Window
         {
             newScan.ScanLaunchRequested += OnScanLaunchRequestedAsync;
         }
+        else if (view is HistoryViewModel history)
+        {
+            _ = InitializeHistoryAsync(history);
+        }
+        else if (view is CoverageViewModel coverage)
+        {
+            _ = InitializeCoverageAsync(coverage);
+        }
 
         _viewModel.CurrentView = view;
+        _ = _root.RefreshShellStatusAsync();
     }
 
     private async Task OnScanLaunchRequestedAsync(
@@ -86,6 +95,37 @@ public partial class MainWindow : Window
             cancellationToken))
         {
             progressViewModel.ApplyProgress(progress);
+        }
+
+        ScanResultsViewModel resultsViewModel =
+            _root.GetScanResultsViewModel();
+        await resultsViewModel
+            .InitializeAsync(request.ScanId, CancellationToken.None)
+            .ConfigureAwait(true);
+        _viewModel.CurrentView = resultsViewModel;
+    }
+
+    private async Task InitializeHistoryAsync(HistoryViewModel viewModel)
+    {
+        try
+        {
+            await viewModel.RefreshAsync().ConfigureAwait(true);
+        }
+        catch (Exception)
+        {
+            _root.ErrorSink.Report("history_load_failed", "加载扫描历史失败。");
+        }
+    }
+
+    private async Task InitializeCoverageAsync(CoverageViewModel viewModel)
+    {
+        try
+        {
+            await viewModel.InitializeLatestAsync().ConfigureAwait(true);
+        }
+        catch (Exception)
+        {
+            _root.ErrorSink.Report("coverage_load_failed", "加载覆盖诊断失败。");
         }
     }
 

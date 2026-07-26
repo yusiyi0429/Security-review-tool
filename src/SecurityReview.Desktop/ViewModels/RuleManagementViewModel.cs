@@ -20,7 +20,9 @@ namespace SecurityReview.Desktop.ViewModels;
 public sealed class RuleManagementViewModel : ObservableObject
 {
     private readonly Func<RulePackImportService> _importFactory;
+    private readonly Func<IRulePackStore>? _storeFactory;
     private readonly IUiErrorSink _errorSink;
+    private readonly Func<Task>? _configurationChanged;
 
     private string _activeRulePackId = "";
     private string _activeVersion = "";
@@ -35,10 +37,14 @@ public sealed class RuleManagementViewModel : ObservableObject
 
     public RuleManagementViewModel(
         Func<RulePackImportService> importFactory,
-        IUiErrorSink errorSink)
+        IUiErrorSink errorSink,
+        Func<IRulePackStore>? storeFactory = null,
+        Func<Task>? configurationChanged = null)
     {
         _importFactory = importFactory;
+        _storeFactory = storeFactory;
         _errorSink = errorSink;
+        _configurationChanged = configurationChanged;
 
         ImportCommand = new AsyncRelayCommand(_ => ImportRulePackAsync(), errorSink,
             _ => !IsImporting);
@@ -172,6 +178,8 @@ public sealed class RuleManagementViewModel : ObservableObject
                     DateTimeOffset.UtcNow));
 
                 Warnings = "";
+                if (_configurationChanged is not null)
+                    await _configurationChanged();
             }
             else
             {
@@ -198,11 +206,46 @@ public sealed class RuleManagementViewModel : ObservableObject
         }
     }
 
-    private static async Task RefreshAsync()
+    public async Task RefreshAsync()
     {
-        // Refresh current active rull pack info
-        // In a real implementation, this would query the IRulePackStore
-        await Task.CompletedTask;
+        if (_storeFactory is null)
+            return;
+
+        try
+        {
+            ActivePointer? active = await _storeFactory()
+                .GetActiveAsync(CancellationToken.None);
+            if (active is null)
+            {
+                ActiveRulePackId = "";
+                ActiveVersion = "";
+                ActiveHash = "";
+                HasActivePack = false;
+                LastImportStatus = "尚未激活规则包";
+                Warnings = "请导入由可信发布者签名的规则包后再开始扫描。";
+                if (_configurationChanged is not null)
+                    await _configurationChanged();
+                return;
+            }
+
+            ActiveRulePackId = active.RulePackId;
+            ActiveVersion = active.Version;
+            ActiveHash = active.Sha256;
+            HasActivePack = true;
+            LastImportStatus = $"当前使用 — {active.RulePackId} v{active.Version}";
+            Warnings = "";
+            if (_configurationChanged is not null)
+                await _configurationChanged();
+        }
+        catch (Exception)
+        {
+            HasActivePack = false;
+            LastImportStatus = "规则包状态加载失败";
+            Warnings = "无法读取当前活动规则包，请重新导入有效的签名规则包。";
+            _errorSink.Report(
+                "rule_pack_status_load_failed",
+                "读取当前活动规则包失败。");
+        }
     }
 }
 

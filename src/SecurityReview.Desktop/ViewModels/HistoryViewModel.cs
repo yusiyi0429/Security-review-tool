@@ -140,9 +140,8 @@ public sealed class HistoryViewModel : ObservableObject
         try
         {
             var rescan = _rescanFactory();
-            // The rescan handler needs the current inputs from the scan setup view;
-            // this is a placeholder — actual rescan is triggered from the NewScanView flow
-            // with the previous scan ID.
+            // The setup view owns the current target/configuration inputs. Keep
+            // historical rows immutable and direct the user there before a new run.
             MessageBox.Show(
                 "请在「新建扫描」页面配置扫描目标后执行重新扫描。\n\n" +
                 "系统将自动与上一个扫描进行对比。",
@@ -166,8 +165,7 @@ public sealed class HistoryViewModel : ObservableObject
             $"此操作不可逆。删除的内容包括：\n" +
             $"- 扫描记录和状态\n" +
             $"- 所有发现和复核记录\n" +
-            $"- 覆盖率数据\n" +
-            $"- 相关的例外授权\n\n" +
+            $"- 覆盖率数据\n\n" +
             $"此操作仅影响本机数据，不会影响其他设备。\n\n" +
             $"确定要删除吗？",
             "删除扫描",
@@ -178,12 +176,17 @@ public sealed class HistoryViewModel : ObservableObject
 
         try
         {
-            var retention = _retentionFactory();
-            // Use retention service to delete by marking as expired and purging
-            var retentionPeriod = RetentionPeriod.Days90;
-            var expired = await retention.PreviewExpiredAsync(retentionPeriod).ConfigureAwait(true);
+            RetentionService retention = _retentionFactory();
+            bool deleted = await retention
+                .DeleteScanAsync(scan.ScanId)
+                .ConfigureAwait(true);
+            if (!deleted)
+            {
+                _errorSink.Report("delete_failed", "扫描记录不存在或已被删除。");
+                await RefreshAsync().ConfigureAwait(true);
+                return;
+            }
 
-            // Direct delete via maintenance is preferred but we use the available API
             _scans.Remove(scan);
             SelectedScan = null;
 

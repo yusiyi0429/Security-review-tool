@@ -37,6 +37,8 @@ public interface ICacheRepository
     /// </summary>
     Task DeleteByScanIdAsync(ScanId scanId, CancellationToken cancellationToken = default);
 
+    Task DeleteByStageAsync(string stage, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Returns the total size (bytes) of all cached encrypted payloads.
     /// </summary>

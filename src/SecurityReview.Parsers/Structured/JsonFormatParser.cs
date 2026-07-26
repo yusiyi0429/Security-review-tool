@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -12,13 +11,14 @@ namespace SecurityReview.Parsers.Structured;
 
 /// <summary>
 /// Parses JSON sources using streaming <see cref="Utf8JsonReader"/> across
-/// 128 KiB buffers. Produces structured content chunks with JSON Pointer
-/// locations, rejects duplicate object keys, and handles oversized string
-/// tokens via <see cref="OversizeJsonTokenSkipper"/>.
+/// bounded, growable buffers. Produces structured content chunks with JSON
+/// Pointer locations, rejects duplicate object keys, and falls back to bounded
+/// text coverage when a single token exceeds the structured-parser limit.
 /// </summary>
 public sealed class JsonFormatParser : IFormatParser
 {
     private const int BufferSize = 128 * 1024; // 128 KiB
+    private const int MaxBufferedTokenBytes = 1_114_112; // 1 MiB token + framing
     private const int MaxDepth = 128;
 
     public string ParserId => "json";
@@ -80,203 +80,240 @@ public sealed class JsonFormatParser : IFormatParser
         var pathTracker = new JsonPathTracker();
         var duplicateKeyDetector = new DuplicateKeyDetector();
 
-        byte[] rented = ArrayPool<byte>.Shared.Rent(BufferSize);
-        try
+        byte[] buffer = new byte[BufferSize];
+        long totalBytesRead = 0;
+        long bufferStart = 0;
+        int bufferedBytes = 0;
+        bool reachedEof = false;
+        long textCharOffset = 0;
+        var state = new JsonReaderState(new JsonReaderOptions
         {
-            long bytesRead = 0;
-            long textCharOffset = 0;
-            var state = new JsonReaderState(new JsonReaderOptions
+            CommentHandling = JsonCommentHandling.Disallow,
+            AllowTrailingCommas = false,
+            MaxDepth = MaxDepth,
+        });
+
+        long sourceLength = input.DeclaredLength;
+        while (!reachedEof || bufferedBytes > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!reachedEof && bufferedBytes < buffer.Length)
             {
-                CommentHandling = JsonCommentHandling.Disallow,
-                AllowTrailingCommas = false,
-                MaxDepth = MaxDepth,
-            });
-
-            long sourceLength = input.DeclaredLength;
-            bool isFinalBlock = false;
-
-            while (!isFinalBlock)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                int read = await stream.ReadAsync(rented.AsMemory(0, BufferSize), cancellationToken)
+                int read = await stream.ReadAsync(
+                        buffer.AsMemory(bufferedBytes, buffer.Length - bufferedBytes),
+                        cancellationToken)
                     .ConfigureAwait(false);
-                isFinalBlock = read < BufferSize || bytesRead + read >= sourceLength;
-
-                var reader = new Utf8JsonReader(
-                    rented.AsSpan(0, read), isFinalBlock, state);
-
-                long baseOffset = bytesRead;
-                bytesRead += read;
-
-                bool firstRead = true;
-                while (firstRead || reader.TokenType != JsonTokenType.None)
+                if (read == 0)
                 {
-                    try
+                    reachedEof = true;
+                }
+                else
+                {
+                    bufferedBytes += read;
+                    totalBytesRead += read;
+                }
+            }
+
+            var reader = new Utf8JsonReader(
+                buffer.AsSpan(0, bufferedBytes), reachedEof, state);
+
+            while (true)
+            {
+                try
+                {
+                    if (!reader.Read())
                     {
-                        if (!reader.Read())
-                        {
-                            if (isFinalBlock) break;
-                            else break; // need more data
-                        }
-                        firstRead = false;
-                    }
-                    catch (JsonException ex)
-                    {
-                        // Produce gap for corrupt JSON
-                        events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                            Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "json",
-                            "json_parse", GapReason.Corrupt,
-                            $"json_parse_error: {ex.Message}",
-                            sourceLength, bytesRead, DateTimeOffset.UtcNow)));
-
-                        // Emit any content collected before the error
-                        if (hasContent)
-                        {
-                            var remainingChunk = chunker.NextChunk(
-                                textOutput.ToString(),
-                                0, bytesRead,
-                                locationMap, true);
-                            events.Add(new ParserEvent.ChunkProduced(remainingChunk));
-                        }
-
-                        events.Add(new ParserEvent.ParseCompleted());
-                        return events;
-                    }
-
-                    long tokenStart = reader.TokenStartIndex;
-                    long absoluteStart = baseOffset + tokenStart;
-
-                    switch (reader.TokenType)
-                    {
-                        case JsonTokenType.StartObject:
-                            pathTracker.PushProperty(string.Empty);
-                            duplicateKeyDetector.PushObject();
-                            EmitToken(textOutput, "{", absoluteStart, 1,
-                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                            hasContent = true;
-                            break;
-
-                        case JsonTokenType.EndObject:
-                            duplicateKeyDetector.PopObject();
-                            pathTracker.Pop();
-                            EmitToken(textOutput, "}", absoluteStart, 1,
-                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                            break;
-
-                        case JsonTokenType.StartArray:
-                            pathTracker.PushIndex(0);
-                            EmitToken(textOutput, "[", absoluteStart, 1,
-                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                            hasContent = true;
-                            break;
-
-                        case JsonTokenType.EndArray:
-                            pathTracker.Pop();
-                            EmitToken(textOutput, "]", absoluteStart, 1,
-                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                            break;
-
-                        case JsonTokenType.PropertyName:
-                            {
-                                string propName = reader.GetString()!;
-                                pathTracker.Pop(); // remove previous property/index
-                                pathTracker.PushProperty(propName);
-
-                                if (!duplicateKeyDetector.TryAdd(propName))
-                                {
-                                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "json",
-                                        "json_parse", GapReason.Corrupt, "json_duplicate_property",
-                                        sourceLength, bytesRead, DateTimeOffset.UtcNow)));
-                                }
-
-                                EmitToken(textOutput, $"\"{propName}\":", absoluteStart,
-                                    (int)reader.ValueSpan.Length + 2,
-                                    pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                                break;
-                            }
-
-                        case JsonTokenType.String:
-                            {
-                                string? val = null;
-                                try
-                                {
-                                    val = reader.GetString();
-                                }
-                                catch (InvalidOperationException)
-                                {
-                                    // Oversized string token
-                                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
-                                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "json",
-                                        "json_parse", GapReason.UnsupportedRegion, "json_string_over_limit",
-                                        sourceLength, bytesRead, DateTimeOffset.UtcNow)));
-                                }
-
-                                if (val != null)
-                                {
-                                    EmitToken(textOutput, $"\"{val}\"", absoluteStart,
-                                        (int)reader.ValueSpan.Length + 2,
-                                        pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                                    hasContent = true;
-                                }
-
-                                break;
-                            }
-
-                        case JsonTokenType.Number:
-                            {
-                                string numText = Encoding.UTF8.GetString(reader.ValueSpan);
-                                EmitToken(textOutput, numText, absoluteStart,
-                                    reader.ValueSpan.Length,
-                                    pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                                hasContent = true;
-                                break;
-                            }
-
-                        case JsonTokenType.True:
-                            EmitToken(textOutput, "true", absoluteStart, 4,
-                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                            hasContent = true;
-                            break;
-
-                        case JsonTokenType.False:
-                            EmitToken(textOutput, "false", absoluteStart, 5,
-                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                            hasContent = true;
-                            break;
-
-                        case JsonTokenType.Null:
-                            EmitToken(textOutput, "null", absoluteStart, 4,
-                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
-                            hasContent = true;
-                            break;
-
-                        default:
-                            break;
+                        break;
                     }
                 }
+                catch (JsonException ex)
+                {
+                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "json",
+                        "json_parse", GapReason.Corrupt,
+                        $"json_parse_error: {ex.Message}",
+                        sourceLength, totalBytesRead, DateTimeOffset.UtcNow)));
 
-                // Save state for the next buffer
-                state = reader.CurrentState;
+                    if (hasContent)
+                    {
+                        var remainingChunk = chunker.NextChunk(
+                            textOutput.ToString(),
+                            0, totalBytesRead,
+                            locationMap, true);
+                        events.Add(new ParserEvent.ChunkProduced(remainingChunk));
+                    }
+
+                    events.Add(new ParserEvent.ParseCompleted());
+                    return events;
+                }
+
+                long tokenStart = reader.TokenStartIndex;
+                long absoluteStart = bufferStart + tokenStart;
+
+                switch (reader.TokenType)
+                {
+                    case JsonTokenType.StartObject:
+                        pathTracker.PushProperty(string.Empty);
+                        duplicateKeyDetector.PushObject();
+                        EmitToken(textOutput, "{", absoluteStart, 1,
+                            pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                        hasContent = true;
+                        break;
+
+                    case JsonTokenType.EndObject:
+                        duplicateKeyDetector.PopObject();
+                        pathTracker.Pop();
+                        EmitToken(textOutput, "}", absoluteStart, 1,
+                            pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                        break;
+
+                    case JsonTokenType.StartArray:
+                        pathTracker.PushIndex(0);
+                        EmitToken(textOutput, "[", absoluteStart, 1,
+                            pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                        hasContent = true;
+                        break;
+
+                    case JsonTokenType.EndArray:
+                        pathTracker.Pop();
+                        EmitToken(textOutput, "]", absoluteStart, 1,
+                            pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                        break;
+
+                    case JsonTokenType.PropertyName:
+                        {
+                            string propName = reader.GetString()!;
+                            pathTracker.Pop();
+                            pathTracker.PushProperty(propName);
+
+                            if (!duplicateKeyDetector.TryAdd(propName))
+                            {
+                                events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                                    Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "json",
+                                    "json_parse", GapReason.Corrupt, "json_duplicate_property",
+                                    sourceLength, totalBytesRead, DateTimeOffset.UtcNow)));
+                            }
+
+                            EmitToken(textOutput, $"\"{propName}\":", absoluteStart,
+                                (int)reader.ValueSpan.Length + 2,
+                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                            break;
+                        }
+
+                    case JsonTokenType.String:
+                        {
+                            string? val = null;
+                            try
+                            {
+                                val = reader.GetString();
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                                    Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "json",
+                                    "json_parse", GapReason.UnsupportedRegion,
+                                    "json_string_over_limit",
+                                    sourceLength, totalBytesRead, DateTimeOffset.UtcNow)));
+                            }
+
+                            if (val != null)
+                            {
+                                EmitToken(textOutput, $"\"{val}\"", absoluteStart,
+                                    (int)reader.ValueSpan.Length + 2,
+                                    pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                                hasContent = true;
+                            }
+
+                            break;
+                        }
+
+                    case JsonTokenType.Number:
+                        {
+                            string numText = Encoding.UTF8.GetString(reader.ValueSpan);
+                            EmitToken(textOutput, numText, absoluteStart,
+                                reader.ValueSpan.Length,
+                                pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                            hasContent = true;
+                            break;
+                        }
+
+                    case JsonTokenType.True:
+                        EmitToken(textOutput, "true", absoluteStart, 4,
+                            pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                        hasContent = true;
+                        break;
+
+                    case JsonTokenType.False:
+                        EmitToken(textOutput, "false", absoluteStart, 5,
+                            pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                        hasContent = true;
+                        break;
+
+                    case JsonTokenType.Null:
+                        EmitToken(textOutput, "null", absoluteStart, 4,
+                            pathTracker.ToJsonPointer(), ref textCharOffset, locationMap);
+                        hasContent = true;
+                        break;
+                }
             }
 
-            // Emit final chunk
-            if (textOutput.Length > 0 || !hasContent)
+            int consumed = checked((int)reader.BytesConsumed);
+            state = reader.CurrentState;
+            if (consumed > 0)
             {
-                var finalChunk = chunker.NextChunk(
-                    hasContent ? textOutput.ToString() : string.Empty,
-                    0, bytesRead, locationMap, true);
-                events.Add(new ParserEvent.ChunkProduced(finalChunk));
+                int remaining = bufferedBytes - consumed;
+                if (remaining > 0)
+                {
+                    Buffer.BlockCopy(buffer, consumed, buffer, 0, remaining);
+                }
+
+                bufferedBytes = remaining;
+                bufferStart += consumed;
             }
 
-            events.Add(new ParserEvent.ParseCompleted());
-            return events;
+            if (reachedEof)
+            {
+                break;
+            }
+
+            if (consumed == 0 && bufferedBytes == buffer.Length)
+            {
+                if (buffer.Length >= MaxBufferedTokenBytes)
+                {
+                    events.Add(new ParserEvent.GapProduced(new CoverageGap(
+                        Guid.NewGuid(), context.ScanId, null, context.VirtualPath, "json",
+                        "json_parse", GapReason.UnsupportedRegion,
+                        "json_string_over_limit",
+                        sourceLength, totalBytesRead, DateTimeOffset.UtcNow)));
+
+                    stream.Position = 0;
+                    var textParser = new TextFormatParser();
+                    await foreach (ParserEvent fallbackEvent in textParser
+                        .ParseAsync(input, context, cancellationToken)
+                        .ConfigureAwait(false))
+                    {
+                        events.Add(fallbackEvent);
+                    }
+
+                    return events;
+                }
+
+                int newSize = Math.Min(buffer.Length * 2, MaxBufferedTokenBytes);
+                Array.Resize(ref buffer, newSize);
+            }
         }
-        finally
+
+        if (textOutput.Length > 0 || !hasContent)
         {
-            ArrayPool<byte>.Shared.Return(rented);
+            var finalChunk = chunker.NextChunk(
+                hasContent ? textOutput.ToString() : string.Empty,
+                0, totalBytesRead, locationMap, true);
+            events.Add(new ParserEvent.ChunkProduced(finalChunk));
         }
+
+        events.Add(new ParserEvent.ParseCompleted());
+        return events;
     }
 
     private static void EmitToken(StringBuilder sb, string token, long byteStart,

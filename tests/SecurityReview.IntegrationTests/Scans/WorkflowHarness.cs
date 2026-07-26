@@ -270,6 +270,7 @@ internal sealed class NullFileRepository : IFileRepository
 {
     public Task InsertAsync(ScanId scanId, FileRecord file, CancellationToken ct = default) => Task.CompletedTask;
     public Task InsertBatchAsync(ScanId scanId, IReadOnlyList<FileRecord> files, CancellationToken ct = default) => Task.CompletedTask;
+    public Task UpdateAsync(ScanId scanId, FileRecord file, CancellationToken ct = default) => Task.CompletedTask;
     public Task<FileRecord?> GetByIdAsync(FileId fileId, CancellationToken ct = default) => Task.FromResult<FileRecord?>(null);
     public Task<IReadOnlyList<FileRecord>> GetByScanIdAsync(ScanId scanId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<FileRecord>>(Array.Empty<FileRecord>());

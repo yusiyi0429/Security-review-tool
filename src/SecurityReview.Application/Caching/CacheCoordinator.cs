@@ -71,12 +71,22 @@ public sealed class CacheCoordinator
         }
 
         if (entry is null) return default;
+        if (!string.Equals(entry.Stage, stage, StringComparison.Ordinal))
+        {
+            await _repository.DeleteByKeyAsync(cacheKey, cancellationToken)
+                .ConfigureAwait(false);
+            return default;
+        }
 
         try
         {
             EncryptedPayload envelope = DeserializeEnvelope(entry.EncryptedPayload);
             byte[] plaintext = _protector.Unprotect(Table, recordId, "payload", envelope);
-            return JsonSerializer.Deserialize<T>(plaintext, _jsonOptions);
+            T? result = JsonSerializer.Deserialize<T>(plaintext, _jsonOptions);
+            await _repository.UpdateLastUsedAsync(
+                    cacheKey, DateTimeOffset.UtcNow, cancellationToken)
+                .ConfigureAwait(false);
+            return result;
         }
         catch
         {
@@ -96,6 +106,17 @@ public sealed class CacheCoordinator
     /// </summary>
     public async Task<bool> StoreAsync<T>(
         string cacheKey, string stage, ScanId scanId,
+        string recordId, T result,
+        CancellationToken cancellationToken = default)
+    {
+        return await StoreAsync(
+                cacheKey, stage, (ScanId?)scanId, recordId, result,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<bool> StoreAsync<T>(
+        string cacheKey, string stage, ScanId? scanId,
         string recordId, T result,
         CancellationToken cancellationToken = default)
     {

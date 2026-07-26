@@ -24,8 +24,7 @@ public sealed class OciLayerParser : IFormatParser
     public bool CanParse(FormatProbe probe)
     {
         ArgumentNullException.ThrowIfNull(probe);
-        // Accept tar or gzip (the caller unwraps gzip and passes the tar stream)
-        return probe.Format.FormatId is "tar" or "gzip";
+        return probe.Format.FormatId == "oci-layer";
     }
 
     public async IAsyncEnumerable<ParserEvent> ParseAsync(

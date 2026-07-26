@@ -11,7 +11,8 @@ public sealed record WorkerLaunchRequest(
     string InputFilePath,
     SafeHandle ScanJobHandle,
     SafeHandle WorkerJobHandle,
-    string? AdditionalWorkerArguments);
+    string? AdditionalWorkerArguments,
+    string? ExpectedContentSha256 = null);
 
 public interface IWorkerLauncher
 {

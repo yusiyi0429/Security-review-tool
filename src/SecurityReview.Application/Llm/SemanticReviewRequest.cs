@@ -26,7 +26,10 @@ public sealed record SemanticReviewRequest(
     string FullContext,
     string CandidateValue,
     SourceLocator CandidateLocator,
-    IReadOnlyList<DeterministicSecretSpan> DeterministicSecrets);
+    IReadOnlyList<DeterministicSecretSpan> DeterministicSecrets,
+    ScanId? ScanId = null,
+    string? RulePackHash = null,
+    string? AdapterVersion = null);
 
 /// <summary>
 /// A span identified by a deterministic detector as containing a known

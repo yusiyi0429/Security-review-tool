@@ -316,6 +316,7 @@ zh-Hant/*.dll
 
 # --- Application assets ---
 Assets/rules/*.json
+Assets/rules/*.zip
 
 # --- Worker sandbox directory ---
 worker/SecurityReview.Worker.exe

@@ -42,7 +42,10 @@ public sealed class SqliteFindingRepository : IFindingRepository
             INSERT INTO finding_groups (group_id, scan_id, value_hmac, category_id,
                 severity, confidence, difference_status)
             VALUES (@groupId, @scanId, @valueHmac, @categoryId, @severity,
-                @confidence, @differenceStatus);
+                @confidence, @differenceStatus)
+            ON CONFLICT(group_id) DO UPDATE SET
+                severity = MIN(finding_groups.severity, excluded.severity),
+                confidence = MAX(finding_groups.confidence, excluded.confidence);
             """;
         cmd.Parameters.AddWithValue("@groupId", group.Id.Value.ToString());
         cmd.Parameters.AddWithValue("@scanId", scanId.Value.ToString());
@@ -197,7 +200,8 @@ public sealed class SqliteFindingRepository : IFindingRepository
             INSERT INTO finding_occurrences (occurrence_id, group_id, file_id, rule_id,
                 detector_id, requires_semantic_review, encrypted_payload)
             VALUES (@occurrenceId, @groupId, @fileId, @ruleId, @detectorId,
-                @requiresSemanticReview, @encryptedPayload);
+                @requiresSemanticReview, @encryptedPayload)
+            ON CONFLICT(occurrence_id) DO NOTHING;
             """;
         cmd.Parameters.Add("@occurrenceId", SqliteType.Text);
         cmd.Parameters.Add("@groupId", SqliteType.Text);

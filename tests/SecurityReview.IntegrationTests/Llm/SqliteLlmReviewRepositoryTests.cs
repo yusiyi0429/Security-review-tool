@@ -4,6 +4,7 @@ using SecurityReview.Domain;
 using SecurityReview.Domain.Assets;
 using SecurityReview.Domain.Findings;
 using SecurityReview.Domain.Llm;
+using SecurityReview.Domain.Scans;
 using SecurityReview.Infrastructure.Llm;
 using SecurityReview.Infrastructure.Persistence;
 using SecurityReview.Infrastructure.Persistence.Migrations;
@@ -58,6 +59,7 @@ public sealed class SqliteLlmReviewRepositoryTests : IAsyncDisposable
     public async Task PersistAttempt_then_ReadAllAttempts_round_trips_columns()
     {
         await _runner.MigrateAsync(CancellationToken.None);
+        ScanId scanId = await CreateScanAsync();
         var candidateId = new CandidateId(Guid.NewGuid());
         var result = new LlmReviewResult
         {
@@ -82,7 +84,8 @@ public sealed class SqliteLlmReviewRepositoryTests : IAsyncDisposable
             ModelFingerprint: "0011223344556677",
             StartedAtUtc: DateTimeOffset.UtcNow,
             Duration: TimeSpan.FromMilliseconds(123),
-            StatusCodeOrZero: 200);
+            StatusCodeOrZero: 200,
+            ScanId: scanId);
 
         await _repository.PersistAttemptAsync(record, CancellationToken.None);
 
@@ -103,10 +106,11 @@ public sealed class SqliteLlmReviewRepositoryTests : IAsyncDisposable
     public async Task PersistReview_persists_only_fingerprints_and_encrypted_payload()
     {
         await _runner.MigrateAsync(CancellationToken.None);
+        ScanId scanId = await CreateScanAsync();
         var candidateId = new CandidateId(Guid.NewGuid());
         var review = new PersistedLlmReview(
             CandidateId: candidateId,
-            ScanId: new ScanId(Guid.NewGuid()),
+            ScanId: scanId,
             CacheKey: "cache-key",
             Classification: SemanticClassification.Possible,
             CategoryId: "SENS-005",
@@ -146,6 +150,7 @@ public sealed class SqliteLlmReviewRepositoryTests : IAsyncDisposable
     public async Task PersistAttempt_with_zero_status_writes_null_status_code()
     {
         await _runner.MigrateAsync(CancellationToken.None);
+        ScanId scanId = await CreateScanAsync();
         var result = new LlmReviewResult
         {
             CandidateId = new CandidateId(Guid.NewGuid()),
@@ -168,7 +173,8 @@ public sealed class SqliteLlmReviewRepositoryTests : IAsyncDisposable
             ModelFingerprint: "mp",
             StartedAtUtc: DateTimeOffset.UtcNow,
             Duration: TimeSpan.FromMilliseconds(10),
-            StatusCodeOrZero: 0);
+            StatusCodeOrZero: 0,
+            ScanId: scanId);
 
         await _repository.PersistAttemptAsync(record, CancellationToken.None);
 
@@ -176,6 +182,26 @@ public sealed class SqliteLlmReviewRepositoryTests : IAsyncDisposable
         LlmAttemptLogEntry row = Assert.Single(rows);
         Assert.Null(row.StatusCode);
         Assert.Equal("transport_error", row.ReasonCode);
+    }
+
+    private async Task<ScanId> CreateScanAsync()
+    {
+        var scanId = new ScanId(Guid.NewGuid());
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var scans = new SqliteScanRepository(_factory, _protector);
+        await scans.InsertAsync(
+            new ScanRun(
+                scanId,
+                ScanStatus.Running,
+                now,
+                now,
+                "rule-pack",
+                "client",
+                "pipeline",
+                1,
+                1),
+            CancellationToken.None);
+        return scanId;
     }
 
     private sealed class NullPayloadProtector : IPayloadProtector

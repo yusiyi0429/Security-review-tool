@@ -179,7 +179,13 @@ public sealed class SemanticReviewQueue : ISemanticReviewQueue, IDisposable
         LlmReviewResult result;
         try
         {
-            result = await _reviewer.ReviewAsync(item.Request, cancellationToken)
+            SemanticReviewRequest contextualRequest = item.Request with
+            {
+                ScanId = item.ScanId,
+                RulePackHash = item.RulePackHash,
+                AdapterVersion = item.AdapterVersion,
+            };
+            result = await _reviewer.ReviewAsync(contextualRequest, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -201,22 +207,27 @@ public sealed class SemanticReviewQueue : ISemanticReviewQueue, IDisposable
             Interlocked.Increment(ref _unresolvedCount);
         }
 
-        var persisted = new PersistedLlmReview(
-            CandidateId: result.CandidateId,
-            ScanId: item.ScanId,
-            CacheKey: string.Empty,
-            Classification: result.Classification,
-            CategoryId: result.CategoryId?.Value ?? "SENS-001",
-            Confidence: result.Confidence,
-            ReasonCode: result.ReasonCode ?? "unresolved",
-            InjectionDetected: result.InjectionDetected,
-            PromptSha256: result.PromptSha256 ?? string.Empty,
-            PromptVersion: result.PromptVersion ?? string.Empty,
-            EndpointFingerprint: string.Empty,
-            ModelFingerprint: string.Empty,
-            AttemptedAtUtc: startedAt,
-            Duration: DateTimeOffset.UtcNow - startedAt,
-            Attempts: 1);
+        TimeSpan duration = DateTimeOffset.UtcNow - startedAt;
+        PersistedLlmReview persisted =
+            _reviewer is ISemanticReviewMetadataProvider metadataProvider
+                ? metadataProvider.CreatePersistenceRecord(
+                    item, result, startedAt, duration)
+                : new PersistedLlmReview(
+                    CandidateId: result.CandidateId,
+                    ScanId: item.ScanId,
+                    CacheKey: string.Empty,
+                    Classification: result.Classification,
+                    CategoryId: result.CategoryId?.Value ?? "SENS-001",
+                    Confidence: result.Confidence,
+                    ReasonCode: result.ReasonCode ?? "unresolved",
+                    InjectionDetected: result.InjectionDetected,
+                    PromptSha256: result.PromptSha256 ?? string.Empty,
+                    PromptVersion: result.PromptVersion ?? string.Empty,
+                    EndpointFingerprint: string.Empty,
+                    ModelFingerprint: string.Empty,
+                    AttemptedAtUtc: startedAt,
+                    Duration: duration,
+                    Attempts: 1);
 
         try
         {
@@ -225,6 +236,11 @@ public sealed class SemanticReviewQueue : ISemanticReviewQueue, IDisposable
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             IncrementCancelled();
+            return;
+        }
+        catch (Exception)
+        {
+            IncrementFailed();
             return;
         }
 
@@ -297,5 +313,9 @@ public sealed class SemanticReviewQueue : ISemanticReviewQueue, IDisposable
         _disposed = true;
         try { Cancel(); } catch { /* best effort */ }
         _internalCts.Dispose();
+        if (_reviewer is IDisposable disposableReviewer)
+        {
+            disposableReviewer.Dispose();
+        }
     }
 }

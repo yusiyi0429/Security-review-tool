@@ -22,8 +22,8 @@ public sealed class WpfScanTargetPicker : IScanTargetPicker
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = "选择扫描文件或 Docker TAR",
-            Filter = "支持的文件 (*.txt;*.csv;*.log;*.xml;*.json;*.yaml;*.tar)|" +
-                "*.txt;*.csv;*.log;*.xml;*.json;*.yaml;*.tar|所有文件 (*.*)|*.*",
+            Filter = "支持的文件 (*.txt;*.md;*.csv;*.log;*.xml;*.json;*.jsonl;*.yaml;*.yml;*.tar)|" +
+                "*.txt;*.md;*.csv;*.log;*.xml;*.json;*.jsonl;*.yaml;*.yml;*.tar|所有文件 (*.*)|*.*",
             Multiselect = true,
         };
 

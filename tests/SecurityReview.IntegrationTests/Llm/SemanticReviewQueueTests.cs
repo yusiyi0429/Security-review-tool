@@ -175,9 +175,11 @@ public sealed class SemanticReviewQueueTests
     [Fact]
     public async Task Cancel_cancels_in_flight_http_via_cancellation_token()
     {
+        var reviewStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         var reviewer = new CountingReviewer(
             delay: TimeSpan.FromSeconds(5),
-            beforeReview: (_, _) => { /* cancelled via queue.Cancel() */ });
+            beforeReview: (_, _) => reviewStarted.TrySetResult());
         var queue = new SemanticReviewQueue(
             new SemanticReviewQueueOptions(),
             reviewer,
@@ -187,12 +189,14 @@ public sealed class SemanticReviewQueueTests
         var item = BuildItem(requiresReview: true);
         await queue.EnqueueAsync(item, default);
 
+        queue.CompleteAdding();
+        Task run = queue.RunAsync(default);
+        await reviewStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
         queue.Cancel();
 
-        // The run completes because the channel was completed by Cancel;
-        // in-flight reviewers observe cancellation through their own
-        // Task.Delay throw.
-        await queue.RunAsync(default);
+        // The already-running reviewer observes cancellation through
+        // its Task.Delay throw.
+        await run;
 
         Assert.True(reviewer.CancellationObserved);
     }
@@ -264,6 +268,26 @@ public sealed class SemanticReviewQueueTests
 
         Assert.Single(repo.Persisted);
         Assert.Equal(item.CandidateId, repo.Persisted[0].CandidateId);
+    }
+
+    [Fact]
+    public async Task Persistence_failure_is_reported_without_aborting_the_queue()
+    {
+        var item = BuildItem(requiresReview: true);
+        var queue = new SemanticReviewQueue(
+            new SemanticReviewQueueOptions(),
+            new FixedResultReviewer(LlmReviewResult_Confirmed(item.CandidateId)),
+            new NoopLifetime(),
+            new ThrowingRepository(),
+            new RecordingProgressSink());
+        await queue.EnqueueAsync(item, default);
+        queue.CompleteAdding();
+
+        await queue.RunAsync(default);
+
+        SemanticQueueProgress progress = queue.GetProgress();
+        Assert.Equal(1, progress.FailedCount);
+        Assert.Equal(0, progress.CompletedCount);
     }
 
     // ---------- Progress ----------
@@ -417,6 +441,14 @@ public sealed class SemanticReviewQueueTests
             Persisted.Add(review);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class ThrowingRepository : ISemanticReviewPersister
+    {
+        public Task PersistAsync(
+            PersistedLlmReview review,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("simulated persistence failure");
     }
 
     private sealed class RecordingProgressSink : ISemanticReviewProgressSink

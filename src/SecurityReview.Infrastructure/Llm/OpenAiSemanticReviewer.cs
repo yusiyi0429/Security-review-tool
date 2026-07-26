@@ -25,7 +25,8 @@ namespace SecurityReview.Infrastructure.Llm;
 /// context, or API-key material is ever logged, persisted in plain
 /// columns, or surfaced through diagnostic events.
 /// </summary>
-public sealed class OpenAiSemanticReviewer : ISemanticReviewer
+public sealed class OpenAiSemanticReviewer
+    : ISemanticReviewer, ISemanticReviewMetadataProvider, IDisposable
 {
     private const string CacheStage = "llm_review";
     private const string CacheRecordIdField = "payload";
@@ -42,6 +43,7 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
     private readonly string _endpointFingerprint;
     private readonly string _modelFingerprint;
     private readonly bool _ownsHttpClient;
+    private readonly ILlmCredentialStore? _credentialStore;
 
     public OpenAiSemanticReviewer(
         LlmEndpointOptions options,
@@ -52,7 +54,8 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
         IDiagnosticSink diagnostics,
         LlmRetryPolicy? retryPolicy = null,
         LlmCircuitBreaker? circuitBreaker = null,
-        bool ownsHttpClient = false)
+        bool ownsHttpClient = false,
+        ILlmCredentialStore? credentialStore = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(fingerprints);
@@ -72,6 +75,7 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
         _endpointFingerprint = options.OriginFingerprint();
         _modelFingerprint = ComputeModelFingerprint(options.Model);
         _ownsHttpClient = ownsHttpClient;
+        _credentialStore = credentialStore;
     }
 
     public async Task<LlmReviewResult> ReviewAsync(
@@ -84,22 +88,17 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
         byte[] requestBytes = OpenAiChatRequest.Build(_options, minimized, correlationId: null);
 
         SemanticCacheKey cacheKey = BuildCacheKey(request, minimized);
-        var persistedReview = new PersistedLlmReview(
-            CandidateId: request.CandidateId,
-            ScanId: default,
-            CacheKey: cacheKey.Key,
-            Classification: SemanticClassification.Unresolved,
-            CategoryId: "SENS-001",
-            Confidence: null,
-            ReasonCode: "in_progress",
-            InjectionDetected: false,
-            PromptSha256: OpenAiChatRequest.PromptTemplate.Sha256,
-            PromptVersion: OpenAiChatRequest.PromptVersion,
-            EndpointFingerprint: _endpointFingerprint,
-            ModelFingerprint: _modelFingerprint,
-            AttemptedAtUtc: DateTimeOffset.UtcNow,
-            Duration: TimeSpan.Zero,
-            Attempts: 0);
+        CachedReviewPayload? cached = await _cache
+            .TryGetAsync<CachedReviewPayload>(
+                cacheKey.Key,
+                CacheStage,
+                cacheKey.Key,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (cached is not null)
+        {
+            return cached.Result with { CandidateId = request.CandidateId };
+        }
 
         if (!_circuitBreaker.TryEnter())
         {
@@ -117,7 +116,6 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
                 }));
 
             LlmReviewResult blocked = BlockedByCircuitResult(request.CandidateId);
-            await PersistFinalAsync(persistedReview, blocked, cancellationToken).ConfigureAwait(false);
             return blocked;
         }
 
@@ -180,13 +178,14 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
                 Result: parsed,
                 AttemptNumber: attemptNumber,
                 CacheKey: cacheKey.Key,
-                RulePackHash: NoCachePayload,
-                AdapterVersion: NoCachePayload,
+                RulePackHash: request.RulePackHash ?? NoCachePayload,
+                AdapterVersion: request.AdapterVersion ?? NoCachePayload,
                 EndpointFingerprint: _endpointFingerprint,
                 ModelFingerprint: _modelFingerprint,
                 StartedAtUtc: startedAt,
                 Duration: duration,
-                StatusCodeOrZero: (int)(retryResult.FinalResponse?.StatusCode ?? default)),
+                StatusCodeOrZero: (int)(retryResult.FinalResponse?.StatusCode ?? default),
+                ScanId: request.ScanId),
                 cancellationToken).ConfigureAwait(false);
             _ = req;
         }
@@ -202,24 +201,11 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
             await _cache.StoreAsync(
                 cacheKey.Key,
                 CacheStage,
-                persistedReview.ScanId == default ? default : persistedReview.ScanId,
+                request.ScanId,
                 cacheKey.Key,
                 new CachedReviewPayload(parsed),
                 cancellationToken).ConfigureAwait(false);
         }
-
-        var finalPersisted = persistedReview with
-        {
-            Classification = parsed.Classification,
-            CategoryId = parsed.CategoryId?.Value ?? "SENS-001",
-            Confidence = parsed.Confidence,
-            ReasonCode = parsed.ReasonCode ?? "success",
-            InjectionDetected = parsed.InjectionDetected,
-            PromptSha256 = parsed.PromptSha256 ?? string.Empty,
-            PromptVersion = parsed.PromptVersion ?? string.Empty,
-            Duration = duration,
-            Attempts = retryResult.Attempts,
-        };
 
         _diagnostics.Publish(new Application.Diagnostics.DiagnosticEvent(
             parsed.Classification is SemanticClassification.Unresolved
@@ -237,8 +223,6 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
                 EndpointFingerprint = _endpointFingerprint,
                 ModelFingerprint = _modelFingerprint,
             }));
-
-        await PersistFinalAsync(finalPersisted, parsed, cancellationToken).ConfigureAwait(false);
 
         return parsed;
     }
@@ -284,23 +268,6 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
             _circuitBreaker.RecordClientOrSchemaFailure();
     }
 
-    private async Task PersistFinalAsync(
-        PersistedLlmReview persisted,
-        LlmReviewResult result,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _attempts.PersistReviewAsync(persisted, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Persistence failures must not surface canaries in
-            // exceptions. Swallow — the caller still sees the result.
-            _ = result;
-        }
-    }
-
     private SemanticCacheKey BuildCacheKey(SemanticReviewRequest request, MinimizedCandidate minimized)
     {
         string candidateHmac = _fingerprints.Compute(minimized.RedactedCandidateValue).HexString;
@@ -315,8 +282,8 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
             responseFormatMode: _options.ResponseFormatMode.ToString(),
             temperatureMode: _options.SendTemperatureZero ? "zero" : "nonzero",
             promptHash: OpenAiChatRequest.PromptTemplate.Sha256,
-            rulePackHash: NoCachePayload,
-            adapterVersion: NoCachePayload);
+            rulePackHash: request.RulePackHash ?? NoCachePayload,
+            adapterVersion: request.AdapterVersion ?? NoCachePayload);
     }
 
     private HttpRequestMessage BuildHttpRequest(MinimizedCandidate minimized, byte[] body)
@@ -326,8 +293,53 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
         var content = new ByteArrayContent(body);
         content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
         request.Content = content;
+        if (_options.AuthMode != LlmAuthMode.None)
+        {
+            OpenAiHttpClientFactory.ApplyAuthentication(
+                request,
+                _options,
+                _credentialStore
+                    ?? throw new InvalidOperationException(
+                        "LLM credential store is unavailable."));
+        }
         _ = minimized;
         return request;
+    }
+
+    public PersistedLlmReview CreatePersistenceRecord(
+        SemanticQueueItem item,
+        LlmReviewResult result,
+        DateTimeOffset startedAtUtc,
+        TimeSpan duration)
+    {
+        SemanticReviewRequest request = item.Request with
+        {
+            ScanId = item.ScanId,
+            RulePackHash = item.RulePackHash,
+            AdapterVersion = item.AdapterVersion,
+        };
+        MinimizedCandidate minimized = CandidateMinimizer.Minimize(request);
+        SemanticCacheKey cacheKey = BuildCacheKey(request, minimized);
+        return new PersistedLlmReview(
+            CandidateId: result.CandidateId,
+            ScanId: item.ScanId,
+            CacheKey: cacheKey.Key,
+            Classification: result.Classification,
+            CategoryId: result.CategoryId?.Value
+                ?? request.CategoryHint.Value
+                ?? "SENS-001",
+            Confidence: result.Confidence,
+            ReasonCode: result.ReasonCode ?? "success",
+            InjectionDetected: result.InjectionDetected,
+            PromptSha256: result.PromptSha256
+                ?? OpenAiChatRequest.PromptTemplate.Sha256,
+            PromptVersion: result.PromptVersion
+                ?? OpenAiChatRequest.PromptVersion,
+            EndpointFingerprint: _endpointFingerprint,
+            ModelFingerprint: _modelFingerprint,
+            AttemptedAtUtc: startedAtUtc,
+            Duration: duration,
+            Attempts: 1);
     }
 
     private static LlmReviewResult UnresolvedResult(CandidateId id, string reason) =>
@@ -347,10 +359,18 @@ public sealed class OpenAiSemanticReviewer : ISemanticReviewer
     private static LlmReviewResult BlockedByCircuitResult(CandidateId id) =>
         UnresolvedResult(id, "circuit_open");
 
-    private static string ComputeModelFingerprint(string model)
+    public static string ComputeModelFingerprint(string model)
     {
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(model));
         return Convert.ToHexString(hash)[..16].ToLowerInvariant();
+    }
+
+    public void Dispose()
+    {
+        if (_ownsHttpClient)
+        {
+            _httpClient.Dispose();
+        }
     }
 }
 

@@ -142,6 +142,44 @@ public sealed class FormatSnifferTests
         Assert.False(result.FormatExtensionMismatch);
     }
 
+    [Theory]
+    [InlineData(".md")]
+    [InlineData(".jsonl")]
+    public void supported_text_extensions_do_not_report_mismatch(string extension)
+    {
+        byte[] head = Encoding.UTF8.GetBytes(
+            "{\"message\":\"plain UTF-8 text content\"}\n");
+
+        var result = FormatSniffer.Detect(head, [], extension, head.Length);
+
+        Assert.Equal("text", result.FormatId);
+        Assert.False(result.FormatExtensionMismatch);
+    }
+
+    [Theory]
+    [InlineData(".json", "json")]
+    [InlineData(".xml", "xml")]
+    [InlineData(".yaml", "yaml")]
+    [InlineData(".yml", "yaml")]
+    [InlineData(".csv", "csv")]
+    [InlineData(".tsv", "csv")]
+    public void structured_text_extensions_select_specialized_parser(
+        string extension,
+        string expectedFormat)
+    {
+        byte[] head = Encoding.UTF8.GetBytes(
+            "{\"message\":\"plain UTF-8 structured content\"}\n");
+
+        DetectedFormat result = FormatSniffer.Detect(
+            head,
+            [],
+            extension,
+            head.Length);
+
+        Assert.Equal(expectedFormat, result.FormatId);
+        Assert.False(result.FormatExtensionMismatch);
+    }
+
     [Fact]
     public void gzip_magic_detects_correctly()
     {

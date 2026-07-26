@@ -22,7 +22,9 @@ public sealed record CreateScanCommand(
     string DetectorAdapterVersion,
     string PromptVersion,
     SandboxSelfTestResult Sandbox,
-    string[] EffectiveDetectorVersions)
+    string[] EffectiveDetectorVersions,
+    ManifestSnapshot[]? RootManifests = null,
+    ScanExclusion[]? Exclusions = null)
 {
     public const int MaxRoots = 64;
     public const int MaxExclusions = 256;
@@ -54,6 +56,29 @@ public sealed record CreateScanCommand(
                 $"Too many exclusion patterns ({ExclusionPatterns.Length}); max {MaxExclusions}.");
         }
 
+        if (RootManifests is not null
+            && RootManifests.Length != RootPaths.Length)
+        {
+            throw new InvalidScanInputException(
+                "Root manifest count must match root path count.");
+        }
+
+        if (RootManifests?.Any(manifest => !manifest.Valid) == true)
+        {
+            throw new InvalidScanInputException(
+                "Invalid asset manifests cannot be used for a scan.");
+        }
+
+        if (Exclusions is not null)
+        {
+            if (Exclusions.Length > MaxExclusions
+                || Exclusions.Any(exclusion => !exclusion.IsValid))
+            {
+                throw new InvalidScanInputException(
+                    "Every exclusion must contain a pattern and reason.");
+            }
+        }
+
         if (string.IsNullOrEmpty(ActiveRulePackHash))
         {
             throw new InvalidScanInputException("Active rule pack hash is required.");
@@ -75,6 +100,13 @@ public sealed record CreateScanCommand(
                 "Sandbox self-test result must be a passing record.");
         }
     }
+}
+
+public sealed record ScanExclusion(string Pattern, string Reason)
+{
+    public bool IsValid =>
+        !string.IsNullOrWhiteSpace(Pattern)
+        && !string.IsNullOrWhiteSpace(Reason);
 }
 
 /// <summary>

@@ -27,7 +27,9 @@ public sealed record ScanConfigurationSnapshot(
     string PromptVersion,
     SandboxSelfTestResult Sandbox,
     string[] EffectiveDetectorVersions,
-    DateTimeOffset CapturedAtUtc)
+    DateTimeOffset CapturedAtUtc,
+    ManifestSnapshot[]? RootManifests = null,
+    ScanExclusion[]? Exclusions = null)
 {
     /// <summary>
     /// Returns a stable SHA-256 of the snapshot content. The hash covers
@@ -43,11 +45,28 @@ public sealed record ScanConfigurationSnapshot(
         canonical.Append('|');
         canonical.Append(Manifest.OriginalSha256 ?? string.Empty);
         canonical.Append('|');
+        if (RootManifests is not null)
+        {
+            canonical.Append(string.Join(",",
+                RootPaths.Select((path, index) =>
+                    $"{index}:{path}:{RootManifests[index].OriginalSha256 ?? string.Empty}")));
+        }
+        canonical.Append('|');
         canonical.Append(string.Join(",",
             UiOverrideComponentIds.OrderBy(id => id, StringComparer.Ordinal)));
         canonical.Append('|');
         canonical.Append(string.Join(",",
             ExclusionPatterns.OrderBy(p => p, StringComparer.Ordinal)));
+        canonical.Append('|');
+        if (Exclusions is not null)
+        {
+            canonical.Append(string.Join(",",
+                Exclusions
+                    .OrderBy(exclusion => exclusion.Pattern, StringComparer.Ordinal)
+                    .ThenBy(exclusion => exclusion.Reason, StringComparer.Ordinal)
+                    .Select(exclusion =>
+                        $"{exclusion.Pattern}:{exclusion.Reason}")));
+        }
         canonical.Append('|');
         canonical.Append(ActiveRulePackHash);
         canonical.Append('|');

@@ -28,7 +28,8 @@ public sealed class DockerArchiveParser : IFormatParser
     public bool CanParse(FormatProbe probe)
     {
         ArgumentNullException.ThrowIfNull(probe);
-        return probe.Format.FormatId == "tar"
+        return probe.Format.FormatId == "docker-archive"
+            || probe.Format.FormatId == "tar"
             && (probe.ExtensionHint?.Contains("docker", StringComparison.OrdinalIgnoreCase) == true
                 || probe.ExtensionHint?.Contains("oci", StringComparison.OrdinalIgnoreCase) == true
                 || probe.ExtensionHint?.Contains("container", StringComparison.OrdinalIgnoreCase) == true);

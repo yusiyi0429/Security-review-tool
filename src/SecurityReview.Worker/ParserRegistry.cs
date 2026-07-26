@@ -27,20 +27,20 @@ public sealed class ParserRegistry
         var registry = new ParserRegistry();
         IFormatParser[] parsers =
         [
-            new TextFormatParser(),
-            new XmlFormatParser(),
-            new JsonFormatParser(),
-            new YamlFormatParser(),
-            new CsvFormatParser(),
             new OpenXmlFormatParser(),
             new PdfFormatParser(),
-            new ZipFormatParser(),
-            new TarFormatParser(),
-            new GZipFormatParser(),
             new JarFormatParser(),
             new ModelFormatParser(),
             new DockerArchiveParser(),
             new OciLayerParser(),
+            new ZipFormatParser(),
+            new TarFormatParser(),
+            new GZipFormatParser(),
+            new XmlFormatParser(),
+            new JsonFormatParser(),
+            new YamlFormatParser(),
+            new CsvFormatParser(),
+            new TextFormatParser(),
         ];
 
         foreach (IFormatParser parser in parsers)

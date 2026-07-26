@@ -65,6 +65,44 @@ public sealed class SqliteFileRepository : IFileRepository
         }
     }
 
+    public async Task UpdateAsync(
+        ScanId scanId,
+        FileRecord file,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await _factory.OpenAsync(cancellationToken)
+            .ConfigureAwait(false);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = """
+            UPDATE file_records
+            SET path_hmac = @pathHmac,
+                content_sha256 = @contentSha256,
+                size = @size,
+                format_id = @formatId,
+                coverage_status = @coverageStatus,
+                encrypted_payload = @encryptedPayload
+            WHERE file_id = @fileId AND scan_id = @scanId;
+            """;
+        cmd.Parameters.AddWithValue("@pathHmac",
+            _fingerprint.Compute(file.RelativePath).HexString);
+        cmd.Parameters.AddWithValue("@contentSha256",
+            (object?)file.ContentSha256 ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@size", file.Length);
+        cmd.Parameters.AddWithValue("@formatId", (object?)file.FormatId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@coverageStatus", (int)file.Coverage);
+        cmd.Parameters.AddWithValue("@encryptedPayload", EncryptPayload(file));
+        cmd.Parameters.AddWithValue("@fileId", file.FileId.Value.ToString());
+        cmd.Parameters.AddWithValue("@scanId", scanId.Value.ToString());
+
+        int affected = await cmd.ExecuteNonQueryAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (affected != 1)
+        {
+            throw new InvalidOperationException(
+                $"File record {file.FileId.Value} was not updated.");
+        }
+    }
+
     public async Task<FileRecord?> GetByIdAsync(FileId fileId, CancellationToken cancellationToken = default)
     {
         await using var connection = await _factory.OpenAsync(cancellationToken).ConfigureAwait(false);

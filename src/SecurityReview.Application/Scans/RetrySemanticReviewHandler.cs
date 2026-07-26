@@ -80,7 +80,7 @@ public sealed class RetrySemanticReviewHandler
             .GetGroupsByScanIdAsync(scanId, cancellationToken)
             .ConfigureAwait(false);
 
-        var retried = new List<FindingOccurrenceId>();
+        int queued = 0;
         foreach (FindingGroup group in groups)
         {
             foreach (FindingOccurrence occurrence in group.Occurrences)
@@ -97,18 +97,33 @@ public sealed class RetrySemanticReviewHandler
                     FullContext: occurrence.RawContext,
                     CandidateValue: occurrence.RawValue,
                     CandidateLocator: occurrence.CanonicalLocator,
-                    DeterministicSecrets: Array.Empty<DeterministicSecretSpan>());
+                    DeterministicSecrets: Array.Empty<DeterministicSecretSpan>(),
+                    ScanId: scanId,
+                    RulePackHash: snapshot.ActiveRulePackHash,
+                    AdapterVersion: snapshot.DetectorAdapterVersion);
 
-                LlmReviewResult result = await _reviewer
-                    .ReviewAsync(request, cancellationToken)
+                bool enqueued = await _semanticQueue
+                    .EnqueueAsync(
+                        new SemanticQueueItem(
+                            request.CandidateId,
+                            scanId,
+                            request,
+                            RequiresSemanticReview: true,
+                            snapshot.ActiveRulePackHash,
+                            snapshot.DetectorAdapterVersion),
+                        cancellationToken)
                     .ConfigureAwait(false);
-
-                if (result.Classification != SemanticClassification.Unresolved)
-                {
-                    retried.Add(occurrence.Id);
-                }
+                if (enqueued)
+                    queued++;
             }
         }
+
+        _semanticQueue.CompleteAdding();
+        await _semanticQueue.RunAsync(cancellationToken).ConfigureAwait(false);
+        SemanticQueueProgress retryProgress = _semanticQueue.GetProgress();
+        int resolvedCount = Math.Max(
+            0,
+            retryProgress.CompletedCount - retryProgress.UnresolvedCount);
 
         // Re-read the coverage state — the upgrade depends on whether
         // any other gap remains.
@@ -119,7 +134,9 @@ public sealed class RetrySemanticReviewHandler
 
         ScanStatus next = otherGapRemains
             ? ScanStatus.Partial
-            : (retried.Count > 0 ? ScanStatus.Completed : scan.Status);
+            : (queued > 0 && retryProgress.UnresolvedCount == 0
+                ? ScanStatus.Completed
+                : scan.Status);
 
         if (next != scan.Status)
         {
@@ -130,7 +147,7 @@ public sealed class RetrySemanticReviewHandler
             }, cancellationToken).ConfigureAwait(false);
         }
 
-        return RetrySemanticReviewResult.Succeeded(scanId, retried.Count, next);
+        return RetrySemanticReviewResult.Succeeded(scanId, resolvedCount, next);
     }
 
     private static bool RequiresSemantic(FindingOccurrence occurrence)

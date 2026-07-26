@@ -44,16 +44,66 @@ jobs:
             throw "Release notes not found: $notes"
           }
 
-      - name: Run parser corpus and focused integration lanes
+      - name: Run unit, contract, and parser corpus lanes
         shell: pwsh
         run: |
-          ./build/test.ps1 -Lane ParserCorpus
+          ./build/test.ps1 `
+            -Lane Unit,Contract,ParserCorpus `
+            -RequireCorpus
+
+      - name: Run focused integration regressions
+        shell: pwsh
+        run: |
           dotnet test tests/SecurityReview.IntegrationTests/SecurityReview.IntegrationTests.csproj `
             -c Release `
             -r win-x64 `
             --no-restore `
-            --filter "FullyQualifiedName~MigrationTests|FullyQualifiedName~CompositionRootTests|FullyQualifiedName~CompleteScanWorkflowTests|FullyQualifiedName~SemanticFailureWorkflowTests|FullyQualifiedName~Private_network_scope_round_trips_with_http_endpoint" `
+            --filter "FullyQualifiedName~MigrationTests|FullyQualifiedName~CompositionRootTests|FullyQualifiedName~CompleteScanWorkflowTests|FullyQualifiedName~SemanticFailureWorkflowTests|FullyQualifiedName~SemanticReviewQueueTests|FullyQualifiedName~SqliteMaintenanceServiceTests|FullyQualifiedName~LlmConfigurationStoreTests|FullyQualifiedName~LlmLogRedactionTests|FullyQualifiedName~RulePackImportTests" `
             --logger "trx;LogFileName=FocusedIntegration.trx"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Focused integration regressions failed."
+          }
+
+      - name: Verify requirements traceability
+        shell: pwsh
+        run: ./build/verify-traceability.ps1
+
+      - name: Publish worker probe for Windows security tests
+        shell: pwsh
+        run: |
+          $probeDir = Join-Path $PWD "artifacts/windows-security/WorkerProbe"
+          dotnet publish src/SecurityReview.Worker/SecurityReview.Worker.csproj `
+            -c Release -r win-x64 --self-contained true `
+            -p:SecurityReviewSandboxProbe=true `
+            -o $probeDir
+          if ($LASTEXITCODE -ne 0) {
+            throw "Worker probe publish failed."
+          }
+
+          $files = [ordered]@{}
+          Get-ChildItem -LiteralPath $probeDir -File |
+            Where-Object { $_.Name -ne "worker-manifest.json" } |
+            Sort-Object -Property Name |
+            ForEach-Object {
+              $files[$_.Name] = (
+                Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
+              ).Hash.ToLowerInvariant()
+            }
+          $manifest = [ordered]@{
+            algorithm = "SHA256"
+            files = $files
+          }
+          [System.IO.File]::WriteAllText(
+            (Join-Path $probeDir "worker-manifest.json"),
+            ($manifest | ConvertTo-Json -Depth 4),
+            [System.Text.UTF8Encoding]::new($false))
+
+      - name: Run Windows security lane
+        shell: pwsh
+        env:
+          SECURITY_REVIEW_RUN_WINDOWS_SECURITY: "1"
+          SECURITY_REVIEW_PROBE_WORKER_DIR: ${{ github.workspace }}\artifacts\windows-security\WorkerProbe
+        run: ./build/test.ps1 -Lane WindowsSecurity -RequireWindowsSecurity
 
       - name: Install Inno Setup
         if: ${{ !inputs.validation_only }}

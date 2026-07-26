@@ -30,9 +30,9 @@ public sealed class CoverageViewModel : ObservableObject
     private bool _isComplete;
 
     // Pagination
-    private int _currentGapPage;
+    private int _currentGapPage = 1;
     private int _totalGapPages;
-    private int _currentFilePage;
+    private int _currentFilePage = 1;
     private int _totalFilePages;
     private const int PageSize = 500;
 
@@ -190,6 +190,28 @@ public sealed class CoverageViewModel : ObservableObject
         }
 
         await LoadGapsAsync(null, cancellationToken);
+        await LoadFilesAsync(null, cancellationToken);
+    }
+
+    public async Task InitializeLatestAsync(CancellationToken cancellationToken = default)
+    {
+        ScanQueryService query = _queryServiceFactory();
+        IReadOnlyList<ScanListEntry> scans = await query
+            .ListScansAsync(limit: 1, offset: 0, cancellationToken)
+            .ConfigureAwait(true);
+        if (scans.Count == 0)
+        {
+            ScanStatus = default;
+            TotalGaps = 0;
+            TotalFiles = 0;
+            ConclusionHeader = "暂无扫描记录。完成一次扫描后可在此查看覆盖诊断。";
+            IsComplete = false;
+            _gaps.Clear();
+            _files.Clear();
+            return;
+        }
+
+        await InitializeAsync(scans[0].ScanId, cancellationToken).ConfigureAwait(true);
     }
 
     // ------------------------------------------------------------------ Private helpers
@@ -238,7 +260,7 @@ public sealed class CoverageViewModel : ObservableObject
     {
         ScanQueryService query = _queryServiceFactory();
 
-        PagedResult<CoverageGapSummary> page = await query
+        PagedResult<CoverageFileSummary> page = await query
             .GetFilesPagedAsync(
                 _scanId,
                 (_currentFilePage - 1) * PageSize,
@@ -247,14 +269,16 @@ public sealed class CoverageViewModel : ObservableObject
             .ConfigureAwait(true);
 
         _files.Clear();
-        foreach (CoverageGapSummary file in page.Items)
+        foreach (CoverageFileSummary file in page.Items)
         {
             _files.Add(new CoverageFileItem(
-                file.GapId,
-                file.Stage,
-                file.Reason,
-                file.DetailCode,
-                file.CreatedAtUtc));
+                file.FileId,
+                file.RedactedPath,
+                file.FormatId,
+                file.Coverage,
+                file.ContentHashPrefix,
+                file.Length,
+                file.LastWriteUtc));
         }
 
         TotalFiles = page.TotalCount;
@@ -421,22 +445,19 @@ public sealed record CoverageGapItem(
 /// Display item for a single file in the coverage view.
 /// </summary>
 public sealed record CoverageFileItem(
-    Guid FileEntryId,
-    string Stage,
-    GapReason Reason,
-    string DetailCode,
-    DateTimeOffset CreatedAtUtc)
+    FileId FileId,
+    string RedactedPath,
+    string FormatId,
+    CoverageStatus Coverage,
+    string ContentHashPrefix,
+    long Length,
+    DateTimeOffset LastWriteUtc)
 {
-    public string RedactedPath => DetailCode.Length > 40
-        ? DetailCode[..40] + "..."
-        : DetailCode;
-
-    public string ReasonDisplay => Reason switch
+    public string ReasonDisplay => Coverage switch
     {
-        GapReason.UnsupportedFormat => "不支持的格式",
-        GapReason.AccessDenied => "访问被拒绝",
-        GapReason.Encrypted => "已加密",
-        GapReason.Corrupt => "已损坏",
-        _ => Reason.ToString(),
+        CoverageStatus.Covered => $"已覆盖 · {FormatId}",
+        CoverageStatus.NotCovered => $"未覆盖 · {FormatId}",
+        CoverageStatus.PartiallyCovered => $"部分覆盖 · {FormatId}",
+        _ => $"{Coverage} · {FormatId}",
     };
 }

@@ -196,7 +196,7 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <TextBlock Text="LLM 辅助分析" Style="{StaticResource FieldLabelStyle}" />
-                                        <TextBlock Text="{Binding LlmAvailable, StringFormat='{}{0:可用|不可用}'}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding LlmStatus}" FontWeight="SemiBold" />
                                     </StackPanel>
                                     <TextBlock Grid.Column="1" Text="OPTIONAL" FontFamily="Bahnschrift SemiBold" FontSize="9"
                                                Foreground="{StaticResource BrushTextDisabled}" VerticalAlignment="Center" />

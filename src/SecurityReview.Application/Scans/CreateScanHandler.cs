@@ -35,6 +35,7 @@ public sealed class CreateScanHandler
 {
     private readonly IScanRepository _scanRepository;
     private readonly IScanSnapshotRepository _snapshotRepository;
+    private readonly IScanCreationRepository? _creationRepository;
     private readonly ScanConfigurationSnapshotCodec _snapshotCodec;
     private readonly Func<DateTimeOffset> _clock;
 
@@ -42,10 +43,12 @@ public sealed class CreateScanHandler
         IScanRepository scanRepository,
         IScanSnapshotRepository snapshotRepository,
         IPayloadProtector protector,
-        Func<DateTimeOffset>? clock = null)
+        Func<DateTimeOffset>? clock = null,
+        IScanCreationRepository? creationRepository = null)
     {
         _scanRepository = scanRepository ?? throw new ArgumentNullException(nameof(scanRepository));
         _snapshotRepository = snapshotRepository ?? throw new ArgumentNullException(nameof(snapshotRepository));
+        _creationRepository = creationRepository;
         _snapshotCodec = new ScanConfigurationSnapshotCodec(
             protector ?? throw new ArgumentNullException(nameof(protector)));
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
@@ -87,7 +90,9 @@ public sealed class CreateScanHandler
             PromptVersion: command.PromptVersion,
             Sandbox: command.Sandbox,
             EffectiveDetectorVersions: command.EffectiveDetectorVersions.ToArray(),
-            CapturedAtUtc: _clock());
+            CapturedAtUtc: _clock(),
+            RootManifests: command.RootManifests?.ToArray(),
+            Exclusions: command.Exclusions?.ToArray());
 
         string hash = snapshot.ComputeHash();
         ScanId scanId = new(Guid.NewGuid());
@@ -103,8 +108,6 @@ public sealed class CreateScanHandler
             PipelineFingerprint: hash,
             PlannedCount: 0,
             Version: 1);
-
-        await _scanRepository.InsertAsync(draft, cancellationToken).ConfigureAwait(false);
 
         byte[] encrypted = _snapshotCodec.Protect(scanId, snapshot);
 
@@ -123,8 +126,21 @@ public sealed class CreateScanHandler
             SandboxWorkerSha256: command.Sandbox.WorkerSha256,
             EncryptedPayload: encrypted);
 
-        await _snapshotRepository.InsertAsync(scanId, record, cancellationToken)
-            .ConfigureAwait(false);
+        if (_creationRepository is not null)
+        {
+            await _creationRepository
+                .InsertAsync(draft, record, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            await _scanRepository
+                .InsertAsync(draft, cancellationToken)
+                .ConfigureAwait(false);
+            await _snapshotRepository
+                .InsertAsync(scanId, record, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         return CreateScanResult.Success(scanId, hash, capturedAtUtc);
     }

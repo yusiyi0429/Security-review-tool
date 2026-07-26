@@ -81,27 +81,48 @@ public sealed class InProcessParserRunner : IWorkerJobProcessor
             fs, Path.GetExtension(item.VirtualPath), cancellationToken)
             .ConfigureAwait(false);
 
-        // Select parser.
-        IFormatParser? parser = _parsers.FirstOrDefault(p => p.CanParse(probe));
-        if (parser is null)
-        {
-            var gap = new CoverageGap(
-                Guid.NewGuid(), item.ScanId, item.FileId, item.VirtualPath,
-                probe.Format.FormatId, "sniff", GapReason.UnsupportedFormat,
-                "no_parser", item.DeclaredLength, 0, DateTimeOffset.UtcNow);
+        await ParseRecursivelyAsync(fs, probe, item.VirtualPath, item.DeclaredLength,
+                item, depth: 0, results, cancellationToken)
+            .ConfigureAwait(false);
+        results.Add(new WorkerJobResult(item.JobId, item.FileId,
+            WorkerResultKind.Completed, null, null, null, null, null));
+    }
 
-            results.Add(new WorkerJobResult(item.JobId, item.FileId,
-                WorkerResultKind.Gap, null, gap, null, null, null));
+    private async Task ParseRecursivelyAsync(
+        Stream stream,
+        FormatProbe probe,
+        string virtualPath,
+        long declaredLength,
+        ScanWorkItem item,
+        int depth,
+        List<WorkerJobResult> results,
+        CancellationToken cancellationToken)
+    {
+        if (depth > item.Limits.MaxDepth)
+        {
+            results.Add(Gap(item, virtualPath, probe.Format.FormatId,
+                GapReason.ArchiveLimit, "depth_exceeded", declaredLength));
             return;
         }
 
-        // Re-seek after probe.
-        fs.Position = 0;
-        var input = new ParserInput(fs, item.DeclaredLength);
-        var context = new ParseContext(item.JobId, item.ScanId, item.VirtualPath, item.Limits);
+        IFormatParser? parser = _parsers.FirstOrDefault(p => p.CanParse(probe));
+        if (parser is null)
+        {
+            results.Add(Gap(item, virtualPath, probe.Format.FormatId,
+                GapReason.UnsupportedFormat, "no_parser", declaredLength));
+            return;
+        }
+
+        if (stream.CanSeek)
+        {
+            stream.Position = 0;
+        }
+
+        var input = new ParserInput(stream, declaredLength);
+        var context = new ParseContext(item.JobId, item.ScanId, virtualPath, item.Limits);
 
         await foreach (ParserEvent evt in parser.ParseAsync(input, context, cancellationToken)
-           .ConfigureAwait(false))
+            .ConfigureAwait(false))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -116,6 +137,21 @@ public sealed class InProcessParserRunner : IWorkerJobProcessor
                     results.Add(new WorkerJobResult(item.JobId, item.FileId,
                         WorkerResultKind.ChildDiscovered, null, null,
                         child.VirtualPath, child.Probe, null));
+                    if (child.StreamFactory is not null)
+                    {
+                        await using Stream childStream = await child.StreamFactory(cancellationToken)
+                            .ConfigureAwait(false);
+                        await ParseRecursivelyAsync(
+                                childStream,
+                                child.Probe,
+                                child.VirtualPath,
+                                Math.Max(0, child.Probe.DeclaredLength),
+                                item,
+                                depth + 1,
+                                results,
+                                cancellationToken)
+                            .ConfigureAwait(false);
+                    }
                     break;
 
                 case ParserEvent.GapProduced gapEvt:
@@ -124,11 +160,25 @@ public sealed class InProcessParserRunner : IWorkerJobProcessor
                     break;
 
                 case ParserEvent.ParseCompleted:
-                    results.Add(new WorkerJobResult(item.JobId, item.FileId,
-                        WorkerResultKind.Completed, null, null, null, null, null));
                     break;
             }
         }
+    }
+
+    private static WorkerJobResult Gap(
+        ScanWorkItem item,
+        string virtualPath,
+        string formatId,
+        GapReason reason,
+        string detailCode,
+        long declaredLength)
+    {
+        var gap = new CoverageGap(
+            Guid.NewGuid(), item.ScanId, item.FileId, virtualPath,
+            formatId, "parse", reason, detailCode,
+            declaredLength, 0, DateTimeOffset.UtcNow);
+        return new WorkerJobResult(item.JobId, item.FileId,
+            WorkerResultKind.Gap, null, gap, null, null, null);
     }
 
     private static string? ResolvePhysicalPath(string virtualPath)

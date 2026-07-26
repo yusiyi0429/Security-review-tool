@@ -43,70 +43,20 @@ internal sealed class WorkerHost
                 inputStream, Path.GetExtension(job.DisplayVirtualPath), cancellationToken)
                 .ConfigureAwait(false);
 
-            // Select parser.
-            IFormatParser? parser = _registry.FindParser(probe);
-            if (parser is null)
-            {
-                await _session.SendAsync(MessageType.GapProduced,
-                    SerializeGapPayload(GapReason.UnsupportedFormat,
-                        $"no_parser:{probe.Format.FormatId}", job.DisplayVirtualPath,
-                        probe.Format.FormatId, job.DeclaredLength, 0))
-                    .ConfigureAwait(false);
+            await ParseRecursivelyAsync(
+                    inputStream,
+                    probe,
+                    job.DisplayVirtualPath,
+                    job.DeclaredLength,
+                    job,
+                    depth: 0,
+                    cancellationToken)
+                .ConfigureAwait(false);
 
-                await _session.SendAsync(MessageType.ParseCompleted, "{}")
-                    .ConfigureAwait(false);
-                return false;
-            }
-
-            // Re-seek after probe.
-            inputStream.Position = 0;
-
-            var input = new ParserInput(inputStream, job.DeclaredLength);
-            var context = new ParseContext(job.JobId, job.ScanId,
-                job.DisplayVirtualPath, job.Limits);
-
-            await foreach (ParserEvent evt in parser.ParseAsync(input, context, cancellationToken)
-               .ConfigureAwait(false))
-            {
-                switch (evt)
-                {
-                    case ParserEvent.ChunkProduced chunk:
-                        string chunkPayload = System.Text.Json.JsonSerializer.Serialize(
-                            chunk.Chunk, ProtocolJsonContext.Default.ContentChunk);
-                        await _session.SendAsync(MessageType.ContentChunk, chunkPayload)
-                            .ConfigureAwait(false);
-                        break;
-
-                    case ParserEvent.ChildDiscovered child:
-                        var childMessage = new WorkerChildPayload(
-                            child.VirtualPath,
-                            child.Probe.Format.FormatId,
-                            child.Probe.Format.Confidence,
-                            child.Probe.DeclaredLength);
-                        string childPayload = System.Text.Json.JsonSerializer.Serialize(
-                            childMessage, ProtocolJsonContext.Default.WorkerChildPayload);
-                        await _session.SendAsync(MessageType.ChildDiscovered, childPayload)
-                            .ConfigureAwait(false);
-                        break;
-
-                    case ParserEvent.GapProduced gapEvt:
-                        string gapPayload = SerializeGapPayload(
-                            gapEvt.Gap.Reason,
-                            gapEvt.Gap.DetailCode,
-                            gapEvt.Gap.VirtualPath,
-                            gapEvt.Gap.FormatId,
-                            gapEvt.Gap.PlannedBytes,
-                            gapEvt.Gap.ProcessedBytes);
-                        await _session.SendAsync(MessageType.GapProduced, gapPayload)
-                            .ConfigureAwait(false);
-                        break;
-
-                    case ParserEvent.ParseCompleted:
-                        await _session.SendAsync(MessageType.ParseCompleted, "{}")
-                            .ConfigureAwait(false);
-                        break;
-                }
-            }
+            // Child parsers also emit ParseCompleted. The protocol has one
+            // terminal message per worker job, so only the host emits it.
+            await _session.SendAsync(MessageType.ParseCompleted, "{}")
+                .ConfigureAwait(false);
 
             return false;
         }
@@ -122,6 +72,109 @@ internal sealed class WorkerHost
             return false;
         }
     }
+
+    private async Task ParseRecursivelyAsync(
+        Stream stream,
+        FormatProbe probe,
+        string virtualPath,
+        long declaredLength,
+        ParseJob job,
+        int depth,
+        CancellationToken cancellationToken)
+    {
+        if (depth > job.Limits.MaxDepth)
+        {
+            await SendGapAsync(GapReason.ArchiveLimit, "depth_exceeded",
+                virtualPath, probe.Format.FormatId, declaredLength, 0)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        IFormatParser? parser = _registry.FindParser(probe);
+        if (parser is null)
+        {
+            await SendGapAsync(GapReason.UnsupportedFormat,
+                $"no_parser:{probe.Format.FormatId}", virtualPath,
+                probe.Format.FormatId, declaredLength, 0)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        if (stream.CanSeek)
+        {
+            stream.Position = 0;
+        }
+
+        var input = new ParserInput(stream, declaredLength);
+        var context = new ParseContext(job.JobId, job.ScanId, virtualPath, job.Limits);
+
+        await foreach (ParserEvent evt in parser.ParseAsync(input, context, cancellationToken)
+            .ConfigureAwait(false))
+        {
+            switch (evt)
+            {
+                case ParserEvent.ChunkProduced chunk:
+                    string chunkPayload = System.Text.Json.JsonSerializer.Serialize(
+                        chunk.Chunk, ProtocolJsonContext.Default.ContentChunk);
+                    await _session.SendAsync(MessageType.ContentChunk, chunkPayload)
+                        .ConfigureAwait(false);
+                    break;
+
+                case ParserEvent.ChildDiscovered child:
+                    var childMessage = new WorkerChildPayload(
+                        child.VirtualPath,
+                        child.Probe.Format.FormatId,
+                        child.Probe.Format.Confidence,
+                        child.Probe.DeclaredLength);
+                    string childPayload = System.Text.Json.JsonSerializer.Serialize(
+                        childMessage, ProtocolJsonContext.Default.WorkerChildPayload);
+                    await _session.SendAsync(MessageType.ChildDiscovered, childPayload)
+                        .ConfigureAwait(false);
+
+                    if (child.StreamFactory is not null)
+                    {
+                        await using Stream childStream = await child.StreamFactory(cancellationToken)
+                            .ConfigureAwait(false);
+                        long childLength = Math.Max(0, child.Probe.DeclaredLength);
+                        await ParseRecursivelyAsync(
+                                childStream,
+                                child.Probe,
+                                child.VirtualPath,
+                                childLength,
+                                job,
+                                depth + 1,
+                                cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    break;
+
+                case ParserEvent.GapProduced gapEvt:
+                    await SendGapAsync(
+                            gapEvt.Gap.Reason,
+                            gapEvt.Gap.DetailCode,
+                            gapEvt.Gap.VirtualPath,
+                            gapEvt.Gap.FormatId,
+                            gapEvt.Gap.PlannedBytes,
+                            gapEvt.Gap.ProcessedBytes)
+                        .ConfigureAwait(false);
+                    break;
+
+                case ParserEvent.ParseCompleted:
+                    break;
+            }
+        }
+    }
+
+    private Task SendGapAsync(
+        GapReason reason,
+        string detailCode,
+        string? virtualPath,
+        string? formatId,
+        long? plannedBytes,
+        long? processedBytes) =>
+        _session.SendAsync(MessageType.GapProduced,
+            SerializeGapPayload(reason, detailCode, virtualPath, formatId,
+                plannedBytes, processedBytes));
 
     private async Task TrySendFailureAsync(string errorCode)
     {

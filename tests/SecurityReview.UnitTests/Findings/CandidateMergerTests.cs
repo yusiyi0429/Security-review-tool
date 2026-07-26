@@ -71,6 +71,30 @@ public sealed class CandidateMergerTests
     }
 
     [Fact]
+    public void Same_value_with_different_finding_kinds_produces_separate_groups()
+    {
+        DetectionCandidate[] candidates =
+        [
+            MakeCandidate("same-value", kind: FindingKind.SensitiveContent),
+            MakeCandidate("same-value", kind: FindingKind.AssetCompliance),
+        ];
+
+        var merger = new CandidateMerger(new EphemeralValueFingerprintStub());
+        IReadOnlyList<FindingGroup> groups = merger.Merge(
+            ScanId,
+            JobId,
+            candidates,
+            "file-sha256",
+            "file.txt");
+
+        Assert.Equal(2, groups.Count);
+        Assert.Contains(groups, group =>
+            group.FindingKind == FindingKind.SensitiveContent);
+        Assert.Contains(groups, group =>
+            group.FindingKind == FindingKind.AssetCompliance);
+    }
+
+    [Fact]
     public void Whitespace_casing_differences_do_not_merge_with_real_fingerprint()
     {
         var candidates = new[]

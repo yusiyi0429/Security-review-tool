@@ -12,8 +12,8 @@ namespace SecurityReview.Desktop.ViewModels;
 
 /// <summary>
 /// View model for the scan results / findings view. Displays paginated
-/// finding groups with filters for category, severity, confidence, asset
-/// type, review status, difference status, and finding kind.
+/// finding groups with the category and severity filters implemented by
+/// the current query layer.
 ///
 /// Group rows show a fingerprint short ID and count — never the full
 /// fingerprint value. Expanding a group loads occurrences; selecting
@@ -36,7 +36,7 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
     private ReviewsDifferenceStatus? _filterDifferenceStatus;
 
     // Pagination
-    private int _currentPage;
+    private int _currentPage = 1;
     private int _totalPages;
     private int _totalGroups;
     private const int PageSize = 200;
@@ -255,8 +255,10 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
         PagedResult<FindingGroupDiagnosticRecord> page = await query
             .GetGroupsPagedAsync(
                 _scanId,
-                _currentPage * PageSize,
+                (_currentPage - 1) * PageSize,
                 PageSize,
+                _filterKind,
+                _filterSeverity,
                 cancellationToken)
             .ConfigureAwait(true);
 
@@ -272,7 +274,9 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
         }
 
         TotalGroups = page.TotalCount;
-        TotalPages = (int)Math.Ceiling((double)page.TotalCount / PageSize);
+        TotalPages = page.TotalCount > 0
+            ? (int)Math.Ceiling((double)page.TotalCount / PageSize)
+            : 1;
         OnPropertyChanged(nameof(HasPreviousPage));
         OnPropertyChanged(nameof(HasNextPage));
     }
@@ -284,18 +288,23 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
 
         SelectedGroup = group;
 
-        // For now, we populate occurrences from the stored group data.
-        // In production this would query the repository with explicit identifiers.
-        _expandedOccurrences = new ObservableCollection<FindingOccurrenceItem>();
+        ScanQueryService query = _queryServiceFactory();
+        PagedResult<FindingOccurrenceSummary> page = await query
+            .GetOccurrencesPagedAsync(
+                group.GroupId,
+                offset: 0,
+                limit: ScanQueryService.DefaultOccurrencesPageSize,
+                cancellationToken: cancellationToken)
+            .ConfigureAwait(true);
 
-        // Simulate loading occurrences from the group expansion.
-        for (int i = 0; i < group.OccurrenceCount; i++)
+        _expandedOccurrences = new ObservableCollection<FindingOccurrenceItem>();
+        foreach (FindingOccurrenceSummary occurrence in page.Items)
         {
             _expandedOccurrences.Add(new FindingOccurrenceItem(
-                new FindingOccurrenceId(Guid.NewGuid()),
-                group.GroupId,
-                $"出现 #{i + 1}",
-                "（位置待解密）"));
+                occurrence.OccurrenceId,
+                occurrence.GroupId,
+                occurrence.RedactedVirtualPath,
+                occurrence.LocatorDisplay));
         }
 
         OnPropertyChanged(nameof(ExpandedOccurrences));
@@ -313,15 +322,21 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
         {
             ScanQueryService query = _queryServiceFactory();
             DisposableOccurrenceDetail? detail = await query
-                .GetOccurrenceDetailsAsync(occurrence.OccurrenceId, cancellationToken)
+                .GetOccurrenceDetailsAsync(_scanId, occurrence.OccurrenceId, cancellationToken)
                 .ConfigureAwait(true);
 
             if (detail is not null)
             {
-                DecryptedValue = detail.SensitiveValue.Value;
-                DecryptedContext = detail.SensitiveContext.Value;
-                detail.SensitiveValue.Dispose();
-                detail.SensitiveContext.Dispose();
+                try
+                {
+                    DecryptedValue = detail.SensitiveValue.Value;
+                    DecryptedContext = detail.SensitiveContext.Value;
+                }
+                finally
+                {
+                    detail.SensitiveValue.Dispose();
+                    detail.SensitiveContext.Dispose();
+                }
             }
             else
             {
@@ -350,7 +365,7 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
 
     private Task NextPageAsync(object? parameter, CancellationToken cancellationToken)
     {
-        if (_currentPage < _totalPages - 1)
+        if (_currentPage < _totalPages)
         {
             _currentPage++;
             OnPropertyChanged(nameof(CurrentPage));
@@ -363,7 +378,7 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
 
     private Task ApplyFilterAsync(object? parameter, CancellationToken cancellationToken)
     {
-        _currentPage = 0;
+        _currentPage = 1;
         OnPropertyChanged(nameof(CurrentPage));
         return LoadGroupsAsync(null, CancellationToken.None);
     }
@@ -384,7 +399,7 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(FilterReviewStatus));
         OnPropertyChanged(nameof(FilterDifferenceStatus));
 
-        _currentPage = 0;
+        _currentPage = 1;
         OnPropertyChanged(nameof(CurrentPage));
         return LoadGroupsAsync(null, CancellationToken.None);
     }

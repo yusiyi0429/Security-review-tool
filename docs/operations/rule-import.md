@@ -3,6 +3,10 @@
 SecurityReviewTool ships with a built-in baseline rule set. This document
 explains how to import updated or supplemental rule packs.
 
+On first launch, the client verifies and activates the bundled baseline
+automatically. Import is only required when replacing it with an approved
+newer rule pack.
+
 ## Rule Pack Format
 
 Rule packs are distributed as **signed ZIP archives** with the extension

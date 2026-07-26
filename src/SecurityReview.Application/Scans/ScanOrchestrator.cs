@@ -28,10 +28,10 @@ namespace SecurityReview.Application.Scans;
 /// requested. Deterministic detectors finish regardless of the LLM
 /// result; unresolved candidates become <c>LlmUnresolved</c> gaps.
 ///
-/// The orchestrator re-hashes every file and applies one mutation retry
-/// before the final reconciliation. The first mutation accepts on the
-/// retry; a second mutation marks the file <see cref="GapReason.FileUnstable"/>
-/// and yields <see cref="ScanStatus.Partial"/>.
+/// The orchestrator snapshots every file before parsing. The production
+/// worker launcher verifies that hash again while opening a read-only handle;
+/// a mismatch is recorded as <see cref="GapReason.FileUnstable"/> and yields
+/// <see cref="ScanStatus.Partial"/>.
 /// </summary>
 public sealed class ScanOrchestrator : IScanOrchestrator
 {
@@ -45,7 +45,9 @@ public sealed class ScanOrchestrator : IScanOrchestrator
     private readonly IFindingRepository _findingRepository;
     private readonly ICoverageRepository _coverageRepository;
     private readonly IFileRepository _fileRepository;
+    private readonly IFileSnapshotService? _fileSnapshotService;
     private readonly Func<ISemanticReviewQueue> _semanticQueueFactory;
+    private readonly bool _disposeSemanticQueue = true;
     private readonly IDiagnosticSink _diagnosticSink;
     private readonly ScanOrchestratorState _state;
     private readonly Func<DateTimeOffset> _clock;
@@ -63,7 +65,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         Func<ISemanticReviewQueue> semanticQueueFactory,
         IDiagnosticSink diagnosticSink,
         ScanOrchestratorState state,
-        Func<DateTimeOffset>? clock = null)
+        Func<DateTimeOffset>? clock = null,
+        IFileSnapshotService? fileSnapshotService = null)
         : this(
             inventoryService,
             scanRepository,
@@ -78,7 +81,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             semanticQueueFactory,
             diagnosticSink,
             state,
-            clock)
+            clock,
+            fileSnapshotService)
     {
     }
 
@@ -96,7 +100,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         ISemanticReviewQueue semanticQueue,
         IDiagnosticSink diagnosticSink,
         ScanOrchestratorState state,
-        Func<DateTimeOffset>? clock = null)
+        Func<DateTimeOffset>? clock = null,
+        IFileSnapshotService? fileSnapshotService = null)
         : this(
             inventoryService,
             scanRepository,
@@ -111,8 +116,10 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             () => semanticQueue,
             diagnosticSink,
             state,
-            clock)
+            clock,
+            fileSnapshotService)
     {
+        _disposeSemanticQueue = false;
     }
 
     public ScanOrchestrator(
@@ -129,7 +136,8 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         Func<ISemanticReviewQueue> semanticQueueFactory,
         IDiagnosticSink diagnosticSink,
         ScanOrchestratorState state,
-        Func<DateTimeOffset>? clock = null)
+        Func<DateTimeOffset>? clock = null,
+        IFileSnapshotService? fileSnapshotService = null)
     {
         _inventoryService = inventoryService
             ?? throw new ArgumentNullException(nameof(inventoryService));
@@ -151,6 +159,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             ?? throw new ArgumentNullException(nameof(coverageRepository));
         _fileRepository = fileRepository
             ?? throw new ArgumentNullException(nameof(fileRepository));
+        _fileSnapshotService = fileSnapshotService;
         _semanticQueueFactory = semanticQueueFactory
             ?? throw new ArgumentNullException(nameof(semanticQueueFactory));
         _diagnosticSink = diagnosticSink
@@ -351,7 +360,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         reportProgress(ScanProgress.Empty with { Stage = ScanStage.Inventory });
 
         InventoryResult inventory = await BuildInventoryAsync(
-                scanId, targets, cancellationToken)
+                scanId, snapshot, cancellationToken)
             .ConfigureAwait(false);
 
         if (inventory.Outcome != InventoryOutcome.Completed)
@@ -371,6 +380,10 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             return FinaliseFailed(scanId, inventory.FailureCode ?? "inventory_failed",
                 0, 0, 0);
         }
+
+        inventory = await CaptureFileSnapshotsAsync(
+                scanId, snapshot, inventory, cancellationToken)
+            .ConfigureAwait(false);
 
         _diagnosticSink.Publish(new DiagnosticEvent(
             DiagnosticCode.ScanInventoryCompleted, _clock(),
@@ -399,12 +412,18 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         foreach (InventoryMetadataUnit unit in inventory.MetadataUnits)
         {
             ledger.RegisterMetadata(unit);
+            ledger.TransitionMetadata(unit, CoverageStatus.Covered);
         }
         foreach (CoverageGap gap in inventory.Gaps)
         {
             ledger.AddGap(gap);
             await _coverageRepository.InsertAsync(gap, cancellationToken).ConfigureAwait(false);
         }
+        var excludedFileIds = inventory.Gaps
+            .Where(gap => gap.Reason == GapReason.UserExcluded
+                && gap.FileId is not null)
+            .Select(gap => gap.FileId!.Value)
+            .ToHashSet();
 
         // ---- Step: Parse and detect ----
         _diagnosticSink.Publish(new DiagnosticEvent(
@@ -431,17 +450,20 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
         var pendingFileIds = new HashSet<FileId>(inventory.Files.Select(f => f.FileId));
         var fileShaMap = new Dictionary<FileId, string>();
-        var filePathMap = new Dictionary<FileId, string>();
         ISemanticReviewQueue semanticQueue = _semanticQueueFactory()
             ?? throw new InvalidOperationException("Semantic review queue factory returned null.");
+        using IDisposable? semanticQueueLease = _disposeSemanticQueue
+            ? semanticQueue as IDisposable
+            : null;
         int findingCount = 0;
+        int failedFileCount = 0;
         int llmUnresolvedCount = 0;
         bool workerCancelled = false;
+        int archiveEntryCount = 0;
 
         foreach (FileRecord file in inventory.Files)
         {
             fileShaMap[file.FileId] = file.ContentSha256 ?? string.Empty;
-            filePathMap[file.FileId] = file.RelativePath;
         }
 
         // The processor here drives the parser pipeline for one file at a
@@ -460,6 +482,37 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             ParseLimits limits = ScanScheduler.CreateOrdinaryLimits(now);
             string virtualPath = file.RelativePath;
             string formatHint = file.FormatId ?? DetectFormatHint(virtualPath);
+            var fileCandidates = new List<DetectionCandidate>();
+            bool fileHadGap = false;
+            bool fileFailed = false;
+            bool fileCompleted = false;
+            string? detectedFormatId = file.FormatId;
+
+            if (excludedFileIds.Contains(file.FileId))
+            {
+                ledger.TransitionFile(file.FileId, CoverageStatus.NotCovered);
+                pendingFileIds.Remove(file.FileId);
+                await _fileRepository.UpdateAsync(
+                        scanId,
+                        file with { Coverage = CoverageStatus.NotCovered },
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                continue;
+            }
+
+            if (_fileSnapshotService is not null
+                && string.IsNullOrWhiteSpace(file.ContentSha256))
+            {
+                failedFileCount++;
+                ledger.TransitionFile(file.FileId, CoverageStatus.NotCovered);
+                pendingFileIds.Remove(file.FileId);
+                await _fileRepository.UpdateAsync(
+                        scanId,
+                        file with { Coverage = CoverageStatus.NotCovered },
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                continue;
+            }
 
             var item = new ScanWorkItem(
                 JobId: new JobId(Guid.NewGuid()),
@@ -470,9 +523,28 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                 DeclaredLength: file.Length,
                 Limits: limits,
                 IsOci: false,
-                InputFilePath: Path.Combine(
+                InputFilePath: BuildInputFilePath(
                     ResolveTargetRoot(snapshot.RootPaths[file.RootIndex]),
-                    file.RelativePath));
+                    file),
+                ExpectedContentSha256: file.ContentSha256);
+
+            long metadataSequence = 0;
+            foreach (InventoryMetadataUnit unit in inventory.MetadataUnits
+                .Where(unit => unit.FileId == file.FileId))
+            {
+                ContentChunk metadataChunk = InventoryMetadataChunkAdapter.Convert(
+                    unit, scanId, metadataSequence++);
+                await foreach (DetectionCandidate candidate in _detectionPipeline
+                    .DetectAsync(scanId, metadataChunk.JobId, file.FileId,
+                        fileShaMap[file.FileId], metadataChunk.VirtualPath,
+                        snapshot.ActiveRulePackHash,
+                        file.ComponentAssetTypes,
+                        metadataChunk, cancellationToken)
+                    .ConfigureAwait(false))
+                {
+                    fileCandidates.Add(candidate);
+                }
+            }
 
             await foreach (WorkerJobResult result in _processor
                 .ProcessAsync(item, cancellationToken)
@@ -483,6 +555,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                     case WorkerResultKind.Chunk:
                         if (result.Chunk is not null)
                         {
+                            detectedFormatId ??= result.Chunk.FormatId;
                             await foreach (DetectionCandidate candidate in _detectionPipeline
                                 .DetectAsync(scanId, item.JobId, file.FileId,
                                     fileShaMap[file.FileId], virtualPath,
@@ -491,25 +564,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                                     result.Chunk, cancellationToken)
                                 .ConfigureAwait(false))
                             {
-                                findingCount++;
-
-                                var merger = new CandidateMerger(
-                                    new MergeOnlyFingerprintService());
-                                IReadOnlyList<FindingGroup> groups = merger.Merge(
-                                    scanId, item.JobId,
-                                    new[] { candidate },
-                                    fileShaMap[file.FileId], virtualPath);
-
-                                foreach (FindingGroup group in groups)
-                                {
-                                    await _findingRepository.InsertGroupAsync(
-                                        scanId, group, cancellationToken).ConfigureAwait(false);
-                                    foreach (FindingOccurrence occ in group.Occurrences)
-                                    {
-                                        await _findingRepository.InsertOccurrenceAsync(
-                                            file.FileId, occ, cancellationToken).ConfigureAwait(false);
-                                    }
-                                }
+                                fileCandidates.Add(candidate);
 
                                 if (candidate.RequiresSemanticReview)
                                 {
@@ -552,6 +607,7 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                     case WorkerResultKind.Gap:
                         if (result.Gap is not null)
                         {
+                            fileHadGap = true;
                             ledger.AddGap(result.Gap);
                             await _coverageRepository.InsertAsync(
                                 result.Gap, cancellationToken).ConfigureAwait(false);
@@ -559,41 +615,84 @@ public sealed class ScanOrchestrator : IScanOrchestrator
                         break;
 
                     case WorkerResultKind.Failed:
+                        fileFailed = true;
                         if (result.Gap is not null)
                         {
                             ledger.AddGap(result.Gap);
                             await _coverageRepository.InsertAsync(
                                 result.Gap, cancellationToken).ConfigureAwait(false);
                         }
-                        ledger.TransitionFile(file.FileId, CoverageStatus.NotCovered);
-                        pendingFileIds.Remove(file.FileId);
                         break;
 
                     case WorkerResultKind.Cancelled:
                         workerCancelled = true;
-                        ledger.TransitionFile(file.FileId, CoverageStatus.NotCovered);
-                        pendingFileIds.Remove(file.FileId);
+                        fileFailed = true;
+                        break;
+
+                    case WorkerResultKind.ChildDiscovered:
+                        archiveEntryCount++;
                         break;
 
                     case WorkerResultKind.Completed:
-                        ledger.TransitionFile(file.FileId, CoverageStatus.Covered);
-                        pendingFileIds.Remove(file.FileId);
+                        fileCompleted = true;
                         break;
                 }
 
                 reportProgress(new ScanProgress(ScanStage.Running,
                     DiscoveredFiles: inventory.Files.Count,
                     ProcessedFiles: inventory.Files.Count - pendingFileIds.Count,
-                    FailedFiles: 0,
+                    FailedFiles: failedFileCount + (fileFailed ? 1 : 0),
                     PlannedBytes: inventory.Files.Sum(f => f.Length),
                     ProcessedBytes: inventory.Files.Where(f => !pendingFileIds.Contains(f.FileId))
                         .Sum(f => f.Length),
-                    ArchiveEntryCount: 0,
+                    ArchiveEntryCount: archiveEntryCount,
                     FindingCount: findingCount,
                     LlmQueueCount: semanticQueue.PendingCount,
                     ActiveWorkerCount: 0,
                     CurrentFileOrdinal: inventory.Files.Count - pendingFileIds.Count));
             }
+
+            CoverageStatus coverage = fileFailed || !fileCompleted
+                ? CoverageStatus.NotCovered
+                : fileHadGap
+                    ? CoverageStatus.PartiallyCovered
+                    : CoverageStatus.Covered;
+            ledger.TransitionFile(file.FileId, coverage);
+            pendingFileIds.Remove(file.FileId);
+            if (fileFailed || !fileCompleted)
+            {
+                failedFileCount++;
+            }
+
+            if (fileCandidates.Count > 0)
+            {
+                var merger = new CandidateMerger(
+                    new MergeOnlyFingerprintService());
+                IReadOnlyList<FindingGroup> groups = merger.Merge(
+                    scanId, item.JobId, fileCandidates,
+                    fileShaMap[file.FileId], virtualPath);
+
+                foreach (FindingGroup group in groups)
+                {
+                    await _findingRepository.InsertGroupAsync(
+                        scanId, group, cancellationToken).ConfigureAwait(false);
+                    await _findingRepository.InsertOccurrenceBatchAsync(
+                        file.FileId, group.Occurrences, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                findingCount += fileCandidates.Count;
+            }
+
+            await _fileRepository.UpdateAsync(
+                    scanId,
+                    file with
+                    {
+                        FormatId = detectedFormatId,
+                        Coverage = coverage,
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
 
         workerCancelled |= await IsCancellingAsync(scanId, cancellationToken)
@@ -630,9 +729,25 @@ public sealed class ScanOrchestrator : IScanOrchestrator
         }
 
         SemanticQueueProgress semanticProgress = semanticQueue.GetProgress();
-        llmUnresolvedCount += semanticProgress.UnresolvedCount
+        int semanticQueueIssueCount = semanticProgress.UnresolvedCount
             + semanticProgress.FailedCount
             + semanticProgress.CancelledCount;
+        llmUnresolvedCount += semanticQueueIssueCount;
+        for (int i = 0; i < semanticQueueIssueCount; i++)
+        {
+            CoverageGap gap = BuildSemanticQueueGap(
+                scanId,
+                semanticProgress.CancelledCount > i
+                    ? "semantic_review_cancelled"
+                    : semanticProgress.FailedCount
+                        > i - semanticProgress.CancelledCount
+                            ? "semantic_review_failed"
+                            : "semantic_review_unresolved");
+            ledger.AddGap(gap);
+            await _coverageRepository
+                .InsertAsync(gap, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         // ---- Step: Final reconciliation ----
         reportProgress(ScanProgress.Empty with { Stage = ScanStage.Reconciling });
@@ -667,11 +782,11 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             },
             DiscoveredFiles: inventory.Files.Count,
             ProcessedFiles: inventory.Files.Count - pendingFileIds.Count,
-            FailedFiles: 0,
+            FailedFiles: failedFileCount,
             PlannedBytes: inventory.Files.Sum(f => f.Length),
             ProcessedBytes: inventory.Files.Where(f => !pendingFileIds.Contains(f.FileId))
                 .Sum(f => f.Length),
-            ArchiveEntryCount: 0,
+            ArchiveEntryCount: archiveEntryCount,
             FindingCount: findingCount,
             LlmQueueCount: 0,
             ActiveWorkerCount: 0,
@@ -697,11 +812,102 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             CompletedAtUtc: _clock());
     }
 
-    private async Task<InventoryResult> BuildInventoryAsync(
+    private async Task<InventoryResult> CaptureFileSnapshotsAsync(
         ScanId scanId,
-        string[] targets,
+        ScanConfigurationSnapshot snapshot,
+        InventoryResult inventory,
         CancellationToken cancellationToken)
     {
+        if (_fileSnapshotService is null)
+        {
+            return inventory;
+        }
+
+        var files = new List<FileRecord>(inventory.Files.Count);
+        var gaps = new List<CoverageGap>(inventory.Gaps);
+
+        var excludedIds = inventory.Gaps
+            .Where(gap => gap.Reason == GapReason.UserExcluded
+                && gap.FileId is not null)
+            .Select(gap => gap.FileId!.Value)
+            .ToHashSet();
+
+        foreach (FileRecord file in inventory.Files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (excludedIds.Contains(file.FileId))
+            {
+                files.Add(file);
+                continue;
+            }
+            try
+            {
+                string root = ResolveTargetRoot(snapshot.RootPaths[file.RootIndex]);
+                FileSnapshot captured = await _fileSnapshotService
+                    .OpenAndHashAsync(root, file, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (captured.Identity != file.Identity)
+                {
+                    gaps.Add(BuildSnapshotGap(
+                        scanId, file, GapReason.FileUnstable,
+                        "identity_changed_before_parse"));
+                    files.Add(file);
+                    continue;
+                }
+
+                files.Add(file with
+                {
+                    Identity = captured.Identity,
+                    Length = captured.Length,
+                    LastWriteUtc = captured.LastWriteUtc,
+                    ContentSha256 = captured.Sha256Hex,
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                gaps.Add(BuildSnapshotGap(
+                    scanId, file, GapReason.AccessDenied,
+                    "snapshot_hash_failed"));
+                files.Add(file);
+            }
+        }
+
+        return inventory with
+        {
+            Files = files,
+            Gaps = gaps,
+        };
+    }
+
+    private static CoverageGap BuildSnapshotGap(
+        ScanId scanId,
+        FileRecord file,
+        GapReason reason,
+        string detailCode) =>
+        new(
+            Guid.NewGuid(),
+            scanId,
+            file.FileId,
+            file.RelativePath,
+            file.FormatId ?? DetectFormatHint(file.RelativePath),
+            "snapshot",
+            reason,
+            detailCode,
+            file.Length,
+            0,
+            DateTimeOffset.UtcNow);
+
+    private async Task<InventoryResult> BuildInventoryAsync(
+        ScanId scanId,
+        ScanConfigurationSnapshot snapshot,
+        CancellationToken cancellationToken)
+    {
+        string[] targets = snapshot.RootPaths;
         var files = new List<FileRecord>();
         var metadata = new List<InventoryMetadataUnit>();
         var gaps = new List<CoverageGap>();
@@ -717,11 +923,14 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             string target = targets[rootIndex];
             string targetRoot = ResolveTargetRoot(target);
 
-            ManifestReadResult manifestResult = await _manifestReader
-                .ReadAsync(targetRoot, cancellationToken)
-                .ConfigureAwait(false);
+            ManifestSnapshot? manifestSnapshot = snapshot.RootManifests is not null
+                && rootIndex < snapshot.RootManifests.Length
+                    ? snapshot.RootManifests[rootIndex]
+                    : rootIndex == 0
+                        ? snapshot.Manifest
+                        : null;
             IReadOnlyList<AssetComponent> components =
-                manifestResult.Snapshot?.Manifest?.Components
+                manifestSnapshot?.Manifest?.Components
                 ?? (IReadOnlyList<AssetComponent>)Array.Empty<AssetComponent>();
 
             long remainingStreams = InventoryRequest.DefaultMaxStreams - observedStreams;
@@ -785,6 +994,32 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             boundaries.AddRange(result.BoundaryRecords);
         }
 
+        string[] exclusionPatterns = snapshot.Exclusions?
+            .Select(exclusion => exclusion.Pattern)
+            .ToArray()
+            ?? snapshot.ExclusionPatterns;
+        var exclusionMatcher = new ExclusionMatcher(exclusionPatterns);
+        foreach (FileRecord file in files)
+        {
+            if (!exclusionMatcher.IsMatch(file.RelativePath, file.StreamName))
+            {
+                continue;
+            }
+
+            gaps.Add(new CoverageGap(
+                Guid.NewGuid(),
+                scanId,
+                file.FileId,
+                file.RelativePath,
+                file.FormatId ?? DetectFormatHint(file.RelativePath),
+                "inventory",
+                GapReason.UserExcluded,
+                "user_excluded",
+                file.Length,
+                0,
+                _clock()));
+        }
+
         return new InventoryResult(
             [.. InventoryOrdering.Order(files)],
             metadata,
@@ -817,6 +1052,24 @@ public sealed class ScanOrchestrator : IScanOrchestrator
 
         return Path.GetDirectoryName(fullPath)
             ?? throw new InvalidOperationException("File scan target has no parent directory.");
+    }
+
+    private static string BuildInputFilePath(string targetRoot, FileRecord file)
+    {
+        string path = Path.Combine(targetRoot,
+            file.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+        if (file.StreamName is null)
+        {
+            return path;
+        }
+
+        if (file.StreamName.Length == 0
+            || file.StreamName.IndexOfAny([':', '/', '\\', '\0', '.']) >= 0)
+        {
+            throw new InvalidOperationException("Invalid alternate data stream name.");
+        }
+
+        return path + ":" + file.StreamName;
     }
 
     private ScanOutcome FinaliseFailed(ScanId scanId, string reason,
@@ -914,13 +1167,33 @@ public sealed class ScanOrchestrator : IScanOrchestrator
             CreatedAtUtc: DateTimeOffset.UtcNow);
     }
 
+    private static CoverageGap BuildSemanticQueueGap(
+        ScanId scanId,
+        string detailCode) =>
+        new(
+            GapId: Guid.NewGuid(),
+            ScanId: scanId,
+            FileId: null,
+            VirtualPath: "(semantic-review)",
+            FormatId: "semantic",
+            Stage: "semantic_review",
+            Reason: GapReason.LlmUnresolved,
+            DetailCode: detailCode,
+            PlannedBytes: null,
+            ProcessedBytes: null,
+            CreatedAtUtc: DateTimeOffset.UtcNow);
+
     private static string DetectFormatHint(string path)
     {
         string ext = Path.GetExtension(path).ToLowerInvariant();
         return ext switch
         {
-            ".txt" or ".csv" or ".log" or ".md" or ".xml" or ".json"
-                or ".yaml" or ".yml" or ".ini" or ".cfg" or ".conf" or ".html"
+            ".json" => "json",
+            ".xml" => "xml",
+            ".yaml" or ".yml" => "yaml",
+            ".csv" or ".tsv" => "csv",
+            ".txt" or ".log" or ".md" or ".jsonl"
+                or ".ini" or ".cfg" or ".conf" or ".html"
                 or ".htm" or ".css" or ".js" or ".ts" or ".py" or ".java"
                 or ".cs" or ".c" or ".h" or ".cpp" or ".hpp" or ".rs" or ".go"
                 or ".rb" or ".php" or ".sh" or ".bat" or ".ps1" or ".sql" => "text",

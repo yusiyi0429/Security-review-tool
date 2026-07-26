@@ -53,7 +53,8 @@ public sealed record LlmAttemptPersistenceRecord(
     string ModelFingerprint,
     DateTimeOffset StartedAtUtc,
     TimeSpan Duration,
-    int StatusCodeOrZero);
+    int StatusCodeOrZero,
+    ScanId? ScanId = null);
 
 /// <summary>
 /// Read-side projection of a persisted attempt row. Carries exactly

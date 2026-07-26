@@ -1,0 +1,81 @@
+[
+  {
+    "id": "DET-KNOWN-SECRETS",
+    "kind": "KnownFormat",
+    "config_id": "known-secrets",
+    "parameters": {
+      "format": "all"
+    },
+    "max_matches_per_chunk": 100
+  },
+  {
+    "id": "DET-KNOWN-PHONE",
+    "kind": "KnownFormat",
+    "config_id": "known-phone",
+    "parameters": {
+      "format": "phone"
+    },
+    "max_matches_per_chunk": 100
+  },
+  {
+    "id": "DET-CHECKSUM-CNID",
+    "kind": "Checksum",
+    "config_id": "checksum-cnid",
+    "parameters": {
+      "algorithm": "cnid"
+    },
+    "max_matches_per_chunk": 100
+  },
+  {
+    "id": "DET-CHECKSUM-LUHN",
+    "kind": "Checksum",
+    "config_id": "checksum-luhn",
+    "parameters": {
+      "algorithm": "luhn"
+    },
+    "max_matches_per_chunk": 100
+  },
+  {
+    "id": "DET-NETWORK-ADDRESS",
+    "kind": "NetworkAddress",
+    "config_id": "network-address",
+    "parameters": {
+      "include_private": "true",
+      "include_public": "true",
+      "include_url": "true"
+    },
+    "max_matches_per_chunk": 100
+  },
+  {
+    "id": "DET-STRUCTURED-FIELD",
+    "kind": "StructuredField",
+    "config_id": "structured-sensitive-fields",
+    "parameters": {},
+    "max_matches_per_chunk": 100
+  },
+  {
+    "id": "DET-ENTROPY-CONTEXT",
+    "kind": "EntropyWithContext",
+    "config_id": "entropy-with-context",
+    "parameters": {
+      "strong_format": "false"
+    },
+    "max_matches_per_chunk": 100
+  },
+  {
+    "id": "DET-RISK-DICTIONARY",
+    "kind": "Dictionary",
+    "config_id": "risk-control-terms",
+    "parameters": {
+      "case_mode": "ordinal_ignore_case"
+    },
+    "max_matches_per_chunk": 100
+  },
+  {
+    "id": "DET-LICENSE-MARKERS",
+    "kind": "LicenseFingerprint",
+    "config_id": "license-markers",
+    "parameters": {},
+    "max_matches_per_chunk": 100
+  }
+]

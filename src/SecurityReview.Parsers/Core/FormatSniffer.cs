@@ -255,6 +255,33 @@ public static class FormatSniffer
             (formatId, confidence, evidence) = ClassifyTextOrBinary(head, declaredLength);
         }
 
+        // Structured text has no reliable magic bytes. Once content has been
+        // proven to be text, use the extension only to select the safer,
+        // structure-aware parser. JSON Lines and Markdown intentionally stay
+        // on the streaming text parser.
+        if (formatId == "text" && extensionHint is not null)
+        {
+            string? structuredFormat = extensionHint switch
+            {
+                ".json" => "json",
+                ".xml" => "xml",
+                ".yaml" or ".yml" => "yaml",
+                ".csv" or ".tsv" => "csv",
+                _ => null,
+            };
+            if (structuredFormat is not null)
+            {
+                formatId = structuredFormat;
+                evidence.Add("structured_text_extension");
+            }
+        }
+
+        if (formatId == "tar" && ContainsAscii(head, "manifest.json"))
+        {
+            formatId = "docker-archive";
+            evidence.Add("docker_manifest_entry");
+        }
+
         // Extension mismatch check
         bool mismatch = false;
         if (formatId != null && extensionHint != null)
@@ -407,11 +434,16 @@ public static class FormatSniffer
         return detectedFormat switch
         {
             "text" => normalized is not (".txt" or ".csv" or ".log" or ".md" or ".xml" or ".json"
+                or ".jsonl"
                 or ".yaml" or ".yml" or ".ini" or ".cfg" or ".conf" or ".html" or ".htm"
                 or ".css" or ".js" or ".ts" or ".py" or ".java" or ".cs" or ".c" or ".h"
                 or ".cpp" or ".hpp" or ".rs" or ".go" or ".rb" or ".php" or ".sh"
                 or ".bat" or ".ps1" or ".sql" or ".r" or ".swift" or ".kt" or ".scala"
                 or ".lua" or ".pl" or ".toml" or ".env" or ".gitignore" or ".dockerfile"),
+            "json" => normalized != ".json",
+            "xml" => normalized != ".xml",
+            "yaml" => normalized is not (".yaml" or ".yml"),
+            "csv" => normalized is not (".csv" or ".tsv"),
             "zip" => normalized is not (".zip" or ".jar" or ".war" or ".ear" or ".apk"
                 or ".epub" or ".odt" or ".ods" or ".odp"),
             "pdf" => normalized != ".pdf",
@@ -433,6 +465,7 @@ public static class FormatSniffer
             "openxml" => normalized is not (".docx" or ".xlsx" or ".pptx"),
             "jar" => normalized != ".jar",
             "tar" => normalized != ".tar",
+            "docker-archive" => normalized is not (".tar" or ".docker" or ".oci"),
             _ => false,
         };
     }
