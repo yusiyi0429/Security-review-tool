@@ -72,55 +72,45 @@ public sealed class OpenXmlSecurityTests
     [Fact]
     public async Task external_relationship_target_never_opened()
     {
-        // Start an HTTP listener on a random port to detect if any request is made
+        // The corpus points to this exact URL. Bind it so an attempted external
+        // relationship fetch is observable instead of silently failing DNS/port lookup.
+        const string externalRelationshipPrefix = "http://localhost:19999/";
         using var listener = new HttpListener();
-        int port;
-        // Find a free port
-        var random = new Random();
-        for (int attempt = 0; attempt < 10; attempt++)
+        listener.Prefixes.Add(externalRelationshipPrefix);
+        listener.Start();
+
+        try
         {
-            port = random.Next(49152, 65535);
-            try
-            {
-                listener.Prefixes.Clear();
-                listener.Prefixes.Add($"http://localhost:{port}/");
-                listener.Start();
-                break;
-            }
-            catch (HttpListenerException)
-            {
-                continue;
-            }
+            // Parse the external_rel.docx — it has an external relationship to
+            // http://localhost:19999/canary. We verify no HTTP request is made to
+            // the listener by checking if any request arrives.
+            string path = Path.Combine(CorpusDir, "external_rel.docx");
+            Assert.True(File.Exists(path));
+
+            var parser = new OpenXmlFormatParser();
+            await using var fs = File.OpenRead(path);
+            await using var input = new ParserInput(fs, fs.Length);
+            var context = CreateContext("external_rel.docx", fs.Length);
+
+            var events = new List<ParserEvent>();
+            await foreach (var evt in parser.ParseAsync(input, context, CancellationToken.None))
+                events.Add(evt);
+
+            // The document body should still be parsed
+            Assert.Contains(events, e => e is ParserEvent.ChunkProduced cp &&
+                cp.Chunk.Text.Contains("tok_docx_external_rel_body"));
+            Assert.Contains(events, e => e is ParserEvent.ParseCompleted);
+
+            // Verify no HTTP request was made to the corpus relationship target.
+            var gotContext = listener.GetContextAsync();
+            var timeout = Task.Delay(200);
+            var completed = await Task.WhenAny(gotContext, timeout);
+            Assert.NotEqual(gotContext, completed);
         }
-
-        // Parse the external_rel.docx — it has an external relationship to
-        // http://localhost:19999/canary. We verify no HTTP request is made to
-        // our listener by checking if any request arrives.
-        string path = Path.Combine(CorpusDir, "external_rel.docx");
-        Assert.True(File.Exists(path));
-
-        var parser = new OpenXmlFormatParser();
-        await using var fs = File.OpenRead(path);
-        await using var input = new ParserInput(fs, fs.Length);
-        var context = CreateContext("external_rel.docx", fs.Length);
-
-        var events = new List<ParserEvent>();
-        await foreach (var evt in parser.ParseAsync(input, context, CancellationToken.None))
-            events.Add(evt);
-
-        // The document body should still be parsed
-        Assert.Contains(events, e => e is ParserEvent.ChunkProduced cp &&
-            cp.Chunk.Text.Contains("tok_docx_external_rel_body"));
-        Assert.Contains(events, e => e is ParserEvent.ParseCompleted);
-
-        // Verify no HTTP request was made to our listener
-        // (Use a short timeout to check without blocking)
-        var gotContext = listener.GetContextAsync();
-        var timeout = Task.Delay(200);
-        var completed = await Task.WhenAny(gotContext, timeout);
-        Assert.NotEqual(gotContext, completed);
-
-        listener.Stop();
+        finally
+        {
+            listener.Stop();
+        }
     }
 
     [Fact]
