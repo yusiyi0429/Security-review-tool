@@ -141,18 +141,25 @@ public sealed class FileRulePackStore : IRulePackStore
     }
 
     /// <inheritdoc />
-    public async Task<ActivePointer?> GetActiveAsync(CancellationToken cancellationToken)
+    public Task<ActivePointer?> GetActiveAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         string activePath = Path.Combine(_basePath, ActiveFileName);
         if (!File.Exists(activePath))
         {
-            return null;
+            return Task.FromResult<ActivePointer?>(null);
         }
 
-        byte[] jsonBytes = await File.ReadAllBytesAsync(activePath, cancellationToken)
-            .ConfigureAwait(false);
+        // The pointer is a tiny JSON document. Read it synchronously so the
+        // handle is deterministically closed before this method returns.
+        // This also prevents a fire-and-forget shell refresh from retaining an
+        // overlapped Windows handle while the application root is shutting down.
+        byte[] jsonBytes = File.ReadAllBytes(activePath);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        return JsonSerializer.Deserialize<ActivePointer>(jsonBytes, ActiveJsonOptions);
+        ActivePointer? pointer =
+            JsonSerializer.Deserialize<ActivePointer>(jsonBytes, ActiveJsonOptions);
+        return Task.FromResult(pointer);
     }
 
     /// <summary>

@@ -65,7 +65,6 @@ public partial class MainWindow : Window
         }
 
         _viewModel.CurrentView = view;
-        _ = _root.RefreshShellStatusAsync();
     }
 
     private async Task OnScanLaunchRequestedAsync(
