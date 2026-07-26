@@ -123,8 +123,20 @@ public sealed class DockerIndependenceTests
 
     private static string ReadSourceFile(string relativePath)
     {
-        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        string fullPath = Path.GetFullPath(Path.Combine(baseDir, "../../../../", relativePath));
+        string fullPath = Path.Combine(FindRepositoryRoot(), relativePath);
         return File.ReadAllText(fullPath);
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        for (DirectoryInfo? directory = new(AppContext.BaseDirectory);
+             directory is not null;
+             directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "global.json")))
+                return directory.FullName;
+        }
+
+        throw new DirectoryNotFoundException("Repository root not found.");
     }
 }

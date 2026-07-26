@@ -303,6 +303,18 @@ public sealed class OpenXmlParserTests
             gp.Gap.DetailCode == "macro_semantics_not_analyzed");
     }
 
+    [Fact]
+    public async Task parses_pptm_without_executing_macros()
+    {
+        string path = Path.Combine(CorpusDir, "sample.pptm");
+        var events = await ParseAsync(path);
+
+        Assert.Contains(events, e => e is ParserEvent.ChunkProduced);
+        Assert.Contains(events, e => e is ParserEvent.GapProduced gp &&
+            gp.Gap.DetailCode == "macro_semantics_not_analyzed");
+        Assert.Contains(events, e => e is ParserEvent.ParseCompleted);
+    }
+
     // ============================================================
     // Legacy / Encryption / Corrupt
     // ============================================================

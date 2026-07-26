@@ -126,42 +126,44 @@ public sealed class OpenXmlFormatParser : IFormatParser
         input.Stream.Position = 0;
         string docType = guardResult.DocumentType!;
 
-        // WordprocessingDocument.Open is picky about stream state after prior
-        // ZipArchive usage on .NET. Work around by copying to a fresh MemoryStream.
-        Stream openStream = input.Stream;
-        MemoryStream? copiedStream = null;
-        if (docType == "word" || input.Stream.Position != 0)
-        {
-            // Copy to a fresh stream to ensure clean seek state
-            int bufferSize = (int)Math.Min(input.DeclaredLength, 100_000_000);
-            copiedStream = new MemoryStream(bufferSize);
-            input.Stream.Position = 0;
-            await input.Stream.CopyToAsync(copiedStream, ct).ConfigureAwait(false);
-            copiedStream.Position = 0;
-            openStream = copiedStream;
-        }
+        // Open XML SDK stream support differs across document types and
+        // runtimes after prior ZipArchive inspection. Always use a private
+        // seekable copy so package parsing never retains or mutates the
+        // untrusted input handle.
+        int bufferSize = (int)Math.Min(input.DeclaredLength, 100_000_000);
+        using var copiedStream = new MemoryStream(bufferSize);
+        input.Stream.Position = 0;
+        await input.Stream.CopyToAsync(copiedStream, ct).ConfigureAwait(false);
+        copiedStream.Position = 0;
+        Stream openStream = copiedStream;
 
         try
         {
             if (docType == "word")
             {
-                using var doc = WordprocessingDocument.Open(openStream, false);
-                events.AddRange(PackageMetadataReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
-                events.AddRange(WordContentReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                using (var doc = WordprocessingDocument.Open(openStream, false))
+                {
+                    events.AddRange(PackageMetadataReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                    events.AddRange(WordContentReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                }
                 ReadVbaIfPresent(openStream, context, events);
             }
             else if (docType == "excel")
             {
-                using var doc = SpreadsheetDocument.Open(openStream, false);
-                events.AddRange(PackageMetadataReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
-                events.AddRange(SpreadsheetContentReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                using (var doc = SpreadsheetDocument.Open(openStream, false))
+                {
+                    events.AddRange(PackageMetadataReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                    events.AddRange(SpreadsheetContentReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                }
                 ReadVbaIfPresent(openStream, context, events);
             }
             else if (docType == "powerpoint")
             {
-                using var doc = PresentationDocument.Open(openStream, false);
-                events.AddRange(PackageMetadataReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
-                events.AddRange(PresentationContentReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                using (var doc = PresentationDocument.Open(openStream, false))
+                {
+                    events.AddRange(PackageMetadataReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                    events.AddRange(PresentationContentReader.Read(doc, context.ScanId, context.JobId, context.VirtualPath));
+                }
                 ReadVbaIfPresent(openStream, context, events);
             }
             else
@@ -175,10 +177,15 @@ public sealed class OpenXmlFormatParser : IFormatParser
             events.Add(new ParserEvent.GapProduced(
                 MakeGap(context, GapReason.Corrupt, "openxml_parse_failed",
                     $"{ex.GetType().Name}: {ex.Message}")));
+
+            // A malformed relationship graph can prevent the Open XML SDK from
+            // opening an otherwise readable ZIP. Still scan an independently
+            // discoverable VBA part as inert bytes and disclose that macro
+            // semantics were not analyzed.
+            ReadVbaIfPresent(openStream, context, events);
         }
 
         events.Add(new ParserEvent.ParseCompleted());
-        copiedStream?.Dispose();
         return events;
     }
 
@@ -198,7 +205,14 @@ public sealed class OpenXmlFormatParser : IFormatParser
                 return;  // Can't re-read non-seekable stream
 
             using var zip = new ZipArchive(sourceStream, ZipArchiveMode.Read, leaveOpen: true);
-            var vbaEntry = zip.GetEntry("vbaProject.bin");
+            var vbaEntry = zip.Entries.FirstOrDefault(entry =>
+                string.Equals(
+                    entry.FullName.Replace('\\', '/'),
+                    "vbaProject.bin",
+                    StringComparison.OrdinalIgnoreCase)
+                || entry.FullName.Replace('\\', '/').EndsWith(
+                    "/vbaProject.bin",
+                    StringComparison.OrdinalIgnoreCase));
             if (vbaEntry == null)
             {
                 sourceStream.Position = savedPosition;

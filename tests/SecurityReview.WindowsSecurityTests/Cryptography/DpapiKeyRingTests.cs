@@ -64,8 +64,8 @@ public sealed class DpapiKeyRingTests : IAsyncDisposable
         byte[] fpKey1;
         using (var kr = WindowsDpapiKeyRing.LoadOrCreate(paths))
         {
-            encKey1 = kr.Hkdf.DeriveEncryptionKey();
-            fpKey1 = kr.Hkdf.DeriveFingerprintKey();
+            encKey1 = kr.Hkdf.DeriveEncryptionKey().ToArray();
+            fpKey1 = kr.Hkdf.DeriveFingerprintKey().ToArray();
         }
 
         using var kr2 = WindowsDpapiKeyRing.LoadOrCreate(paths);
