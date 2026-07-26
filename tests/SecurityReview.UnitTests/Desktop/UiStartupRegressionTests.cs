@@ -131,7 +131,7 @@ public sealed partial class UiStartupRegressionTests
         {
             if (completed && Directory.Exists(tempDirectory))
             {
-                Directory.Delete(tempDirectory, recursive: true);
+                DeleteTestDirectory(tempDirectory);
             }
 
             if (string.IsNullOrWhiteSpace(originalWindir))
@@ -139,6 +139,23 @@ public sealed partial class UiStartupRegressionTests
                 Environment.SetEnvironmentVariable("windir", originalWindir);
             }
         }
+    }
+
+    private static void DeleteTestDirectory(string path)
+    {
+        foreach (string file in Directory.EnumerateFiles(
+                     path, "*", SearchOption.AllDirectories))
+        {
+            FileAttributes attributes = File.GetAttributes(file);
+            if ((attributes & FileAttributes.ReadOnly) != 0)
+            {
+                File.SetAttributes(
+                    file,
+                    attributes & ~FileAttributes.ReadOnly);
+            }
+        }
+
+        Directory.Delete(path, recursive: true);
     }
 
     [Fact]
