@@ -235,6 +235,8 @@ public sealed class CompositionRoot : IDisposable
         var ruleRuntimeProvider = new ActiveRulePackRuntimeProvider(ruleStore);
         RegisterConcrete(ruleRuntimeProvider);
         Register<IEffectivePolicyProvider>(ruleRuntimeProvider);
+        Register<IRulePackPreviewProvider>(
+            new RulePackPreviewProvider(ruleRuntimeProvider));
         var ruleDetectionPipeline = new RulePackDetectionPipelineAdapter(
             ruleRuntimeProvider);
         Register<IDetectionPipeline>(ruleDetectionPipeline);
