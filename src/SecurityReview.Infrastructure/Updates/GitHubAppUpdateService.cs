@@ -247,7 +247,7 @@ public sealed class GitHubAppUpdateService : IAppUpdateService, IDisposable
 
     private static HttpClient CreateHttpClient()
     {
-        var handler = new HttpClientHandler
+        var handler = new SocketsHttpHandler
         {
             UseProxy = false,
             UseCookies = false,
