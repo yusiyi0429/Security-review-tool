@@ -432,7 +432,7 @@ public sealed class RuleManagementViewModel : ObservableObject
             : "没有匹配的规则条目。";
     }
 
-    private static IReadOnlyList<RuleEntryItem> ProjectRuleEntries(
+    private static List<RuleEntryItem> ProjectRuleEntries(
         RulePackDocument document)
     {
         var categories = document.Categories.ToDictionary(c => c.CategoryId, c => c);
