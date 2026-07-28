@@ -9,10 +9,10 @@
 ```mermaid
 flowchart LR
   subgraph source["应用与核心组件（src）"]
-    P0["SecurityReview.Application<br/>97 C# files"]
-    P1["SecurityReview.Desktop<br/>35 C# files"]
+    P0["SecurityReview.Application<br/>100 C# files"]
+    P1["SecurityReview.Desktop<br/>39 C# files"]
     P2["SecurityReview.Domain<br/>50 C# files"]
-    P3["SecurityReview.Infrastructure<br/>82 C# files"]
+    P3["SecurityReview.Infrastructure<br/>85 C# files"]
     P4["SecurityReview.ParserContracts<br/>11 C# files"]
     P5["SecurityReview.Parsers<br/>59 C# files"]
     P6["SecurityReview.RulePack<br/>29 C# files"]
@@ -58,10 +58,10 @@ flowchart LR
 
 | 项目 | 路径 | C# 文件 | 直接依赖 |
 | --- | --- | ---: | --- |
-| SecurityReview.Application | `src/SecurityReview.Application/SecurityReview.Application.csproj` | 97 | SecurityReview.Domain, SecurityReview.ParserContracts, SecurityReview.Parsers, SecurityReview.RulePack |
-| SecurityReview.Desktop | `src/SecurityReview.Desktop/SecurityReview.Desktop.csproj` | 35 | SecurityReview.Application, SecurityReview.Domain, SecurityReview.Infrastructure |
+| SecurityReview.Application | `src/SecurityReview.Application/SecurityReview.Application.csproj` | 100 | SecurityReview.Domain, SecurityReview.ParserContracts, SecurityReview.Parsers, SecurityReview.RulePack |
+| SecurityReview.Desktop | `src/SecurityReview.Desktop/SecurityReview.Desktop.csproj` | 39 | SecurityReview.Application, SecurityReview.Domain, SecurityReview.Infrastructure |
 | SecurityReview.Domain | `src/SecurityReview.Domain/SecurityReview.Domain.csproj` | 50 | — |
-| SecurityReview.Infrastructure | `src/SecurityReview.Infrastructure/SecurityReview.Infrastructure.csproj` | 82 | SecurityReview.Application, SecurityReview.Domain, SecurityReview.ParserContracts, SecurityReview.RulePack |
+| SecurityReview.Infrastructure | `src/SecurityReview.Infrastructure/SecurityReview.Infrastructure.csproj` | 85 | SecurityReview.Application, SecurityReview.Domain, SecurityReview.ParserContracts, SecurityReview.RulePack |
 | SecurityReview.ParserContracts | `src/SecurityReview.ParserContracts/SecurityReview.ParserContracts.csproj` | 11 | SecurityReview.Domain |
 | SecurityReview.Parsers | `src/SecurityReview.Parsers/SecurityReview.Parsers.csproj` | 59 | SecurityReview.Domain, SecurityReview.ParserContracts |
 | SecurityReview.RulePack | `src/SecurityReview.RulePack/SecurityReview.RulePack.csproj` | 29 | SecurityReview.Domain, SecurityReview.ParserContracts |

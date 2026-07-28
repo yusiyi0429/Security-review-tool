@@ -9,13 +9,13 @@
       "id": "SecurityReview.Application",
       "category": "source",
       "projectFile": "src/SecurityReview.Application/SecurityReview.Application.csproj",
-      "sourceFileCount": 97
+      "sourceFileCount": 100
     },
     {
       "id": "SecurityReview.Desktop",
       "category": "source",
       "projectFile": "src/SecurityReview.Desktop/SecurityReview.Desktop.csproj",
-      "sourceFileCount": 35
+      "sourceFileCount": 39
     },
     {
       "id": "SecurityReview.Domain",
@@ -27,7 +27,7 @@
       "id": "SecurityReview.Infrastructure",
       "category": "source",
       "projectFile": "src/SecurityReview.Infrastructure/SecurityReview.Infrastructure.csproj",
-      "sourceFileCount": 82
+      "sourceFileCount": 85
     },
     {
       "id": "SecurityReview.ParserContracts",
