@@ -6,109 +6,234 @@
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:RuleManagementViewModel}"
              Loaded="UserControl_Loaded">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+  </UserControl.Resources>
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
 
-        <Grid Margin="0,0,0,20">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel>
-                <TextBlock Text="DETECTION POLICY" Style="{StaticResource PageEyebrowStyle}" />
-                <TextBlock Text="规则管理" Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0" />
-                <TextBlock Text="管理已验证的检测规则包，并追踪版本、哈希与激活状态。"
-                           Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,0" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
-                <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,8,0" />
-                <Button Content="导入规则包" Command="{Binding ImportCommand}"
-                        Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" Padding="14,7" />
-            </StackPanel>
-        </Grid>
-
-        <Grid Grid.Row="1" Margin="0,0,0,14">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.35*" />
-                <ColumnDefinition Width="14" />
-                <ColumnDefinition Width="1*" />
-            </Grid.ColumnDefinitions>
-            <Border Style="{StaticResource AccentSignalStyle}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="当前活动规则包" Style="{StaticResource FieldLabelStyle}" />
-                        <TextBlock Text="{Binding ActiveRulePackId}" FontFamily="Bahnschrift SemiBold"
-                                   FontSize="20" Foreground="{StaticResource BrushTextPrimary}" />
-                        <TextBlock Margin="0,7,0,0">
-                            <Run Text="版本  " Foreground="{StaticResource BrushTextSecondary}" />
-                            <Run Text="{Binding ActiveVersion, Mode=OneWay}" FontWeight="SemiBold" />
-                        </TextBlock>
-                    </StackPanel>
-                    <Border Grid.Column="1" Background="{StaticResource BrushSurface1}" CornerRadius="6"
-                            Padding="11,8" VerticalAlignment="Top">
-                        <TextBlock Text="ACTIVE" FontFamily="Bahnschrift SemiBold" FontSize="10"
-                                   Foreground="{StaticResource BrushOk}" />
-                    </Border>
-                </Grid>
-            </Border>
-            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
-                <StackPanel>
-                    <TextBlock Text="完整性哈希" Style="{StaticResource FieldLabelStyle}" />
-                    <TextBlock Text="{Binding ActiveHash}" Style="{StaticResource MonoTextStyle}"
-                               TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Warnings}" Foreground="{StaticResource BrushError}"
-                               TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0" />
-                </StackPanel>
-            </Border>
-        </Grid>
-
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Grid Background="{StaticResource BrushSurface0}" Height="52">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="规则包历史" Style="{StaticResource SectionTitleStyle}"
-                               VerticalAlignment="Center" Margin="18,0" />
-                    <TextBlock Grid.Column="1" Text="{Binding LastImportStatus}"
-                               Style="{StaticResource PageSubtitleStyle}" VerticalAlignment="Center" Margin="18,0" />
-                </Grid>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding History}" Margin="12,9">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,0,0,1" Padding="8,12">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="130" />
-                                            <ColumnDefinition Width="120" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding RulePackId}" FontWeight="SemiBold" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Version, StringFormat='v{0}'}"
-                                                   Foreground="{StaticResource BrushTextSecondary}" />
-                                        <TextBlock Grid.Column="2" Text="{Binding StatusDisplay}" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource BrushAccentHover}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </Grid>
-        </Border>
+    <Grid Margin="0,0,0,20">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock Text="DETECTION POLICY" Style="{StaticResource PageEyebrowStyle}" />
+        <TextBlock Text="规则管理" Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0" />
+        <TextBlock Text="管理已验证的检测规则包，并追踪版本、哈希与激活状态。"
+                   Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,0" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+        <Button Content="刷新" Command="{Binding RefreshCommand}" Margin="0,0,8,0" />
+        <Button Content="导入规则包" Command="{Binding ImportCommand}"
+                Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" Padding="14,7" />
+      </StackPanel>
     </Grid>
+
+    <Grid Grid.Row="1" Margin="0,0,0,14">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="1.35*" />
+        <ColumnDefinition Width="14" />
+        <ColumnDefinition Width="1*" />
+      </Grid.ColumnDefinitions>
+      <Border Style="{StaticResource AccentSignalStyle}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel>
+            <TextBlock Text="当前活动规则包" Style="{StaticResource FieldLabelStyle}" />
+            <TextBlock Text="{Binding ActiveRulePackId}" FontFamily="Bahnschrift SemiBold"
+                       FontSize="20" Foreground="{StaticResource BrushTextPrimary}" />
+            <TextBlock Margin="0,7,0,0">
+              <Run Text="版本  " Foreground="{StaticResource BrushTextSecondary}" />
+              <Run Text="{Binding ActiveVersion, Mode=OneWay}" FontWeight="SemiBold" />
+            </TextBlock>
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+            <Border Background="{StaticResource BrushSurface1}" CornerRadius="6"
+                    Padding="11,8" Margin="0,0,6,0"
+                    Visibility="{Binding HasActiveSourceBadge, Converter={StaticResource BooleanToVisibility}}">
+              <TextBlock Text="{Binding ActiveSourceBadge, Mode=OneWay}"
+                         FontFamily="Bahnschrift SemiBold" FontSize="10"
+                         Foreground="{StaticResource BrushAccentHover}" />
+            </Border>
+            <Border Background="{StaticResource BrushSurface1}" CornerRadius="6"
+                    Padding="11,8">
+              <TextBlock Text="ACTIVE" FontFamily="Bahnschrift SemiBold" FontSize="10"
+                         Foreground="{StaticResource BrushOk}" />
+            </Border>
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+        <StackPanel>
+          <TextBlock Text="完整性哈希" Style="{StaticResource FieldLabelStyle}" />
+          <TextBlock Text="{Binding ActiveHash}" Style="{StaticResource MonoTextStyle}"
+                     TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Warnings}" Foreground="{StaticResource BrushError}"
+                     TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,14">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Background="{StaticResource BrushSurface0}" MinHeight="52">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="180" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="规则条目" Style="{StaticResource SectionTitleStyle}"
+                     VerticalAlignment="Center" Margin="18,0" />
+          <TextBox Grid.Column="1" Text="{Binding RuleSearchText, UpdateSourceTrigger=PropertyChanged}"
+                   VerticalAlignment="Center" Margin="10,8" MinHeight="28"
+                   ToolTip="按规则 ID、类别名或检测器 ID 搜索" />
+          <ComboBox Grid.Column="2" ItemsSource="{Binding CategoryFilters}"
+                    SelectedItem="{Binding SelectedCategoryFilter}"
+                    VerticalAlignment="Center" Margin="0,8,10,8" MinHeight="28" />
+          <TextBlock Grid.Column="3" Text="{Binding RuleEntriesStatus, Mode=OneWay}"
+                     Style="{StaticResource PageSubtitleStyle}"
+                     VerticalAlignment="Center" Margin="18,0" />
+        </Grid>
+        <ListBox Grid.Row="1" ItemsSource="{Binding RuleEntries}"
+                 SelectedItem="{Binding SelectedRuleEntry}"
+                 BorderThickness="0" Background="Transparent" Margin="12,9">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <Border BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,0,0,1" Padding="8,10">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="60" />
+                    <ColumnDefinition Width="140" />
+                    <ColumnDefinition Width="50" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="{Binding RuleId}" Style="{StaticResource MonoTextStyle}" FontSize="12" />
+                  <TextBlock Grid.Column="1" Text="{Binding CategoryName}"
+                             Foreground="{StaticResource BrushTextSecondary}" />
+                  <TextBlock Grid.Column="2" Text="{Binding SeverityDisplay}" FontWeight="SemiBold"
+                             Foreground="{StaticResource BrushError}" />
+                  <TextBlock Grid.Column="3" Text="{Binding DetectorId}"
+                             Style="{StaticResource MonoTextStyle}" FontSize="11"
+                             Foreground="{StaticResource BrushTextSecondary}" />
+                  <TextBlock Grid.Column="4" Text="{Binding EnabledDisplay}"
+                             Foreground="{StaticResource BrushAccentHover}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <Border Grid.Row="2" Background="{StaticResource BrushSurface0}"
+                BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,1,0,0"
+                Padding="18,12"
+                Visibility="{Binding HasSelectedRuleEntry, Converter={StaticResource BooleanToVisibility}}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="14" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel DataContext="{Binding SelectedRuleEntry}">
+              <TextBlock Text="规则详情" Style="{StaticResource FieldLabelStyle}" />
+              <TextBlock FontSize="12" Margin="0,4,0,0">
+                <Run Text="类别  " Foreground="{StaticResource BrushTextSecondary}" />
+                <Run Text="{Binding CategoryName, Mode=OneWay}" FontWeight="SemiBold" />
+                <Run Text="  (" /><Run Text="{Binding CategoryId, Mode=OneWay}" /><Run Text=")" />
+              </TextBlock>
+              <TextBlock Text="{Binding CategoryDescription, Mode=OneWay}" FontSize="12"
+                         Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap" />
+              <TextBlock FontSize="12" Margin="0,4,0,0">
+                <Run Text="类型  " Foreground="{StaticResource BrushTextSecondary}" />
+                <Run Text="{Binding KindDisplay, Mode=OneWay}" />
+                <Run Text="  严重级别  " Foreground="{StaticResource BrushTextSecondary}" />
+                <Run Text="{Binding SeverityDisplay, Mode=OneWay}" />
+                <Run Text="  置信度  " Foreground="{StaticResource BrushTextSecondary}" />
+                <Run Text="{Binding ConfidenceDisplay, Mode=OneWay}" />
+              </TextBlock>
+              <TextBlock FontSize="12" Margin="0,4,0,0">
+                <Run Text="适用资产  " Foreground="{StaticResource BrushTextSecondary}" />
+                <Run Text="{Binding AppliesToAssets, Mode=OneWay}" />
+              </TextBlock>
+              <TextBlock FontSize="12" Margin="0,4,0,0">
+                <Run Text="语义复核  " Foreground="{StaticResource BrushTextSecondary}" />
+                <Run Text="{Binding SemanticReviewDisplay, Mode=OneWay}" />
+                <Run Text="  状态  " Foreground="{StaticResource BrushTextSecondary}" />
+                <Run Text="{Binding EnabledDisplay, Mode=OneWay}" />
+              </TextBlock>
+            </StackPanel>
+            <StackPanel Grid.Column="2" DataContext="{Binding SelectedRuleEntry}">
+              <TextBlock FontSize="12">
+                <Run Text="检测器  " Foreground="{StaticResource BrushTextSecondary}" />
+                <Run Text="{Binding DetectorId, Mode=OneWay}" FontWeight="SemiBold" />
+                <Run Text="  (" /><Run Text="{Binding DetectorKind, Mode=OneWay}" /><Run Text=")" />
+              </TextBlock>
+              <TextBlock Text="匹配参数" Style="{StaticResource FieldLabelStyle}" Margin="0,6,0,0" />
+              <TextBox Text="{Binding DetectorParameters, Mode=OneWay}"
+                       IsReadOnly="True" TextWrapping="Wrap"
+                       FontFamily="Cascadia Mono" FontSize="11"
+                       MinHeight="48" MaxHeight="140"
+                       Background="{StaticResource BrushSurface1}"
+                       VerticalScrollBarVisibility="Auto" Margin="0,2,0,0" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="3" Style="{StaticResource CardStyle}" Padding="0">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Background="{StaticResource BrushSurface0}" Height="52">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="规则包历史" Style="{StaticResource SectionTitleStyle}"
+                     VerticalAlignment="Center" Margin="18,0" />
+          <TextBlock Grid.Column="1" Text="{Binding LastImportStatus}"
+                     Style="{StaticResource PageSubtitleStyle}" VerticalAlignment="Center" Margin="18,0" />
+        </Grid>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="220">
+          <ItemsControl ItemsSource="{Binding History}" Margin="12,9">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border BorderBrush="{StaticResource BrushSurface2}" BorderThickness="0,0,0,1" Padding="8,12">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="130" />
+                      <ColumnDefinition Width="120" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding RulePackId}" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="{Binding Version, StringFormat='v{0}'}"
+                               Foreground="{StaticResource BrushTextSecondary}" />
+                    <TextBlock Grid.Column="2" Text="{Binding StatusDisplay}" FontWeight="SemiBold"
+                               Foreground="{StaticResource BrushAccentHover}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+  </Grid>
 </UserControl>
