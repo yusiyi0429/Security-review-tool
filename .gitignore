@@ -25,3 +25,6 @@ logs/
 /*.xlsx
 *.Zone.Identifier
 *:Zone.Identifier
+
+# Superpowers isolated worktrees
+.worktrees/
