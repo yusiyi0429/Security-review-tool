@@ -24,10 +24,10 @@ if ($errors.Count -gt 0) {
 # ------------------------------------------------------------------
 # 2. Define expected ID ranges
 # ------------------------------------------------------------------
-$expectedReqs  = 1..19  | ForEach-Object { "REQ-{0:D3}" -f $_ }
-$expectedAcs   = 1..60  | ForEach-Object { "AC-{0:D3}"  -f $_ }
-$expectedSrsFs = 1..19  | ForEach-Object { "SRS-F-{0:D3}" -f $_ }
-$expectedVts   = 1..35  | ForEach-Object { "VT-{0:D3}"  -f $_ }
+$expectedReqs  = 1..20  | ForEach-Object { "REQ-{0:D3}" -f $_ }
+$expectedAcs   = 1..64  | ForEach-Object { "AC-{0:D3}"  -f $_ }
+$expectedSrsFs = 1..20  | ForEach-Object { "SRS-F-{0:D3}" -f $_ }
+$expectedVts   = 1..36  | ForEach-Object { "VT-{0:D3}"  -f $_ }
 
 # ------------------------------------------------------------------
 # 3. Extract IDs from PRD and SRS markdown files
@@ -196,7 +196,7 @@ if ($scenarioDuplicates.Count -gt 0) {
 }
 
 if ($allErrors.Count -eq 0) {
-    Write-Host "TRACE PASS: REQ=19 AC=60 SRS-F=19 VT=35"
+    Write-Host "TRACE PASS: REQ=20 AC=64 SRS-F=20 VT=36"
     exit 0
 } else {
     Write-Host "TRACE FAIL:"

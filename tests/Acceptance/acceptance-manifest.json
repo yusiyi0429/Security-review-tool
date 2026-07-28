@@ -888,6 +888,28 @@
         "noSensitiveValuesInLogs": true,
         "noLlmRequestBodyInLogs": true
       }
+    },
+    {
+      "id": "ACC-036",
+      "description": "In-app update default-off: with default settings the client makes no update-check network request; toggle persistence, sha256 fail-safe and portable fallback are covered by unit tests under VT-036.",
+      "linkedReqs": ["REQ-020"],
+      "linkedAcs": ["AC-061", "AC-062", "AC-063", "AC-064"],
+      "linkedSrsFs": ["SRS-F-020"],
+      "linkedVts": ["VT-036"],
+      "requiredOsCapability": "any",
+      "maxDurationMs": 30000,
+      "maxMemoryMb": 512,
+      "variableFields": ["uuid", "timestamp", "tempPath"],
+      "syntheticInput": {
+        "description": "2 text files with secret candidates, mock LLM returning confirmed",
+        "fileCount": 2,
+        "generateSecretCandidate": true,
+        "useMockLlm": true,
+        "mockLlmOutcome": "confirmed"
+      },
+      "expectedNetwork": {
+        "noExternalTelemetry": true
+      }
     }
   ]
 }

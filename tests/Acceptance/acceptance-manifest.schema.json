@@ -47,7 +47,7 @@
         },
         "linkedReqs": {
           "type": "array",
-          "description": "Linked BRD requirements (REQ-001..019).",
+          "description": "Linked BRD requirements (REQ-001..020).",
           "minItems": 1,
           "items": {
             "type": "string",
@@ -56,7 +56,7 @@
         },
         "linkedAcs": {
           "type": "array",
-          "description": "Linked acceptance criteria (AC-001..060).",
+          "description": "Linked acceptance criteria (AC-001..064).",
           "minItems": 1,
           "items": {
             "type": "string",
@@ -65,7 +65,7 @@
         },
         "linkedSrsFs": {
           "type": "array",
-          "description": "Linked SRS functional requirements (SRS-F-001..019).",
+          "description": "Linked SRS functional requirements (SRS-F-001..020).",
           "minItems": 1,
           "items": {
             "type": "string",
@@ -74,7 +74,7 @@
         },
         "linkedVts": {
           "type": "array",
-          "description": "Linked verification test cases (VT-001..035).",
+          "description": "Linked verification test cases (VT-001..036).",
           "minItems": 1,
           "items": {
             "type": "string",

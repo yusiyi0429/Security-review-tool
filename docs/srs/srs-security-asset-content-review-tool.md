@@ -171,6 +171,7 @@ tests/
 | SRS-F-017 | UI 持续显示阶段、文件/字节/失败/LLM 队列；取消后 2 秒内停止新调度；提供筛选、分组、只读预览和外部打开警示。 | REQ-017 / AC-051, AC-052, AC-053, AC-054 | VT-028, VT-029 |
 | SRS-F-018 | 版本化合成/脱敏语料作为发布门：确定性高风险预期样例 100% 检出，固定模型语义召回率不低于 95%，所有预期覆盖缺口均被记录。 | REQ-018 / AC-055, AC-056, AC-057 | VT-030, VT-031, VT-032 |
 | SRS-F-019 | 默认无遥测；除配置的 LLM 目标外不得发起网络请求；日志和用户主动导出的诊断包不得包含正文、完整值、请求正文或敏感完整路径。 | REQ-019 / AC-058, AC-059, AC-060 | VT-033, VT-034, VT-035 |
+| SRS-F-020 | 应用内更新默认关闭，开关持久化于本地设置；开启后仅主进程访问 GitHub Releases 查询版本并下载 `SecurityReviewTool-<version>-win-x64-setup.exe`；下载文件必须与 `.sha256` sidecar（`<hex>  <filename>` 格式）一致且用户确认后才执行 Inno 静默升级并重启，校验失败、sidecar 缺失或下载失败不得执行安装器；便携版不执行安装，降级为打开发布页面。 | REQ-020 / AC-061, AC-062, AC-063, AC-064 | VT-036 |
 
 ### 4.1 扫描状态机
 
@@ -741,6 +742,7 @@ LlmKey    = candidate_hmac + masked_context_sha256 + endpoint/model + prompt + a
 | VT-033 | 默认启动/扫描/崩溃/关闭不发外部遥测请求 |
 | VT-034 | 只有语义候选阶段访问唯一配置的内网 LLM 目标 |
 | VT-035 | 日志和诊断包 canary 检查，完整敏感值/正文/body/路径泄漏为 0 |
+| VT-036 | 更新默认关闭零外联、开关持久化、sha256 校验失败/sidecar 缺失不执行安装器、便携版降级打开发布页 |
 
 每个 VT 必须保存：测试代码/语料版本、Windows build、客户端/规则/parser/model/prompt 版本、命令、退出码和机器可读结果。含真实敏感内容的样本禁止进入仓库，只提交合成或不可逆脱敏样本。
 
@@ -767,6 +769,7 @@ LlmKey    = candidate_hmac + masked_context_sha256 + endpoint/model + prompt + a
 | BRD-OBJ-002 | REQ-017 | AC-051, AC-052, AC-053, AC-054 | SRS-F-017 | 12, 14 |
 | BRD-OBJ-001,003 | REQ-018 | AC-055, AC-056, AC-057 | SRS-F-018 | 14, 17 |
 | BRD-OBJ-002,003 | REQ-019 | AC-058, AC-059, AC-060 | SRS-F-019 | 9, 16, 17 |
+| BRD-OBJ-002,003 | REQ-020 | AC-061, AC-062, AC-063, AC-064 | SRS-F-020 | 4, 14, 17 |
 
 ## 19. 实施责任和切片
 

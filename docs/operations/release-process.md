@@ -169,6 +169,12 @@ Users verify with:
 Get-FileHash -Algorithm SHA256 SecurityReviewTool-1.0.1-win-x64.zip
 ```
 
+The in-app update feature (opt-in, REQ-020) depends on this contract
+remaining stable: the installer asset MUST be named
+`SecurityReviewTool-<version>-win-x64-setup.exe` and its `.sha256`
+sidecar MUST use the `<hex>  <filename>` format (two-space separator).
+Changing either breaks in-app updates for already-shipped clients.
+
 ### 10. Run Contract Tests
 
 ```powershell

@@ -114,7 +114,8 @@ pwsh ./build/test.ps1 -Lane Performance -RequirePerformanceHost
 - [ ] **8.6** Startup ≤ 5 seconds.
 - [ ] **8.7** Sandbox health check passes.
 - [ ] **8.8** Zero worker network connections (including loopback).
-- [ ] **8.9** Zero startup telemetry.
+- [ ] **8.9** Zero outbound connections by default; the in-app update
+  check is a user-explicit opt-in toggle that is OFF by default.
 - [ ] **8.10** pktmon/firewall log confirms DNS+TLS only to configured LLM
   host; no other connections.
 - [ ] **8.11** Installer install, final-page launch, in-place upgrade, and
