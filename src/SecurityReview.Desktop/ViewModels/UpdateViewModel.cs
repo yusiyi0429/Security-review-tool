@@ -95,6 +95,7 @@ public sealed class UpdateViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsProgressIndeterminate));
                 ((AsyncRelayCommand)CheckCommand).RaiseCanExecuteChanged();
                 ((AsyncRelayCommand)InstallCommand).RaiseCanExecuteChanged();
+                ((AsyncRelayCommand)CancelCommand).RaiseCanExecuteChanged();
             }
         }
     }
@@ -245,8 +246,8 @@ public sealed class UpdateViewModel : ObservableObject
         catch (Exception ex)
         {
             string fallback = ex is UpdateVerificationException
-                ? "下载文件的完整性校验失败，已删除下载内容。请重试或前往发布页手动下载。"
-                : "下载更新失败，请稍后重试。";
+                ? "下载文件的完整性校验失败，已删除下载内容。请重新检查更新，或前往发布页手动下载。"
+                : "下载更新失败，请重新检查更新或稍后再试。";
             ReportFailure(ex, fallback);
         }
     }
@@ -286,6 +287,7 @@ public sealed class UpdateViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowPortableHint));
         OnPropertyChanged(nameof(CanOpenReleasePage));
         ((AsyncRelayCommand)InstallCommand).RaiseCanExecuteChanged();
+        ((AsyncRelayCommand)OpenReleasePageCommand).RaiseCanExecuteChanged();
 
         if (!result.UpdateAvailable)
         {

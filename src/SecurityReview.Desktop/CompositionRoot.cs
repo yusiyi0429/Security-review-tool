@@ -432,9 +432,9 @@ public sealed class CompositionRoot : IDisposable
         RegisterConcrete(safePreviewService);
         Register<IScanTargetPicker>(new WpfScanTargetPicker());
 
-        var explorerService = new Services.ExplorerService(path =>
+        var explorerService = new Services.ExplorerService(warningMessage =>
             System.Windows.MessageBox.Show(
-                Services.ExplorerService.GetExternalOpenWarning(path),
+                warningMessage,
                 "外部打开确认",
                 System.Windows.MessageBoxButton.YesNo,
                 System.Windows.MessageBoxImage.Warning)

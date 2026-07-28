@@ -14,7 +14,9 @@ public sealed class ExplorerService
 
     /// <summary>
     /// Creates an explorer service. The <paramref name="showExternalOpenWarning"/>
-    /// delegate is called before any external open and must return true to proceed.
+    /// delegate receives the pre-rendered warning message (from
+    /// <see cref="GetExternalOpenWarning"/> or <see cref="GetOpenUrlWarning"/>),
+    /// is called before any external open, and must return true to proceed.
     /// </summary>
     public ExplorerService(Func<string, bool> showExternalOpenWarning)
     {
@@ -84,7 +86,7 @@ public sealed class ExplorerService
             return false;
 
         // Show warning dialog and require fresh confirmation
-        if (!_showExternalOpenWarning(fullPath))
+        if (!_showExternalOpenWarning(GetExternalOpenWarning(fullPath)))
             return false;
 
         try
@@ -116,7 +118,7 @@ public sealed class ExplorerService
         if (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps)
             return false;
 
-        if (!_showExternalOpenWarning(url.AbsoluteUri))
+        if (!_showExternalOpenWarning(GetOpenUrlWarning(url)))
             return false;
 
         try

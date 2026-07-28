@@ -136,6 +136,35 @@ public sealed class UpdateViewModelTests
     }
 
     [Fact]
+    public async Task cancel_command_raises_can_execute_changed_when_busy_state_changes()
+    {
+        var viewModel = CreateViewModel(new FakeAppUpdateService());
+        int raised = 0;
+        viewModel.CancelCommand.CanExecuteChanged += (_, _) => raised++;
+
+        await viewModel.CheckForUpdateAsync();
+
+        // Idle→Checking and Checking→NoUpdate each raise the event.
+        Assert.True(raised >= 2);
+        Assert.False(viewModel.CancelCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task open_release_page_command_raises_can_execute_changed_when_result_arrives()
+    {
+        var service = new FakeAppUpdateService { CheckResult = CreateCheckResult() };
+        var viewModel = CreateViewModel(service, openReleasePage: _ => true);
+        int raised = 0;
+        viewModel.OpenReleasePageCommand.CanExecuteChanged += (_, _) => raised++;
+        Assert.False(viewModel.OpenReleasePageCommand.CanExecute(null));
+
+        await viewModel.CheckForUpdateAsync();
+
+        Assert.True(raised >= 1);
+        Assert.True(viewModel.OpenReleasePageCommand.CanExecute(null));
+    }
+
+    [Fact]
     public async Task network_failure_during_check_reports_stable_message()
     {
         var service = new FakeAppUpdateService
@@ -263,6 +292,7 @@ public sealed class UpdateViewModelTests
         Task checkTask = ((AsyncRelayCommand)viewModel.CheckCommand).ExecuteAsync(null);
         await checkStarted.Task;
         Assert.Equal(UpdateViewModelState.Checking, viewModel.State);
+        Assert.True(viewModel.CancelCommand.CanExecute(null));
 
         await viewModel.CancelPending();
         await checkTask;
