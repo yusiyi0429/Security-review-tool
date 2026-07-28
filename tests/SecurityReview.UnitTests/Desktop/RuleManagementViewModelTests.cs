@@ -11,6 +11,8 @@ namespace SecurityReview.UnitTests.Desktop;
 
 public sealed class RuleManagementViewModelTests
 {
+    private static readonly string[] ExpectedCategoryFilters = { "全部", "凭据", "网络地址" };
+
     [Fact]
     public async Task Refresh_loads_active_rule_pack_pointer()
     {
@@ -89,7 +91,7 @@ public sealed class RuleManagementViewModelTests
         var viewModel = CreateViewModel(BuildDocument(), bundledHash: null);
         await viewModel.RefreshAsync();
 
-        Assert.Equal(new[] { "全部", "凭据", "网络地址" }, viewModel.CategoryFilters);
+        Assert.Equal(ExpectedCategoryFilters, viewModel.CategoryFilters);
 
         viewModel.SelectedCategoryFilter = "凭据";
 
