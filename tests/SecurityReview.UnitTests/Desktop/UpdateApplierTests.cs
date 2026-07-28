@@ -122,8 +122,9 @@ public sealed class UpdateApplierTests : IDisposable
             startProcess: _ => { startCount++; return true; },
             shutdown: () => shutdownCount++);
 
-        await applier.ApplyAndRestart(download);
+        bool applied = await applier.ApplyAndRestart(download);
 
+        Assert.False(applied);
         Assert.True(sink.ContainsCode(UpdateApplier.VerificationFailedCode));
         Assert.Equal(0, startCount);
         Assert.Equal(0, shutdownCount);
@@ -142,8 +143,9 @@ public sealed class UpdateApplierTests : IDisposable
             startProcess: _ => { startCount++; return true; },
             shutdown: () => shutdownCount++);
 
-        await applier.ApplyAndRestart(download);
+        bool applied = await applier.ApplyAndRestart(download);
 
+        Assert.False(applied);
         Assert.True(sink.ContainsCode(UpdateApplier.VerificationFailedCode));
         Assert.Equal(0, startCount);
         Assert.Equal(0, shutdownCount);
@@ -157,8 +159,9 @@ public sealed class UpdateApplierTests : IDisposable
         var sink = new RecordingErrorSink();
         var applier = new UpdateApplier(sink, startProcess: _ => true, shutdown: () => { });
 
-        await applier.ApplyAndRestart(download);
+        bool applied = await applier.ApplyAndRestart(download);
 
+        Assert.False(applied);
         var error = Assert.Single(sink.Errors);
         Assert.DoesNotContain(installerPath, error.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(download.VerifiedSha256, error.Message, StringComparison.Ordinal);
@@ -181,8 +184,9 @@ public sealed class UpdateApplierTests : IDisposable
             startProcess: info => { started = info; return true; },
             shutdown: () => shutdownCount++);
 
-        await applier.ApplyAndRestart(download);
+        bool applied = await applier.ApplyAndRestart(download);
 
+        Assert.True(applied);
         Assert.Empty(sink.Errors);
         Assert.Equal(1, shutdownCount);
 
@@ -213,8 +217,9 @@ public sealed class UpdateApplierTests : IDisposable
             startProcess: _ => false,
             shutdown: () => shutdownCount++);
 
-        await applier.ApplyAndRestart(download);
+        bool applied = await applier.ApplyAndRestart(download);
 
+        Assert.False(applied);
         Assert.True(sink.ContainsCode(UpdateApplier.LaunchFailedCode));
         Assert.Equal(0, shutdownCount);
     }

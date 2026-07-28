@@ -20,6 +20,7 @@
     <sys:String x:Key="StatusSandbox">沙箱状态</sys:String>
     <sys:String x:Key="StatusLlm">LLM 连接</sys:String>
     <sys:String x:Key="StatusAppVersion">应用版本</sys:String>
+    <sys:String x:Key="StatusCheckUpdates">检查更新</sys:String>
 
     <!-- Health states -->
     <sys:String x:Key="HealthChecking">检查中…</sys:String>

@@ -14,9 +14,10 @@ namespace SecurityReview.Desktop.Services;
 /// the application down. Every failure path (missing installer, hash
 /// mismatch, unwritable bootstrapper, failed process start) reports through
 /// <see cref="IUiErrorSink"/> with a stable code and a sanitized Chinese
-/// message and returns normally — the apply callback is awaited by the
+/// message and returns <c>false</c> — the apply callback is awaited by the
 /// update view model and must never throw, so user-decline and verification
-/// failures cannot be mis-mapped into the download error taxonomy.
+/// failures cannot be mis-mapped into the download error taxonomy, and the
+/// boolean result tells the caller whether the installer actually started.
 /// </summary>
 public sealed class UpdateApplier
 {
@@ -63,10 +64,11 @@ public sealed class UpdateApplier
 
     /// <summary>
     /// Re-verifies the installer, writes and launches the bootstrapper,
-    /// then shuts the application down. Reports and returns normally on
-    /// any failure; never throws.
+    /// then shuts the application down. Reports and returns <c>false</c>
+    /// on any failure; returns <c>true</c> only after the bootstrapper was
+    /// started and shutdown was requested. Never throws.
     /// </summary>
-    public Task ApplyAndRestart(AppDownloadResult download)
+    public Task<bool> ApplyAndRestart(AppDownloadResult download)
     {
         ArgumentNullException.ThrowIfNull(download);
 
@@ -77,7 +79,7 @@ public sealed class UpdateApplier
             _errorSink.Report(
                 VerificationFailedCode,
                 "安装文件已丢失或未通过完整性校验，无法继续安装。请重新检查更新，或前往发布页手动下载。");
-            return Task.CompletedTask;
+            return Task.FromResult(false);
         }
 
         string? exePath = Environment.ProcessPath;
@@ -85,7 +87,7 @@ public sealed class UpdateApplier
         if (string.IsNullOrEmpty(exePath) || string.IsNullOrEmpty(installDirectory))
         {
             ReportLaunchFailed();
-            return Task.CompletedTask;
+            return Task.FromResult(false);
         }
 
         // The bootstrapper lives in the same ACL'd temp directory as the
@@ -100,7 +102,7 @@ public sealed class UpdateApplier
         {
             // IOException / UnauthorizedAccessException etc. — report and stay alive.
             ReportLaunchFailed();
-            return Task.CompletedTask;
+            return Task.FromResult(false);
         }
 
         var startInfo = new ProcessStartInfo
@@ -117,11 +119,11 @@ public sealed class UpdateApplier
         if (!_startProcess(startInfo))
         {
             ReportLaunchFailed();
-            return Task.CompletedTask;
+            return Task.FromResult(false);
         }
 
         _shutdown();
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 
     /// <summary>

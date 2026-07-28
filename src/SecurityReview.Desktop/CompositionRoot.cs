@@ -10,6 +10,7 @@ using SecurityReview.Application.Reviews;
 using SecurityReview.Application.Rules;
 using SecurityReview.Application.Scans;
 using SecurityReview.Application.Scans.Preflight;
+using SecurityReview.Application.Updates;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
 using SecurityReview.Domain;
@@ -22,6 +23,7 @@ using SecurityReview.Infrastructure.Persistence;
 using SecurityReview.Infrastructure.Persistence.Migrations;
 using SecurityReview.Infrastructure.Persistence.Repositories;
 using SecurityReview.Infrastructure.Rules;
+using SecurityReview.Infrastructure.Updates;
 using SecurityReview.Infrastructure.Windows.Files;
 using SecurityReview.Infrastructure.Windows.Identity;
 using SecurityReview.Infrastructure.Windows.Sandbox;
@@ -440,6 +442,20 @@ public sealed class CompositionRoot : IDisposable
                 System.Windows.MessageBoxImage.Warning)
             == System.Windows.MessageBoxResult.Yes);
         RegisterConcrete(explorerService);
+
+        // --- Updates: settings store, update service, applier ---
+        // The update service performs the only outbound network calls of
+        // the application and is only ever invoked on explicit user action
+        // or when the user opted in via AutoCheckUpdatesOnStartup.
+        var appSettingsStore = new JsonAppSettingsStore(paths.Config);
+        Register<IAppSettingsStore>(appSettingsStore);
+        RegisterConcrete(appSettingsStore);
+
+        var appUpdateService = new GitHubAppUpdateService(paths);
+        Register<IAppUpdateService>(appUpdateService);
+        RegisterConcrete(appUpdateService);
+
+        RegisterConcrete(new UpdateApplier(ErrorSink));
     }
 
     private void EnsureBundledBaselineIsActive(
@@ -561,7 +577,30 @@ public sealed class CompositionRoot : IDisposable
     private MainWindowViewModel? _mainWindowViewModel;
 
     public MainWindowViewModel MainWindowViewModel
-        => _mainWindowViewModel ??= new(NavigationService, Health, ErrorSink);
+        => _mainWindowViewModel ??= new(NavigationService, Health, ErrorSink, OpenUpdateWindow);
+
+    /// <summary>
+    /// Creates the modal update dialog with the production seams wired:
+    /// the apply callback goes to <see cref="UpdateApplier"/> and the
+    /// release-page opener to the confirming <see cref="Services.ExplorerService"/>.
+    /// </summary>
+    public Views.UpdateWindow CreateUpdateWindow()
+    {
+        var viewModel = new UpdateViewModel(
+            GetService<IAppUpdateService>(),
+            GetService<IAppSettingsStore>(),
+            ErrorSink,
+            applyUpdate: TryGet<UpdateApplier>()?.ApplyAndRestart,
+            openReleasePage: TryGet<ExplorerService>()?.OpenUrl);
+        return new Views.UpdateWindow(viewModel);
+    }
+
+    private void OpenUpdateWindow()
+    {
+        Views.UpdateWindow window = CreateUpdateWindow();
+        window.Owner = System.Windows.Application.Current?.MainWindow;
+        window.ShowDialog();
+    }
 
     // ------------------------------------------------------------------ ViewModel factories (lazy, re-created on navigation)
 
@@ -692,6 +731,50 @@ public sealed class CompositionRoot : IDisposable
         }
 
         await RefreshShellStatusAsync(cancellationToken);
+
+        StartBackgroundUpdateCheckIfEnabled();
+    }
+
+    /// <summary>
+    /// Kicks off a silent background update check when the user opted in
+    /// (启动时自动检查). The result only toggles the status-bar badge —
+    /// downloads and installs never happen without an explicit user action
+    /// in the update dialog.
+    /// </summary>
+    private void StartBackgroundUpdateCheckIfEnabled()
+    {
+        IAppSettingsStore? settingsStore = TryGet<IAppSettingsStore>();
+        IAppUpdateService? updateService = TryGet<IAppUpdateService>();
+        if (settingsStore is null || updateService is null)
+            return;
+
+        _ = RunBackgroundUpdateCheckAsync(settingsStore, updateService);
+    }
+
+    private async Task RunBackgroundUpdateCheckAsync(
+        IAppSettingsStore settingsStore,
+        IAppUpdateService updateService)
+    {
+        try
+        {
+            AppSettings settings = await settingsStore
+                .LoadAsync()
+                .ConfigureAwait(true);
+            if (!settings.AutoCheckUpdatesOnStartup)
+                return;
+
+            AppUpdateCheckResult result = await updateService
+                .CheckForUpdateAsync(CancellationToken.None)
+                .ConfigureAwait(true);
+            if (result.UpdateAvailable)
+                MainWindowViewModel.ShowUpdateAvailable(result.LatestVersion);
+        }
+        catch (Exception)
+        {
+            // Silent by design: a startup background check must never
+            // surface UI noise or block the shell. The user can always
+            // check manually from the status bar.
+        }
     }
 
     public async Task RefreshShellStatusAsync(

@@ -15,7 +15,9 @@ namespace SecurityReview.Desktop.ViewModels;
 /// ExplorerService pattern). The actual install-and-restart lives outside
 /// this view model: <see cref="InstallCommand"/> downloads and verifies the
 /// installer, then hands the result to the injected apply callback
-/// (constructor seam, wired by the composition root). All failures are
+/// (constructor seam, wired by the composition root). The callback never
+/// throws and returns whether the installer actually started, so the
+/// success text is only shown on a real start. All failures are
 /// reported through <see cref="IUiErrorSink"/> with stable codes and
 /// sanitized Chinese messages — never raw exception text, URLs, or paths.
 /// </summary>
@@ -24,7 +26,7 @@ public sealed class UpdateViewModel : ObservableObject
     private readonly IAppUpdateService _updateService;
     private readonly IAppSettingsStore _settingsStore;
     private readonly IUiErrorSink _errorSink;
-    private readonly Func<AppDownloadResult, Task>? _applyUpdate;
+    private readonly Func<AppDownloadResult, Task<bool>>? _applyUpdate;
     private readonly Func<Uri, bool>? _openReleasePage;
 
     private AppUpdateCheckResult? _lastCheck;
@@ -38,7 +40,7 @@ public sealed class UpdateViewModel : ObservableObject
         IAppUpdateService updateService,
         IAppSettingsStore settingsStore,
         IUiErrorSink errorSink,
-        Func<AppDownloadResult, Task>? applyUpdate = null,
+        Func<AppDownloadResult, Task<bool>>? applyUpdate = null,
         Func<Uri, bool>? openReleasePage = null)
     {
         _updateService = updateService ?? throw new ArgumentNullException(nameof(updateService));
@@ -229,8 +231,10 @@ public sealed class UpdateViewModel : ObservableObject
             if (_applyUpdate is not null)
             {
                 StatusText = "下载完成，正在启动安装程序…";
-                await _applyUpdate(download);
-                StatusText = "安装程序已启动，应用将在安装完成后重新启动。";
+                bool applied = await _applyUpdate(download);
+                StatusText = applied
+                    ? "安装程序已启动，应用将在安装完成后重新启动。"
+                    : "安装程序未能启动。请前往发布页手动下载安装，或重新检查更新。";
             }
             else
             {

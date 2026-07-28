@@ -233,7 +233,7 @@ public sealed class UpdateViewModelTests
         AppDownloadResult? applied = null;
         var viewModel = CreateViewModel(
             service,
-            applyUpdate: result => { applied = result; return Task.CompletedTask; });
+            applyUpdate: result => { applied = result; return Task.FromResult(true); });
 
         await viewModel.CheckForUpdateAsync();
         await viewModel.DownloadAndInstallAsync();
@@ -241,6 +241,23 @@ public sealed class UpdateViewModelTests
         Assert.Equal(UpdateViewModelState.ReadyToInstall, viewModel.State);
         Assert.Equal(100, viewModel.DownloadPercent);
         Assert.Same(download, applied);
+        Assert.Contains("安装程序已启动", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task apply_failure_does_not_show_success_status()
+    {
+        var service = new FakeAppUpdateService { CheckResult = CreateCheckResult() };
+        var viewModel = CreateViewModel(
+            service,
+            applyUpdate: _ => Task.FromResult(false));
+
+        await viewModel.CheckForUpdateAsync();
+        await viewModel.DownloadAndInstallAsync();
+
+        Assert.Equal(UpdateViewModelState.ReadyToInstall, viewModel.State);
+        Assert.Contains("未能启动", viewModel.StatusText);
+        Assert.DoesNotContain("安装程序已启动", viewModel.StatusText);
     }
 
     [Fact]
@@ -307,7 +324,7 @@ public sealed class UpdateViewModelTests
         FakeAppUpdateService service,
         RecordingErrorSink? sink = null,
         FakeAppSettingsStore? store = null,
-        Func<AppDownloadResult, Task>? applyUpdate = null,
+        Func<AppDownloadResult, Task<bool>>? applyUpdate = null,
         Func<Uri, bool>? openReleasePage = null) =>
         new(
             service,
