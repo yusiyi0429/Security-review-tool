@@ -232,9 +232,18 @@ public sealed class UpdateViewModel : ObservableObject
             {
                 StatusText = "下载完成，正在启动安装程序…";
                 bool applied = await _applyUpdate(download);
-                StatusText = applied
-                    ? "安装程序已启动，应用将在安装完成后重新启动。"
-                    : "安装程序未能启动。请前往发布页手动下载安装，或重新检查更新。";
+                if (applied)
+                {
+                    StatusText = "安装程序已启动，应用将在安装完成后重新启动。";
+                }
+                else
+                {
+                    // The installer never started; the update is still
+                    // available, so move back to let the user retry
+                    // (InstallCommand re-enables).
+                    State = UpdateViewModelState.UpdateAvailable;
+                    StatusText = "安装程序未能启动。请前往发布页手动下载安装，或重新检查更新。";
+                }
             }
             else
             {

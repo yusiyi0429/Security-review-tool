@@ -68,18 +68,21 @@ public sealed class UpdateApplier
     /// on any failure; returns <c>true</c> only after the bootstrapper was
     /// started and shutdown was requested. Never throws.
     /// </summary>
-    public Task<bool> ApplyAndRestart(AppDownloadResult download)
+    public async Task<bool> ApplyAndRestart(AppDownloadResult download)
     {
         ArgumentNullException.ThrowIfNull(download);
 
         // Re-verify immediately before executing: the file may have been
-        // tampered with or cleaned up since the download completed.
-        if (!VerifyInstaller(download))
+        // tampered with or cleaned up since the download completed. Hashing
+        // a 100-500MB installer takes seconds, so keep it off the UI thread
+        // (ConfigureAwait(true) resumes on the caller's context for the
+        // process start and shutdown below).
+        if (!await Task.Run(() => VerifyInstaller(download)).ConfigureAwait(true))
         {
             _errorSink.Report(
                 VerificationFailedCode,
                 "安装文件已丢失或未通过完整性校验，无法继续安装。请重新检查更新，或前往发布页手动下载。");
-            return Task.FromResult(false);
+            return false;
         }
 
         string? exePath = Environment.ProcessPath;
@@ -87,7 +90,7 @@ public sealed class UpdateApplier
         if (string.IsNullOrEmpty(exePath) || string.IsNullOrEmpty(installDirectory))
         {
             ReportLaunchFailed();
-            return Task.FromResult(false);
+            return false;
         }
 
         // The bootstrapper lives in the same ACL'd temp directory as the
@@ -102,7 +105,7 @@ public sealed class UpdateApplier
         {
             // IOException / UnauthorizedAccessException etc. — report and stay alive.
             ReportLaunchFailed();
-            return Task.FromResult(false);
+            return false;
         }
 
         var startInfo = new ProcessStartInfo
@@ -119,11 +122,11 @@ public sealed class UpdateApplier
         if (!_startProcess(startInfo))
         {
             ReportLaunchFailed();
-            return Task.FromResult(false);
+            return false;
         }
 
         _shutdown();
-        return Task.FromResult(true);
+        return true;
     }
 
     /// <summary>
@@ -156,16 +159,22 @@ public sealed class UpdateApplier
 
     /// <summary>
     /// Builds the cmd bootstrapper content: run the installer silently
-    /// without rebooting, then relaunch the application. Pure and ASCII-only
-    /// by construction — paths are referenced through
-    /// <see cref="InstallerPathVariable"/> / <see cref="ExePathVariable"/>
-    /// so no quoting or codepage escaping is ever needed.
+    /// without rebooting, relaunch the application, then delete both the
+    /// installer and the bootstrapper itself so no update artifacts are
+    /// left in the temp directory. Pure and ASCII-only by construction —
+    /// paths are referenced through <see cref="InstallerPathVariable"/> /
+    /// <see cref="ExePathVariable"/> so no quoting or codepage escaping is
+    /// ever needed. Inno <c>/VERYSILENT</c> runs synchronously inside cmd,
+    /// so the deletions below only execute after the install completes;
+    /// <c>start</c> detaches the relaunch, so it is not affected.
     /// </summary>
     public static string BuildBootstrapperContent()
     {
         return "@echo off\r\n" +
                $"\"%{InstallerPathVariable}%\" /VERYSILENT /NORESTART\r\n" +
-               $"start \"\" \"%{ExePathVariable}%\"\r\n";
+               $"start \"\" \"%{ExePathVariable}%\"\r\n" +
+               $"del \"%{InstallerPathVariable}%\"\r\n" +
+               "del \"%~f0\"\r\n";
     }
 
     private void ReportLaunchFailed()

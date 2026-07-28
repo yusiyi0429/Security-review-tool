@@ -107,15 +107,16 @@ public sealed class ExplorerService
     }
 
     /// <summary>
-    /// Opens an HTTP/HTTPS URL in the default browser after showing a
+    /// Opens an HTTPS URL in the default browser after showing a
     /// warning dialog and requiring fresh confirmation. Used by the update
-    /// dialog to open the release page. Never auto-opens.
+    /// dialog to open the release page. Plain HTTP and every other scheme
+    /// are rejected without prompting. Never auto-opens.
     /// </summary>
     public bool OpenUrl(Uri url)
     {
         ArgumentNullException.ThrowIfNull(url);
 
-        if (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps)
+        if (url.Scheme != Uri.UriSchemeHttps)
             return false;
 
         if (!_showExternalOpenWarning(GetOpenUrlWarning(url)))

@@ -54,6 +54,20 @@ public sealed class UpdateApplierTests : IDisposable
     }
 
     [Fact]
+    public void build_bootstrapper_content_deletes_installer_and_self_after_relaunch()
+    {
+        string content = UpdateApplier.BuildBootstrapperContent();
+
+        // Temporary files are removed after the (synchronous) install and
+        // after the detached relaunch line, per "用完即删".
+        Assert.Contains($"del \"%{UpdateApplier.InstallerPathVariable}%\"", content, StringComparison.Ordinal);
+        Assert.Contains("del \"%~f0\"", content, StringComparison.Ordinal);
+        Assert.True(
+            content.IndexOf($"start \"\" \"%{UpdateApplier.ExePathVariable}%\"", StringComparison.Ordinal)
+            < content.IndexOf($"del \"%{UpdateApplier.InstallerPathVariable}%\"", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void build_bootstrapper_content_is_pure_ascii_and_crlf_terminated()
     {
         string content = UpdateApplier.BuildBootstrapperContent();

@@ -255,9 +255,11 @@ public sealed class UpdateViewModelTests
         await viewModel.CheckForUpdateAsync();
         await viewModel.DownloadAndInstallAsync();
 
-        Assert.Equal(UpdateViewModelState.ReadyToInstall, viewModel.State);
+        Assert.Equal(UpdateViewModelState.UpdateAvailable, viewModel.State);
         Assert.Contains("未能启动", viewModel.StatusText);
         Assert.DoesNotContain("安装程序已启动", viewModel.StatusText);
+        // The update is still available, so the user can retry the install.
+        Assert.True(viewModel.InstallCommand.CanExecute(null));
     }
 
     [Fact]
