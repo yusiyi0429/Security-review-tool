@@ -24,6 +24,8 @@ A portable Windows desktop client that statically scans release assets, locates 
 
 ## 架构概览
 
+项目级依赖关系和代码量见 [`docs/architecture/code-graph.md`](docs/architecture/code-graph.md)。该图由构建脚本从 `.csproj` 引用自动生成并在 CI 中校验。
+
 ```
 ┌────────────────────────────────────────────┐
 │  WPF Desktop（协调器）                       │

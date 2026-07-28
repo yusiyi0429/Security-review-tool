@@ -100,6 +100,23 @@ public sealed class RuleManagementViewModelTests
     }
 
     [Fact]
+    public async Task Close_rule_detail_clears_selected_entry()
+    {
+        var viewModel = CreateViewModel(BuildDocument(), bundledHash: null);
+        await viewModel.RefreshAsync();
+        viewModel.SelectedRuleEntry = viewModel.RuleEntries[0];
+
+        Assert.True(viewModel.HasSelectedRuleEntry);
+        var command = Assert.IsType<AsyncRelayCommand>(
+            viewModel.CloseRuleDetailCommand);
+
+        await command.ExecuteAsync(null);
+
+        Assert.Null(viewModel.SelectedRuleEntry);
+        Assert.False(viewModel.HasSelectedRuleEntry);
+    }
+
+    [Fact]
     public async Task Badge_is_builtin_when_hashes_match_and_imported_otherwise()
     {
         string activeHash = new string('a', 64);

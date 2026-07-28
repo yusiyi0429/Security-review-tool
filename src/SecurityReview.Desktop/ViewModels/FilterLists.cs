@@ -15,11 +15,22 @@ public static class BooleanConverters
 /// </summary>
 public static class FilterLists
 {
-    public static readonly FindingKind[] FindingKinds =
-        Enum.GetValues<FindingKind>();
+    public static readonly FindingKindFilterOption[] FindingKindOptions =
+    [
+        new(null, "全部类别"),
+        new(FindingKind.SensitiveContent, "敏感内容"),
+        new(FindingKind.AssetCompliance, "资产合规"),
+    ];
 
-    public static readonly Severity[] Severities =
-        Enum.GetValues<Severity>();
+    public static readonly SeverityFilterOption[] SeverityOptions =
+    [
+        new(null, "全部级别"),
+        new(Severity.Critical, "严重"),
+        new(Severity.High, "高"),
+        new(Severity.Medium, "中"),
+        new(Severity.Low, "低"),
+        new(Severity.Info, "信息"),
+    ];
 
     public static readonly DetectionConfidence[] Confidences =
         Enum.GetValues<DetectionConfidence>();
@@ -30,3 +41,11 @@ public static class FilterLists
     public static readonly Domain.Reviews.DifferenceStatus[] DifferenceStatuses =
         Enum.GetValues<Domain.Reviews.DifferenceStatus>();
 }
+
+public sealed record FindingKindFilterOption(
+    FindingKind? Value,
+    string Display);
+
+public sealed record SeverityFilterOption(
+    Severity? Value,
+    string Display);

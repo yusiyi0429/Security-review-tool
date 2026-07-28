@@ -72,6 +72,36 @@ public sealed class ScanResultsViewModelTests
     }
 
     [Fact]
+    public void Filter_options_use_chinese_display_text()
+    {
+        Assert.Collection(
+            FilterLists.FindingKindOptions,
+            option => Assert.Equal("全部类别", option.Display),
+            option => Assert.Equal("敏感内容", option.Display),
+            option => Assert.Equal("资产合规", option.Display));
+        Assert.Collection(
+            FilterLists.SeverityOptions,
+            option => Assert.Equal("全部级别", option.Display),
+            option => Assert.Equal("严重", option.Display),
+            option => Assert.Equal("高", option.Display),
+            option => Assert.Equal("中", option.Display),
+            option => Assert.Equal("低", option.Display),
+            option => Assert.Equal("信息", option.Display));
+    }
+
+    [Fact]
+    public void Selected_filter_options_update_query_values()
+    {
+        var vm = CreateViewModel();
+
+        vm.SelectedKindOption = FilterLists.FindingKindOptions[1];
+        vm.SelectedSeverityOption = FilterLists.SeverityOptions[2];
+
+        Assert.Equal(FindingKind.SensitiveContent, vm.FilterKind);
+        Assert.Equal(Severity.High, vm.FilterSeverity);
+    }
+
+    [Fact]
     public void FilterConfidence_set_raises_property_changed()
     {
         var vm = CreateViewModel();
@@ -289,5 +319,21 @@ public sealed class ScanResultsViewModelTests
         // Initially null; after expand, should be populated.
         vm.ExpandedOccurrences = new ObservableCollection<FindingOccurrenceItem>();
         Assert.IsType<ObservableCollection<FindingOccurrenceItem>>(vm.ExpandedOccurrences);
+    }
+
+    [Fact]
+    public async Task History_replay_return_command_requests_history_view()
+    {
+        var vm = CreateViewModel();
+        bool requested = false;
+        vm.ReturnToHistoryRequested += () => requested = true;
+
+        vm.EnableHistoryReplay();
+        var command = Assert.IsType<AsyncRelayCommand>(
+            vm.ReturnToHistoryCommand);
+        await command.ExecuteAsync(null);
+
+        Assert.True(vm.IsHistoryReplay);
+        Assert.True(requested);
     }
 }

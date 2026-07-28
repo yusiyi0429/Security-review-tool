@@ -43,6 +43,9 @@ public sealed class HistoryViewModel : ObservableObject
         _errorSink = errorSink;
 
         RefreshCommand = new AsyncRelayCommand(_ => RefreshAsync(), errorSink);
+        ViewScanCommand = new AsyncRelayCommand(
+            ViewScanAsync, errorSink,
+            parameter => ResolveScan(parameter) is not null && !IsLoading);
         RescanCommand = new AsyncRelayCommand(_ => RescanSelectedAsync(), errorSink,
             _ => SelectedScan is not null && !IsLoading);
         DeleteCommand = new AsyncRelayCommand(_ => DeleteSelectedAsync(), errorSink,
@@ -58,8 +61,11 @@ public sealed class HistoryViewModel : ObservableObject
     // ------------------------------------------------------------------ Commands
 
     public ICommand RefreshCommand { get; }
+    public ICommand ViewScanCommand { get; }
     public ICommand RescanCommand { get; }
     public ICommand DeleteCommand { get; }
+
+    public event Func<ScanId, CancellationToken, Task>? ScanViewRequested;
 
     // ------------------------------------------------------------------ Properties
 
@@ -121,6 +127,30 @@ public sealed class HistoryViewModel : ObservableObject
             IsLoading = false;
         }
     }
+
+    private async Task ViewScanAsync(
+        object? parameter,
+        CancellationToken cancellationToken)
+    {
+        ScanHistoryItem? scan = ResolveScan(parameter);
+        if (scan is null)
+            return;
+
+        SelectedScan = scan;
+        if (ScanViewRequested is null)
+        {
+            _errorSink.Report(
+                "history_view_unavailable",
+                "扫描回放服务未连接，请重新启动应用后重试。");
+            return;
+        }
+
+        await ScanViewRequested(scan.ScanId, cancellationToken)
+            .ConfigureAwait(true);
+    }
+
+    private ScanHistoryItem? ResolveScan(object? parameter) =>
+        parameter as ScanHistoryItem ?? SelectedScan;
 
     private async Task RescanSelectedAsync()
     {

@@ -22,6 +22,7 @@ try {
   # applied during restore so each project has the locked win-x64 assets.
   dotnet build SecurityReviewTool.sln -c $Configuration --no-restore
   dotnet format SecurityReviewTool.sln --verify-no-changes --no-restore
+  & (Join-Path $PSScriptRoot "update-code-graph.ps1") -Check
 } finally {
   Pop-Location
 }

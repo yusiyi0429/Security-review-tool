@@ -6,6 +6,9 @@
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
              xmlns:views="clr-namespace:SecurityReview.Desktop.Views"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:ScanResultsViewModel}">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+    </UserControl.Resources>
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -26,19 +29,32 @@
                 <TextBlock Text="{Binding ConclusionDisplay}" Style="{StaticResource PageSubtitleStyle}"
                            Margin="0,5,20,0" />
             </StackPanel>
-            <Border Grid.Column="1" Style="{StaticResource WarningSignalStyle}" Padding="14,10"
-                    VerticalAlignment="Bottom">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding TotalGroups}" FontFamily="Bahnschrift SemiBold" FontSize="20"
-                               Foreground="{StaticResource BrushWarn}" VerticalAlignment="Center" />
-                    <TextBlock Text="  个发现组" Foreground="{StaticResource BrushTextSecondary}"
-                               VerticalAlignment="Center" />
-                </StackPanel>
-            </Border>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+                <Button Content="返回任务历史" Command="{Binding ReturnToHistoryCommand}"
+                        Visibility="{Binding IsHistoryReplay, Converter={StaticResource BooleanToVisibility}}"
+                        Margin="0,0,8,0" ToolTip="返回任务历史列表，不会修改本次扫描记录" />
+                <Border Style="{StaticResource AccentSignalStyle}" Padding="12,9" Margin="0,0,8,0"
+                        Visibility="{Binding IsHistoryReplay, Converter={StaticResource BooleanToVisibility}}">
+                    <TextBlock Text="历史回放 · 只读" FontWeight="SemiBold"
+                               Foreground="{StaticResource BrushAccentHover}" />
+                </Border>
+                <Border Style="{StaticResource WarningSignalStyle}" Padding="14,10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding TotalGroups}" FontFamily="Bahnschrift SemiBold" FontSize="20"
+                                   Foreground="{StaticResource BrushWarn}" VerticalAlignment="Center" />
+                        <TextBlock Text="  个发现组" Foreground="{StaticResource BrushTextSecondary}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </Grid>
 
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="14" Margin="0,0,0,14">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -46,18 +62,27 @@
                 <UniformGrid Columns="2" Margin="0,0,14,0">
                     <StackPanel Margin="0,0,7,0">
                         <TextBlock Text="类别" Style="{StaticResource FieldLabelStyle}" />
-                        <ComboBox SelectedItem="{Binding FilterKind}" ItemsSource="{x:Static vm:FilterLists.FindingKinds}" />
+                        <ComboBox SelectedItem="{Binding SelectedKindOption}"
+                                  ItemsSource="{x:Static vm:FilterLists.FindingKindOptions}"
+                                  DisplayMemberPath="Display" />
                     </StackPanel>
                     <StackPanel Margin="0,0,7,0">
                         <TextBlock Text="严重级别" Style="{StaticResource FieldLabelStyle}" />
-                        <ComboBox SelectedItem="{Binding FilterSeverity}" ItemsSource="{x:Static vm:FilterLists.Severities}" />
+                        <ComboBox SelectedItem="{Binding SelectedSeverityOption}"
+                                  ItemsSource="{x:Static vm:FilterLists.SeverityOptions}"
+                                  DisplayMemberPath="Display" />
                     </StackPanel>
                 </UniformGrid>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
-                    <Button Content="清除" Command="{Binding ClearFiltersCommand}" MinWidth="62" Margin="0,0,7,0" />
-                    <Button Content="应用" Command="{Binding ApplyFilterCommand}"
-                            Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" MinWidth="66" Padding="14,7" />
+                    <Button Content="显示全部" Command="{Binding ClearFiltersCommand}" MinWidth="76" Margin="0,0,7,0"
+                            ToolTip="清空类别和严重级别条件，并立即恢复全部发现组" />
+                    <Button Content="应用筛选" Command="{Binding ApplyFilterCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" MinHeight="34" MinWidth="82" Padding="14,7"
+                            ToolTip="仅显示符合当前类别和严重级别条件的发现组" />
                 </StackPanel>
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                           Text="“应用筛选”仅显示符合条件的发现组；“显示全部”会清空条件并立即恢复全部结果。"
+                           Style="{StaticResource PageSubtitleStyle}" FontSize="11" Margin="0,8,0,0" />
             </Grid>
         </Border>
 

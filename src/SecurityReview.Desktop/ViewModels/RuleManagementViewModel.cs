@@ -67,6 +67,9 @@ public sealed class RuleManagementViewModel : ObservableObject
         ImportCommand = new AsyncRelayCommand(_ => ImportRulePackAsync(), errorSink,
             _ => !IsImporting);
         RefreshCommand = new AsyncRelayCommand(_ => RefreshAsync(), errorSink);
+        CloseRuleDetailCommand = new AsyncRelayCommand(
+            _ => CloseRuleDetailAsync(), errorSink,
+            _ => HasSelectedRuleEntry);
 
         PropertyChanged += (_, e) =>
         {
@@ -79,6 +82,7 @@ public sealed class RuleManagementViewModel : ObservableObject
 
     public ICommand ImportCommand { get; }
     public ICommand RefreshCommand { get; }
+    public ICommand CloseRuleDetailCommand { get; }
 
     // ------------------------------------------------------------------ Properties
 
@@ -181,7 +185,11 @@ public sealed class RuleManagementViewModel : ObservableObject
     public bool HasSelectedRuleEntry
     {
         get => _hasSelectedRuleEntry;
-        private set => SetProperty(ref _hasSelectedRuleEntry, value);
+        private set
+        {
+            if (SetProperty(ref _hasSelectedRuleEntry, value))
+                ((AsyncRelayCommand)CloseRuleDetailCommand).RaiseCanExecuteChanged();
+        }
     }
 
     public bool HasRuleEntries
@@ -209,6 +217,12 @@ public sealed class RuleManagementViewModel : ObservableObject
     public bool HasActiveSourceBadge => _activeSourceBadge.Length > 0;
 
     // ------------------------------------------------------------------ Actions
+
+    private Task CloseRuleDetailAsync()
+    {
+        SelectedRuleEntry = null;
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// Opens a file picker for .zip files and imports the selected rule pack.

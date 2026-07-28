@@ -2,6 +2,7 @@ using System.Windows;
 using SecurityReview.Application.Scans;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
+using SecurityReview.Domain;
 
 namespace SecurityReview.Desktop;
 
@@ -57,6 +58,9 @@ public partial class MainWindow : Window
         }
         else if (view is HistoryViewModel history)
         {
+            history.ScanViewRequested += (scanId, cancellationToken) =>
+                OnHistoryScanViewRequestedAsync(
+                    history, scanId, cancellationToken);
             _ = InitializeHistoryAsync(history);
         }
         else if (view is CoverageViewModel coverage)
@@ -102,6 +106,36 @@ public partial class MainWindow : Window
             .InitializeAsync(request.ScanId, CancellationToken.None)
             .ConfigureAwait(true);
         _viewModel.CurrentView = resultsViewModel;
+    }
+
+    private async Task OnHistoryScanViewRequestedAsync(
+        HistoryViewModel historyViewModel,
+        ScanId scanId,
+        CancellationToken cancellationToken)
+    {
+        ScanResultsViewModel resultsViewModel =
+            _root.GetScanResultsViewModel();
+        resultsViewModel.EnableHistoryReplay();
+        resultsViewModel.ReturnToHistoryRequested += () =>
+            _viewModel.CurrentView = historyViewModel;
+
+        try
+        {
+            await resultsViewModel
+                .InitializeAsync(scanId, cancellationToken)
+                .ConfigureAwait(true);
+            _viewModel.CurrentView = resultsViewModel;
+        }
+        catch (OperationCanceledException)
+        {
+            // Closing or replacing the replay request is expected.
+        }
+        catch (Exception)
+        {
+            _root.ErrorSink.Report(
+                "history_view_failed",
+                "无法读取该扫描记录，请刷新任务历史后重试。");
+        }
     }
 
     private async Task InitializeHistoryAsync(HistoryViewModel viewModel)

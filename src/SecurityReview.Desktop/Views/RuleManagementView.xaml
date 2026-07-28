@@ -177,11 +177,22 @@
               </TextBlock>
             </StackPanel>
             <StackPanel Grid.Column="2" DataContext="{Binding SelectedRuleEntry}">
-              <TextBlock FontSize="12">
-                <Run Text="检测器  " Foreground="{StaticResource BrushTextSecondary}" />
-                <Run Text="{Binding DetectorId, Mode=OneWay}" FontWeight="SemiBold" />
-                <Run Text="  (" /><Run Text="{Binding DetectorKind, Mode=OneWay}" /><Run Text=")" />
-              </TextBlock>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock FontSize="12" VerticalAlignment="Center">
+                  <Run Text="检测器  " Foreground="{StaticResource BrushTextSecondary}" />
+                  <Run Text="{Binding DetectorId, Mode=OneWay}" FontWeight="SemiBold" />
+                  <Run Text="  (" /><Run Text="{Binding DetectorKind, Mode=OneWay}" /><Run Text=")" />
+                </TextBlock>
+                <Button Grid.Column="1" Content="收起详情"
+                        Command="{Binding DataContext.CloseRuleDetailCommand,
+                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        MinWidth="76" Padding="10,5" Margin="8,0,0,0"
+                        ToolTip="关闭当前规则详情，返回规则条目列表" />
+              </Grid>
               <TextBlock Text="匹配参数" Style="{StaticResource FieldLabelStyle}" Margin="0,6,0,0" />
               <TextBox Text="{Binding DetectorParameters, Mode=OneWay}"
                        IsReadOnly="True" TextWrapping="Wrap"

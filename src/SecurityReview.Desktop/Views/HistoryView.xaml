@@ -20,7 +20,7 @@
             <StackPanel>
                 <TextBlock Text="AUDIT TRAIL" Style="{StaticResource PageEyebrowStyle}" />
                 <TextBlock Text="任务历史" Style="{StaticResource PageTitleStyle}" Margin="0,3,0,0" />
-                <TextBlock Text="回看扫描结论，或清理不再需要的任务记录。"
+                <TextBlock Text="回看已保存的扫描结论、发现组和出现位置，或清理不再需要的任务记录。"
                            Style="{StaticResource PageSubtitleStyle}" Margin="0,5,0,0" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
@@ -37,7 +37,8 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="i" FontFamily="Bahnschrift SemiBold" FontSize="13"
                            Foreground="{StaticResource BrushAccentHover}" Margin="0,0,9,0" />
-                <TextBlock Grid.Column="1" Text="选择一条任务记录后，可删除该记录及其关联数据。"
+                <TextBlock Grid.Column="1"
+                           Text="点击“查看回放”可只读查看扫描结果，不会重新执行扫描；选择记录后可删除其关联数据。"
                            Foreground="{StaticResource BrushAccentHover}" />
             </Grid>
         </Border>
@@ -52,11 +53,15 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="96" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="扫描任务 / 创建时间" Style="{StaticResource FieldLabelStyle}"
                                FontWeight="SemiBold" VerticalAlignment="Center" Margin="18,5,0,0" />
                     <TextBlock Grid.Column="1" Text="风险摘要" Style="{StaticResource FieldLabelStyle}"
-                               FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,5,18,0" />
+                               FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,5,12,0" />
+                    <TextBlock Grid.Column="2" Text="操作" Style="{StaticResource FieldLabelStyle}"
+                               FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"
+                               Margin="0,5,12,0" />
                 </Grid>
                 <ListBox Grid.Row="1" ItemsSource="{Binding Scans}"
                          SelectedItem="{Binding SelectedScan, Mode=TwoWay}"
@@ -78,6 +83,7 @@
                                             <ColumnDefinition Width="12" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="96" />
                                         </Grid.ColumnDefinitions>
                                         <Border Width="4" Height="28" CornerRadius="2" Background="{StaticResource BrushAccent}"
                                                 HorizontalAlignment="Left" VerticalAlignment="Center" />
@@ -93,6 +99,13 @@
                                         <TextBlock Grid.Column="2" Text="{Binding RiskSummary}" FontSize="12"
                                                    Foreground="{StaticResource BrushTextSecondary}" TextWrapping="Wrap"
                                                    VerticalAlignment="Center" />
+                                        <Button Grid.Column="3" Content="查看回放"
+                                                Command="{Binding DataContext.ViewScanCommand,
+                                                                  RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                CommandParameter="{Binding}"
+                                                MinWidth="76" Padding="10,5" Margin="8,0,4,0"
+                                                VerticalAlignment="Center"
+                                                ToolTip="只读查看本次扫描的结论、发现组和出现位置" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>

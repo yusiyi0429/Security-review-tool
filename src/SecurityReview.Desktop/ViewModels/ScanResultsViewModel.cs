@@ -54,6 +54,7 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
     private ScanId _scanId;
     private ScanStatus _scanStatus;
     private string _conclusionDisplay = "";
+    private bool _isHistoryReplay;
 
     public ScanResultsViewModel(
         IUiErrorSink errorSink,
@@ -79,6 +80,9 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
             ApplyFilterAsync, errorSink);
         ClearFiltersCommand = new AsyncRelayCommand(
             _ => ClearFiltersAsync(), errorSink);
+        ReturnToHistoryCommand = new AsyncRelayCommand(
+            _ => ReturnToHistoryAsync(), errorSink,
+            _ => IsHistoryReplay);
     }
 
     /// <summary>
@@ -96,6 +100,9 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
     public ICommand NextPageCommand { get; }
     public ICommand ApplyFilterCommand { get; }
     public ICommand ClearFiltersCommand { get; }
+    public ICommand ReturnToHistoryCommand { get; }
+
+    public event Action? ReturnToHistoryRequested;
 
     // ------------------------------------------------------------------ Scan context
 
@@ -128,18 +135,54 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _conclusionDisplay, value);
     }
 
+    /// <summary>
+    /// Whether this result view was opened from a saved history record.
+    /// History replay is read-only and never starts a new scan.
+    /// </summary>
+    public bool IsHistoryReplay
+    {
+        get => _isHistoryReplay;
+        private set
+        {
+            if (SetProperty(ref _isHistoryReplay, value))
+                ((AsyncRelayCommand)ReturnToHistoryCommand).RaiseCanExecuteChanged();
+        }
+    }
+
     // ------------------------------------------------------------------ Filters
 
     public FindingKind? FilterKind
     {
         get => _filterKind;
-        set => SetProperty(ref _filterKind, value);
+        set
+        {
+            if (SetProperty(ref _filterKind, value))
+                OnPropertyChanged(nameof(SelectedKindOption));
+        }
     }
 
     public Severity? FilterSeverity
     {
         get => _filterSeverity;
-        set => SetProperty(ref _filterSeverity, value);
+        set
+        {
+            if (SetProperty(ref _filterSeverity, value))
+                OnPropertyChanged(nameof(SelectedSeverityOption));
+        }
+    }
+
+    public FindingKindFilterOption SelectedKindOption
+    {
+        get => FilterLists.FindingKindOptions.First(
+            option => option.Value == _filterKind);
+        set => FilterKind = value?.Value;
+    }
+
+    public SeverityFilterOption SelectedSeverityOption
+    {
+        get => FilterLists.SeverityOptions.First(
+            option => option.Value == _filterSeverity);
+        set => FilterSeverity = value?.Value;
     }
 
     public DetectionConfidence? FilterConfidence
@@ -252,6 +295,14 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
         }
 
         await LoadGroupsAsync(null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Marks the current result as a read-only replay opened from task history.
+    /// </summary>
+    public void EnableHistoryReplay()
+    {
+        IsHistoryReplay = true;
     }
 
     // ------------------------------------------------------------------ Private helpers
@@ -409,6 +460,8 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
 
         OnPropertyChanged(nameof(FilterKind));
         OnPropertyChanged(nameof(FilterSeverity));
+        OnPropertyChanged(nameof(SelectedKindOption));
+        OnPropertyChanged(nameof(SelectedSeverityOption));
         OnPropertyChanged(nameof(FilterConfidence));
         OnPropertyChanged(nameof(FilterAssetType));
         OnPropertyChanged(nameof(FilterReviewStatus));
@@ -417,6 +470,14 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
         _currentPage = 1;
         OnPropertyChanged(nameof(CurrentPage));
         return LoadGroupsAsync(null, CancellationToken.None);
+    }
+
+    private Task ReturnToHistoryAsync()
+    {
+        if (IsHistoryReplay)
+            ReturnToHistoryRequested?.Invoke();
+
+        return Task.CompletedTask;
     }
 
     private static string BuildConclusionDisplay(ScanSummary summary)

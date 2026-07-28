@@ -68,6 +68,10 @@ jobs:
         shell: pwsh
         run: ./build/verify-traceability.ps1
 
+      - name: Verify code graph is current
+        shell: pwsh
+        run: ./build/update-code-graph.ps1 -Check
+
       - name: Publish worker variants for Windows security tests
         shell: pwsh
         run: |
