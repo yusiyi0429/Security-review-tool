@@ -105,6 +105,47 @@ public sealed class ExplorerService
     }
 
     /// <summary>
+    /// Opens an HTTP/HTTPS URL in the default browser after showing a
+    /// warning dialog and requiring fresh confirmation. Used by the update
+    /// dialog to open the release page. Never auto-opens.
+    /// </summary>
+    public bool OpenUrl(Uri url)
+    {
+        ArgumentNullException.ThrowIfNull(url);
+
+        if (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps)
+            return false;
+
+        if (!_showExternalOpenWarning(url.AbsoluteUri))
+            return false;
+
+        try
+        {
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = url.AbsoluteUri,
+                UseShellExecute = true,
+            };
+            System.Diagnostics.Process.Start(startInfo);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Returns the warning message text for opening a URL in the browser.
+    /// </summary>
+    public static string GetOpenUrlWarning(Uri url)
+    {
+        return $"即将在默认浏览器中打开外部网页。\n\n" +
+               $"地址: {url.AbsoluteUri}\n\n" +
+               $"确定要继续打开吗？";
+    }
+
+    /// <summary>
     /// Returns the warning message text for external open confirmation.
     /// </summary>
     public static string GetExternalOpenWarning(string filePath)
