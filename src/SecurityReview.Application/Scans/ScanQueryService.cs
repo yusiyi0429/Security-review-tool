@@ -28,19 +28,26 @@ public sealed class ScanQueryService
     private readonly ICoverageRepository _coverageRepository;
     private readonly IFileRepository _fileRepository;
     private readonly IReviewService _reviewService;
+    private readonly IScanSnapshotRepository _snapshotRepository;
+    private readonly ScanConfigurationSnapshotCodec _snapshotCodec;
 
     public ScanQueryService(
         IScanRepository scanRepository,
         IFindingRepository findingRepository,
         ICoverageRepository coverageRepository,
         IFileRepository fileRepository,
-        IReviewService reviewService)
+        IReviewService reviewService,
+        IScanSnapshotRepository snapshotRepository,
+        IPayloadProtector payloadProtector)
     {
         _scanRepository = scanRepository ?? throw new ArgumentNullException(nameof(scanRepository));
         _findingRepository = findingRepository ?? throw new ArgumentNullException(nameof(findingRepository));
         _coverageRepository = coverageRepository ?? throw new ArgumentNullException(nameof(coverageRepository));
         _fileRepository = fileRepository ?? throw new ArgumentNullException(nameof(fileRepository));
         _reviewService = reviewService ?? throw new ArgumentNullException(nameof(reviewService));
+        _snapshotRepository = snapshotRepository ?? throw new ArgumentNullException(nameof(snapshotRepository));
+        ArgumentNullException.ThrowIfNull(payloadProtector);
+        _snapshotCodec = new ScanConfigurationSnapshotCodec(payloadProtector);
     }
 
     // ---------------------------------------------------------------
@@ -289,6 +296,101 @@ public sealed class ScanQueryService
         return null;
     }
 
+    /// <summary>
+    /// Resolves the on-disk file location for one occurrence: maps the
+    /// occurrence's file record through the scan configuration snapshot's
+    /// root paths. Nested content (ZIP entries, OCI layers) resolves to
+    /// the outer container file. Never returns raw sensitive values.
+    /// </summary>
+    public async Task<OccurrenceFileLocation?> GetOccurrenceFileLocationAsync(
+        ScanId scanId,
+        FindingOccurrenceId occurrenceId,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<FindingGroup> groups = await _findingRepository
+            .GetGroupsByScanIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        FindingOccurrence? occurrence = groups
+            .SelectMany(g => g.Occurrences)
+            .FirstOrDefault(o => o.Id == occurrenceId);
+        if (occurrence is null)
+            return null;
+
+        string outerVirtualPath = occurrence.VirtualPath;
+        bool isNested = false;
+        int bangIndex = occurrence.VirtualPath.IndexOf('!', StringComparison.Ordinal);
+        if (bangIndex > 0)
+        {
+            isNested = true;
+            outerVirtualPath = occurrence.VirtualPath[..bangIndex];
+        }
+
+        IReadOnlyList<FileRecord> files = await _fileRepository
+            .GetByScanIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        string normalizedOuter = outerVirtualPath.Replace('\\', '/');
+        FileRecord? file = files.FirstOrDefault(f =>
+                string.Equals(
+                    f.RelativePath.Replace('\\', '/'),
+                    normalizedOuter,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    f.ContentSha256,
+                    occurrence.FileSha256,
+                    StringComparison.OrdinalIgnoreCase))
+            ?? files.FirstOrDefault(f =>
+                string.Equals(
+                    f.RelativePath.Replace('\\', '/'),
+                    normalizedOuter,
+                    StringComparison.Ordinal));
+        if (file is null)
+        {
+            return new OccurrenceFileLocation(
+                AbsolutePath: null,
+                occurrence.VirtualPath,
+                outerVirtualPath,
+                occurrence.CanonicalLocator,
+                isNested,
+                FileExists: false);
+        }
+
+        ScanSnapshotRecord? record = await _snapshotRepository
+            .GetByScanIdAsync(scanId, cancellationToken)
+            .ConfigureAwait(false);
+        if (record is null)
+        {
+            return new OccurrenceFileLocation(
+                AbsolutePath: null,
+                occurrence.VirtualPath,
+                outerVirtualPath,
+                occurrence.CanonicalLocator,
+                isNested,
+                FileExists: false);
+        }
+
+        ScanConfigurationSnapshot snapshot = _snapshotCodec.Unprotect(record);
+        if (file.RootIndex < 0 || file.RootIndex >= snapshot.RootPaths.Length)
+        {
+            return new OccurrenceFileLocation(
+                AbsolutePath: null,
+                occurrence.VirtualPath,
+                outerVirtualPath,
+                occurrence.CanonicalLocator,
+                isNested,
+                FileExists: false);
+        }
+
+        string absolutePath = Path.GetFullPath(
+            Path.Combine(snapshot.RootPaths[file.RootIndex], file.RelativePath));
+        return new OccurrenceFileLocation(
+            absolutePath,
+            occurrence.VirtualPath,
+            outerVirtualPath,
+            occurrence.CanonicalLocator,
+            isNested,
+            File.Exists(absolutePath));
+    }
+
     public async Task<DisposableReviewPreview?> GetReviewPreviewAsync(
         FindingOccurrenceId occurrenceId,
         string assetBindingHmac,
@@ -401,6 +503,19 @@ public sealed record DisposableOccurrenceDetail(
     string FileSha256,
     SensitiveString SensitiveValue,
     SensitiveString SensitiveContext);
+
+/// <summary>
+/// On-disk file location of one occurrence. <see cref="AbsolutePath"/>
+/// is <c>null</c> when the file record or the scan snapshot cannot be
+/// resolved. For nested content the path points at the outer container.
+/// </summary>
+public sealed record OccurrenceFileLocation(
+    string? AbsolutePath,
+    string VirtualPath,
+    string OuterVirtualPath,
+    SourceLocator CanonicalLocator,
+    bool IsNested,
+    bool FileExists);
 
 public sealed record DisposableReviewPreview(
     FindingOccurrenceId OccurrenceId,

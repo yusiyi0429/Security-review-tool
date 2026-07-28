@@ -382,7 +382,7 @@ public sealed class CompositionRoot : IDisposable
 
                 if (fr is not null && cr is not null && flr is not null)
                 {
-                    var scanQuery = new ScanQueryService(sr, fr, cr, flr, reviewSvc);
+                    var scanQuery = new ScanQueryService(sr, fr, cr, flr, reviewSvc, ssr, protector);
                     RegisterConcrete(scanQuery);
 
                     if (!_args.IsTest

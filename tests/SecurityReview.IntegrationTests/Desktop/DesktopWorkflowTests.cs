@@ -221,7 +221,9 @@ public sealed class DesktopWorkflowTests : IAsyncDisposable
             scanRepo, root.GetService<IFindingRepository>(),
             root.GetService<ICoverageRepository>(),
             root.GetService<IFileRepository>(),
-            root.GetService<IReviewService>());
+            root.GetService<IReviewService>(),
+            root.GetService<IScanSnapshotRepository>(),
+            root.GetService<IPayloadProtector>());
         var rescanHandler = root.GetService<RescanHandler>();
 
         var vm = new HistoryViewModel(
@@ -257,7 +259,9 @@ public sealed class DesktopWorkflowTests : IAsyncDisposable
             scanRepo, root.GetService<IFindingRepository>(),
             root.GetService<ICoverageRepository>(),
             root.GetService<IFileRepository>(),
-            root.GetService<IReviewService>());
+            root.GetService<IReviewService>(),
+            root.GetService<IScanSnapshotRepository>(),
+            root.GetService<IPayloadProtector>());
         var rescanHandler = root.GetService<RescanHandler>();
 
         var vm = new HistoryViewModel(
