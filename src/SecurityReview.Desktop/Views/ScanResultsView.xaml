@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vm="clr-namespace:SecurityReview.Desktop.ViewModels"
+             xmlns:views="clr-namespace:SecurityReview.Desktop.Views"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:ScanResultsViewModel}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -164,23 +165,10 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="2" Style="{StaticResource CardStyle}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Text="解密值" Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Grid.Row="1" Text="{Binding DecryptedValue, Mode=OneWay}" IsReadOnly="True"
-                                 TextWrapping="Wrap" FontFamily="Cascadia Mono" FontSize="12"
-                                 VerticalScrollBarVisibility="Auto" Margin="0,0,0,10" />
-                        <TextBlock Grid.Row="2" Text="上下文" Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Grid.Row="3" Text="{Binding DecryptedContext, Mode=OneWay}" IsReadOnly="True"
-                                 TextWrapping="Wrap" FontFamily="Cascadia Mono" FontSize="12"
-                                 VerticalScrollBarVisibility="Auto" />
-                    </Grid>
+                <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <views:FindingDetailView DataContext="{Binding Detail}" />
+                    </ScrollViewer>
                 </Border>
             </Grid>
         </Grid>

@@ -57,11 +57,13 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
 
     public ScanResultsViewModel(
         IUiErrorSink errorSink,
-        Func<ScanQueryService> queryServiceFactory)
+        Func<ScanQueryService> queryServiceFactory,
+        FindingDetailViewModel? detail = null)
     {
         _errorSink = errorSink ?? throw new ArgumentNullException(nameof(errorSink));
         _queryServiceFactory = queryServiceFactory
             ?? throw new ArgumentNullException(nameof(queryServiceFactory));
+        Detail = detail;
 
         LoadGroupsCommand = new AsyncRelayCommand(
             LoadGroupsAsync, errorSink);
@@ -78,6 +80,12 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
         ClearFiltersCommand = new AsyncRelayCommand(
             _ => ClearFiltersAsync(), errorSink);
     }
+
+    /// <summary>
+    /// Detail panel for the selected occurrence. <c>null</c> when the
+    /// composition root could not build the query/explorer services.
+    /// </summary>
+    public FindingDetailViewModel? Detail { get; }
 
     // ------------------------------------------------------------------ Commands
 
@@ -342,6 +350,13 @@ public sealed class ScanResultsViewModel : ObservableObject, IDisposable
             {
                 DecryptedValue = "（未找到详情）";
                 DecryptedContext = "";
+            }
+
+            if (Detail is not null)
+            {
+                await Detail.LoadDetailAsync(
+                        _scanId, occurrence.OccurrenceId, cancellationToken)
+                    .ConfigureAwait(true);
             }
         }
         finally

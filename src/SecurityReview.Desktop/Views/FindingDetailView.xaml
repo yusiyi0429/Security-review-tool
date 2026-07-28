@@ -7,153 +7,217 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:FindingDetailViewModel}">
 
-    <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
-    </UserControl.Resources>
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+  </UserControl.Resources>
 
-    <Grid>
-        <!-- Detail content: visible when HasDetail and not IsLoading -->
-        <GroupBox Header="发现详情" Margin="0">
-            <GroupBox.Style>
-                <Style TargetType="GroupBox" BasedOn="{StaticResource GroupBoxCardStyle}">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                    <Style.Triggers>
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding HasDetail}" Value="True"/>
-                                <Condition Binding="{Binding IsLoading}" Value="False"/>
-                            </MultiDataTrigger.Conditions>
-                            <Setter Property="Visibility" Value="Visible"/>
-                        </MultiDataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </GroupBox.Style>
-            <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="80"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+  <Grid>
+    <!-- Detail content: visible when HasDetail and not IsLoading -->
+    <GroupBox Header="发现详情" Margin="0">
+      <GroupBox.Style>
+        <Style TargetType="GroupBox" BasedOn="{StaticResource GroupBoxCardStyle}">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Style.Triggers>
+            <MultiDataTrigger>
+              <MultiDataTrigger.Conditions>
+                <Condition Binding="{Binding HasDetail}" Value="True"/>
+                <Condition Binding="{Binding IsLoading}" Value="False"/>
+              </MultiDataTrigger.Conditions>
+              <Setter Property="Visibility" Value="Visible"/>
+            </MultiDataTrigger>
+          </Style.Triggers>
+        </Style>
+      </GroupBox.Style>
+      <Grid Margin="8">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="80"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
 
-                <!-- Row 0: Virtual Path -->
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="虚拟路径"
-                           VerticalAlignment="Center" Margin="0,4,8,4"
-                           Foreground="{StaticResource BrushTextSecondary}"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                         Text="{Binding VirtualPath, Mode=OneWay}"
-                         IsReadOnly="True" Margin="0,4,0,4"
-                         Background="{StaticResource BrushSurface1}"
-                         FontFamily="Cascadia Mono" FontSize="13"/>
+        <!-- Row 0: Virtual Path -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="虚拟路径"
+                   VerticalAlignment="Center" Margin="0,4,8,4"
+                   Foreground="{StaticResource BrushTextSecondary}"/>
+        <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                 Text="{Binding VirtualPath, Mode=OneWay}"
+                 IsReadOnly="True" Margin="0,4,0,4"
+                 Background="{StaticResource BrushSurface1}"
+                 FontFamily="Cascadia Mono" FontSize="13"/>
 
-                <!-- Row 1: Locator Display + Copy button -->
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="定位器"
-                           VerticalAlignment="Center" Margin="0,4,8,4"
-                           Foreground="{StaticResource BrushTextSecondary}"/>
-                <TextBox Grid.Row="1" Grid.Column="1"
-                         Text="{Binding LocatorDisplay, Mode=OneWay}"
-                         IsReadOnly="True" Margin="0,4,0,4"
-                         Background="{StaticResource BrushSurface1}"
-                         FontFamily="Cascadia Mono" FontSize="13"/>
-                <Button Grid.Row="1" Grid.Column="2"
-                        Content="复制定位器" Command="{Binding CopyLocatorCommand}"
-                        Padding="8,4" Margin="6,4,0,4"
-                        Background="{StaticResource BrushSurface2}"
-                        BorderBrush="{StaticResource BrushSurface2}"/>
+        <!-- Row 1: Full Path (redacted) + Copy button -->
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="完整路径"
+                   VerticalAlignment="Center" Margin="0,4,8,4"
+                   Foreground="{StaticResource BrushTextSecondary}"/>
+        <TextBox Grid.Row="1" Grid.Column="1"
+                 Text="{Binding FullPathDisplay, Mode=OneWay}"
+                 IsReadOnly="True" Margin="0,4,0,4"
+                 Background="{StaticResource BrushSurface1}"
+                 FontFamily="Cascadia Mono" FontSize="13"/>
+        <Button Grid.Row="1" Grid.Column="2"
+                Content="复制完整路径" Command="{Binding CopyFullPathCommand}"
+                Padding="8,4" Margin="6,4,0,4"
+                Background="{StaticResource BrushSurface2}"
+                BorderBrush="{StaticResource BrushSurface2}"/>
 
-                <!-- Row 2: File Hash -->
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="文件哈希"
-                           VerticalAlignment="Center" Margin="0,4,8,4"
-                           Foreground="{StaticResource BrushTextSecondary}"/>
-                <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
-                         Text="{Binding FileHash, Mode=OneWay}"
-                         IsReadOnly="True" Margin="0,4,0,4"
-                         Background="{StaticResource BrushSurface1}"
-                         FontFamily="Cascadia Mono" FontSize="13"/>
+        <!-- Row 2: Locator Display + Copy button -->
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="定位器"
+                   VerticalAlignment="Center" Margin="0,4,8,4"
+                   Foreground="{StaticResource BrushTextSecondary}"/>
+        <TextBox Grid.Row="2" Grid.Column="1"
+                 Text="{Binding LocatorDisplay, Mode=OneWay}"
+                 IsReadOnly="True" Margin="0,4,0,4"
+                 Background="{StaticResource BrushSurface1}"
+                 FontFamily="Cascadia Mono" FontSize="13"/>
+        <Button Grid.Row="2" Grid.Column="2"
+                Content="复制定位信息" Command="{Binding CopyLocatorCommand}"
+                Padding="8,4" Margin="6,4,0,4"
+                Background="{StaticResource BrushSurface2}"
+                BorderBrush="{StaticResource BrushSurface2}"/>
 
-                <!-- Row 3: Decrypted Value -->
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="解密值"
-                           VerticalAlignment="Top" Margin="0,4,8,4"
-                           Foreground="{StaticResource BrushTextSecondary}"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
-                         Text="{Binding DecryptedValue, Mode=OneWay}"
-                         IsReadOnly="True" TextWrapping="Wrap"
-                         FontFamily="Cascadia Mono" FontSize="13"
-                         MinHeight="60" MaxHeight="120"
-                         Margin="0,4,0,4"
-                         Background="{StaticResource BrushSurface1}"
-                         VerticalScrollBarVisibility="Auto"/>
+        <!-- Row 3: Computed line/column -->
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="行号"
+                   VerticalAlignment="Center" Margin="0,4,8,4"
+                   Foreground="{StaticResource BrushTextSecondary}"/>
+        <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                 Text="{Binding LineColumnDisplay, Mode=OneWay}"
+                 IsReadOnly="True" Margin="0,4,0,4"
+                 Background="{StaticResource BrushSurface1}"
+                 FontFamily="Cascadia Mono" FontSize="13"/>
 
-                <!-- Row 4: Decrypted Context -->
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="上下文"
-                           VerticalAlignment="Top" Margin="0,4,8,4"
-                           Foreground="{StaticResource BrushTextSecondary}"/>
-                <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
-                         Text="{Binding DecryptedContext, Mode=OneWay}"
-                         IsReadOnly="True" TextWrapping="Wrap"
-                         FontFamily="Cascadia Mono" FontSize="13"
-                         MinHeight="60" MaxHeight="120"
-                         Margin="0,4,0,4"
-                         Background="{StaticResource BrushSurface1}"
-                         VerticalScrollBarVisibility="Auto"/>
+        <!-- Row 4: File Hash -->
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="文件哈希"
+                   VerticalAlignment="Center" Margin="0,4,8,4"
+                   Foreground="{StaticResource BrushTextSecondary}"/>
+        <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2"
+                 Text="{Binding FileHash, Mode=OneWay}"
+                 IsReadOnly="True" Margin="0,4,0,4"
+                 Background="{StaticResource BrushSurface1}"
+                 FontFamily="Cascadia Mono" FontSize="13"/>
 
-                <!-- Row 5: Action buttons -->
-                <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
-                            Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Content="复制完整值" Command="{Binding CopyFullValueCommand}"
-                            Padding="8,4" Margin="0,0,6,0"
-                            Foreground="White"
-                            Background="{StaticResource BrushWarn}"
-                            BorderBrush="{StaticResource BrushWarn}"/>
-                    <Button Content="在资源管理器中定位" Command="{Binding LocateInExplorerCommand}"
-                            Padding="8,4" Margin="0,0,6,0"
-                            Background="{StaticResource BrushSurface2}"
-                            BorderBrush="{StaticResource BrushSurface2}"/>
-                    <Button Content="外部打开" Command="{Binding OpenExternallyCommand}"
-                            Padding="8,4" Margin="0,0,6,0"
-                            Background="{StaticResource BrushSurface2}"
-                            BorderBrush="{StaticResource BrushSurface2}"/>
-                    <Button Content="清除" Command="{Binding ClearDetailCommand}"
-                            Padding="8,4"
-                            Background="{StaticResource BrushSurface2}"
-                            BorderBrush="{StaticResource BrushSurface2}"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
+        <!-- Row 5: Decrypted Value -->
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="解密值"
+                   VerticalAlignment="Top" Margin="0,4,8,4"
+                   Foreground="{StaticResource BrushTextSecondary}"/>
+        <TextBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2"
+                 Text="{Binding DecryptedValue, Mode=OneWay}"
+                 IsReadOnly="True" TextWrapping="Wrap"
+                 FontFamily="Cascadia Mono" FontSize="13"
+                 MinHeight="60" MaxHeight="120"
+                 Margin="0,4,0,4"
+                 Background="{StaticResource BrushSurface1}"
+                 VerticalScrollBarVisibility="Auto"/>
 
-        <!-- Loading state -->
-        <TextBlock Text="正在加载…"
-                   FontSize="16" FontWeight="SemiBold"
-                   Foreground="{StaticResource BrushTextSecondary}"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibility}}"/>
+        <!-- Row 6: Decrypted Context -->
+        <TextBlock Grid.Row="6" Grid.Column="0" Text="上下文"
+                   VerticalAlignment="Top" Margin="0,4,8,4"
+                   Foreground="{StaticResource BrushTextSecondary}"/>
+        <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2"
+                 Text="{Binding DecryptedContext, Mode=OneWay}"
+                 IsReadOnly="True" TextWrapping="Wrap"
+                 FontFamily="Cascadia Mono" FontSize="13"
+                 MinHeight="60" MaxHeight="120"
+                 Margin="0,4,0,4"
+                 Background="{StaticResource BrushSurface1}"
+                 VerticalScrollBarVisibility="Auto"/>
 
-        <!-- Empty state -->
-        <TextBlock Text="请选择一个发现出现以查看详情。"
-                   FontSize="14"
-                   Foreground="{StaticResource BrushTextSecondary}"
-                   HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                    <Style.Triggers>
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding HasDetail}" Value="False"/>
-                                <Condition Binding="{Binding IsLoading}" Value="False"/>
-                            </MultiDataTrigger.Conditions>
-                            <Setter Property="Visibility" Value="Visible"/>
-                        </MultiDataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBlock.Style>
+        <!-- Row 7: Safe preview -->
+        <TextBlock Grid.Row="7" Grid.Column="0" Text="预览"
+                   VerticalAlignment="Top" Margin="0,4,8,4"
+                   Foreground="{StaticResource BrushTextSecondary}"/>
+        <TextBox Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2"
+                 Text="{Binding PreviewText, Mode=OneWay}"
+                 IsReadOnly="True" TextWrapping="NoWrap"
+                 FontFamily="Cascadia Mono" FontSize="12"
+                 MinHeight="80" MaxHeight="240"
+                 Margin="0,4,0,4"
+                 Background="{StaticResource BrushSurface1}"
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto"/>
+
+        <!-- Row 8: File-missing warning -->
+        <TextBlock Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3"
+                   Text="文件已不存在，无法定位或打开。"
+                   Foreground="{StaticResource BrushWarn}" FontSize="12"
+                   Margin="0,2,0,2">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <MultiDataTrigger>
+                  <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding HasDetail}" Value="True"/>
+                    <Condition Binding="{Binding FileExists}" Value="False"/>
+                  </MultiDataTrigger.Conditions>
+                  <Setter Property="Visibility" Value="Visible"/>
+                </MultiDataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
         </TextBlock>
-    </Grid>
+
+        <!-- Row 9: Action buttons -->
+        <StackPanel Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3"
+                    Orientation="Horizontal" Margin="0,8,0,0">
+          <Button Content="复制完整值" Command="{Binding CopyFullValueCommand}"
+                  Padding="8,4" Margin="0,0,6,0"
+                  Foreground="White"
+                  Background="{StaticResource BrushWarn}"
+                  BorderBrush="{StaticResource BrushWarn}"/>
+          <Button Content="在资源管理器中定位" Command="{Binding LocateInExplorerCommand}"
+                  Padding="8,4" Margin="0,0,6,0"
+                  Background="{StaticResource BrushSurface2}"
+                  BorderBrush="{StaticResource BrushSurface2}"/>
+          <Button Content="外部打开" Command="{Binding OpenExternallyCommand}"
+                  Padding="8,4" Margin="0,0,6,0"
+                  Background="{StaticResource BrushSurface2}"
+                  BorderBrush="{StaticResource BrushSurface2}"/>
+          <Button Content="清除" Command="{Binding ClearDetailCommand}"
+                  Padding="8,4"
+                  Background="{StaticResource BrushSurface2}"
+                  BorderBrush="{StaticResource BrushSurface2}"/>
+        </StackPanel>
+      </Grid>
+    </GroupBox>
+
+    <!-- Loading state -->
+    <TextBlock Text="正在加载…"
+               FontSize="16" FontWeight="SemiBold"
+               Foreground="{StaticResource BrushTextSecondary}"
+               HorizontalAlignment="Center" VerticalAlignment="Center"
+               Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibility}}"/>
+
+    <!-- Empty state -->
+    <TextBlock Text="请选择一个发现出现以查看详情。"
+               FontSize="14"
+               Foreground="{StaticResource BrushTextSecondary}"
+               HorizontalAlignment="Center" VerticalAlignment="Center">
+      <TextBlock.Style>
+        <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Style.Triggers>
+            <MultiDataTrigger>
+              <MultiDataTrigger.Conditions>
+                <Condition Binding="{Binding HasDetail}" Value="False"/>
+                <Condition Binding="{Binding IsLoading}" Value="False"/>
+              </MultiDataTrigger.Conditions>
+              <Setter Property="Visibility" Value="Visible"/>
+            </MultiDataTrigger>
+          </Style.Triggers>
+        </Style>
+      </TextBlock.Style>
+    </TextBlock>
+  </Grid>
 </UserControl>
