@@ -1,3 +1,4 @@
+using System.Text;
 using SecurityReview.Application.Scans;
 using SecurityReview.Desktop.Services;
 using SecurityReview.Desktop.ViewModels;
@@ -112,6 +113,45 @@ public sealed class FindingDetailViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Windowed_preview_centers_hit_when_window_has_many_lines_before_hit()
+    {
+        // >4 MiB 文件触发窗口化预览；命中点距窗口起点 32 KiB，
+        // 窗口内命中行之前有 512 行（>20 行片段上限）。
+        // 文件真实行号：命中在第 70001 行。
+        string fillerLine = new string('x', 63); // 含 \n 共 64 字节/行
+        var sb = new StringBuilder(4_500_000);
+        for (int i = 0; i < 70_000; i++)
+            sb.Append(fillerLine).Append('\n');
+        long byteStart = sb.Length; // 纯 ASCII：字符数 == UTF-8 字节数
+        sb.Append("secret-token").Append('\n');
+        sb.Append(fillerLine).Append('\n');
+
+        (ScanQueryService query, ScanId scanId, FindingOccurrenceId occurrenceId) =
+            BuildQuery(writeFile: true, nested: false,
+                fileContent: sb.ToString(), byteStart: byteStart);
+        var viewModel = new FindingDetailViewModel(
+            () => query,
+            () => new ExplorerService(_ => false),
+            new TestErrorSink());
+
+        await viewModel.LoadDetailAsync(scanId, occurrenceId);
+
+        Assert.True(viewModel.HasDetail);
+        Assert.Contains("大文件仅显示命中点附近片段", viewModel.PreviewText);
+        Assert.Equal("第 70001 行，第 1 列", viewModel.LineColumnDisplay);
+
+        // 命中行必须在片段内且被高亮，而不是锚定到窗口首行。
+        Assert.Contains("secret-token", viewModel.PreviewText);
+        Assert.Contains("前面省略", viewModel.PreviewText);
+        string[] previewLines = viewModel.PreviewText.Split('\n');
+        int hitIndex = Array.FindIndex(previewLines,
+            l => l.Contains("secret-token", StringComparison.Ordinal));
+        Assert.True(hitIndex >= 0);
+        Assert.StartsWith("▶", previewLines[hitIndex]);
+        Assert.Contains(" 70001 │", previewLines[hitIndex]);
+    }
+
+    [Fact]
     public void External_open_returns_false_when_confirmation_is_declined()
     {
         string file = Path.Combine(_tempDir, "exists.txt");
@@ -140,7 +180,10 @@ public sealed class FindingDetailViewModelTests : IDisposable
 
     private (ScanQueryService, ScanId, FindingOccurrenceId) BuildQuery(
         bool writeFile,
-        bool nested)
+        bool nested,
+        string? fileContent = null,
+        long byteStart = 6,
+        long byteLength = 12)
     {
         ScanId scanId = new(Guid.NewGuid());
         FindingGroupId groupId = new(Guid.NewGuid());
@@ -152,11 +195,12 @@ public sealed class FindingDetailViewModelTests : IDisposable
         SourceLocator locator = nested
             ? new SourceLocator.NestedLocator(
                 "bundle.zip", new SourceLocator.TextLocator(0, 0, 0, 12))
-            : new SourceLocator.TextLocator(0, 0, 6, 12);
+            : new SourceLocator.TextLocator(0, 0, byteStart, byteLength);
 
         if (writeFile)
         {
-            string content = nested ? "PK-zip-bytes" : "alpha\nsecret-token\nomega\n";
+            string content = fileContent
+                ?? (nested ? "PK-zip-bytes" : "alpha\nsecret-token\nomega\n");
             File.WriteAllText(Path.Combine(_tempDir, relativePath), content);
         }
 

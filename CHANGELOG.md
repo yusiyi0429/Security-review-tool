@@ -15,7 +15,7 @@
 
 ### 验证
 
-- 新增单元测试 23 项：规则条目预览视图模型 9 项、规则包预览提供程序 3 项、发现详情视图模型与行号计算 8 项、出现位置文件定位投影 3 项；新增文件定位投影的 SQLite 集成测试 2 项（多根目录、嵌套虚拟路径、scanId 隔离）。
+- 新增单元测试 22 项：规则条目预览视图模型 7 项、规则包预览提供程序 3 项、发现详情视图模型与行号计算 9 项、出现位置文件定位投影 3 项；新增文件定位投影的 SQLite 集成测试 2 项（多根目录、嵌套虚拟路径、scanId 隔离）。
 - Windows 全量验证（`pwsh ./build/test.ps1 -Lane Unit`、`pwsh ./build/test.ps1 -Lane Contract,Integration`、`dotnet format SecurityReviewTool.sln --verify-no-changes`、`pwsh build/verify-traceability.ps1`）在 Windows 环境执行，全量计数以实际运行为准补记。
 
 ## 1.0.10 - 2026-07-26

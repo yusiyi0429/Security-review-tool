@@ -350,7 +350,7 @@ public sealed class FindingDetailViewModel : ObservableObject, IDisposable
             absolutePath, windowStart, PreviewWindowBytes)
             .ConfigureAwait(true);
         var windowLocator = new SourceLocator.TextLocator(
-            0, 0, byteStart - windowStart, byteLength);
+            line - windowLine, 0, byteStart - windowStart, byteLength);
         SafePreviewFragment fragment =
             SafePreviewService.PreviewText(windowText, windowLocator);
         PreviewText = "（大文件仅显示命中点附近片段，行号为文件真实行号。）\n"
