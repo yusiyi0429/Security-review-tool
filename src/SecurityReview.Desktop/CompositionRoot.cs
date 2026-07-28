@@ -432,8 +432,13 @@ public sealed class CompositionRoot : IDisposable
         RegisterConcrete(safePreviewService);
         Register<IScanTargetPicker>(new WpfScanTargetPicker());
 
-        var explorerService = new Services.ExplorerService(
-            path => true); // Warning dialog will be shown by the ViewModel
+        var explorerService = new Services.ExplorerService(path =>
+            System.Windows.MessageBox.Show(
+                Services.ExplorerService.GetExternalOpenWarning(path),
+                "外部打开确认",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning)
+            == System.Windows.MessageBoxResult.Yes);
         RegisterConcrete(explorerService);
     }
 
@@ -759,11 +764,13 @@ public sealed class CompositionRoot : IDisposable
     {
         var importSvc = TryGet<RulePackImportService>();
         var ruleStore = TryGet<IRulePackStore>();
+        var preview = TryGet<IRulePackPreviewProvider>();
         return new RuleManagementViewModel(
             importSvc is not null ? () => importSvc : null!,
             ErrorSink,
             ruleStore is not null ? () => ruleStore : null,
-            () => RefreshShellStatusAsync());
+            () => RefreshShellStatusAsync(),
+            preview is not null ? () => preview : null);
     }
 
     public LlmSettingsViewModel GetLlmSettingsViewModel()
@@ -791,9 +798,14 @@ public sealed class CompositionRoot : IDisposable
     public ScanResultsViewModel GetScanResultsViewModel()
     {
         var query = TryGet<ScanQueryService>();
+        var explorer = TryGet<ExplorerService>();
+        FindingDetailViewModel? detail = query is not null && explorer is not null
+            ? new FindingDetailViewModel(() => query, () => explorer, ErrorSink)
+            : null;
         return new ScanResultsViewModel(
             ErrorSink,
-            query is not null ? () => query : null!);
+            query is not null ? () => query : null!,
+            detail);
     }
 
     // ------------------------------------------------------------------ IDisposable
