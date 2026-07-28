@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Security;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using SecurityReview.Application.Abstractions;
 using SecurityReview.Application.Updates;
@@ -251,7 +253,11 @@ public sealed class GitHubAppUpdateService : IAppUpdateService, IDisposable
         {
             UseProxy = false,
             UseCookies = false,
-            CheckCertificateRevocationList = true,
+            // Keep OS trust/hostname validation; enable revocation checking.
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                CertificateRevocationCheckMode = X509RevocationMode.Online,
+            },
             // Redirects are followed manually with per-hop host validation;
             // see the class remarks.
             AllowAutoRedirect = false,
