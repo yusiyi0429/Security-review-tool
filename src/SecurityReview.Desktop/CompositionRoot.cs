@@ -586,12 +586,14 @@ public sealed class CompositionRoot : IDisposable
     /// </summary>
     public Views.UpdateWindow CreateUpdateWindow()
     {
+        UpdateApplier? applier = TryGet<UpdateApplier>();
+        ExplorerService? explorer = TryGet<ExplorerService>();
         var viewModel = new UpdateViewModel(
             GetService<IAppUpdateService>(),
             GetService<IAppSettingsStore>(),
             ErrorSink,
-            applyUpdate: TryGet<UpdateApplier>()?.ApplyAndRestart,
-            openReleasePage: TryGet<ExplorerService>()?.OpenUrl);
+            applyUpdate: applier is null ? null : applier.ApplyAndRestart,
+            openReleasePage: explorer is null ? null : explorer.OpenUrl);
         return new Views.UpdateWindow(viewModel);
     }
 

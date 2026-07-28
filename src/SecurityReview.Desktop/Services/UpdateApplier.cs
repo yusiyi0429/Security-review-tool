@@ -198,6 +198,6 @@ public sealed class UpdateApplier
 
     private static void ShutdownCurrentApplication()
     {
-        Application.Current?.Shutdown();
+        System.Windows.Application.Current?.Shutdown();
     }
 }
