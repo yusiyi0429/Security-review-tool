@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "scope": [
+    "src",
+    "tools"
+  ],
+  "nodes": [
+    {
+      "id": "SecurityReview.Application",
+      "category": "source",
+      "projectFile": "src/SecurityReview.Application/SecurityReview.Application.csproj",
+      "sourceFileCount": 97
+    },
+    {
+      "id": "SecurityReview.Desktop",
+      "category": "source",
+      "projectFile": "src/SecurityReview.Desktop/SecurityReview.Desktop.csproj",
+      "sourceFileCount": 35
+    },
+    {
+      "id": "SecurityReview.Domain",
+      "category": "source",
+      "projectFile": "src/SecurityReview.Domain/SecurityReview.Domain.csproj",
+      "sourceFileCount": 50
+    },
+    {
+      "id": "SecurityReview.Infrastructure",
+      "category": "source",
+      "projectFile": "src/SecurityReview.Infrastructure/SecurityReview.Infrastructure.csproj",
+      "sourceFileCount": 82
+    },
+    {
+      "id": "SecurityReview.ParserContracts",
+      "category": "source",
+      "projectFile": "src/SecurityReview.ParserContracts/SecurityReview.ParserContracts.csproj",
+      "sourceFileCount": 11
+    },
+    {
+      "id": "SecurityReview.Parsers",
+      "category": "source",
+      "projectFile": "src/SecurityReview.Parsers/SecurityReview.Parsers.csproj",
+      "sourceFileCount": 59
+    },
+    {
+      "id": "SecurityReview.RulePack",
+      "category": "source",
+      "projectFile": "src/SecurityReview.RulePack/SecurityReview.RulePack.csproj",
+      "sourceFileCount": 29
+    },
+    {
+      "id": "SecurityReview.Worker",
+      "category": "source",
+      "projectFile": "src/SecurityReview.Worker/SecurityReview.Worker.csproj",
+      "sourceFileCount": 7
+    },
+    {
+      "id": "SecurityReview.CorpusTool",
+      "category": "tool",
+      "projectFile": "tools/SecurityReview.CorpusTool/SecurityReview.CorpusTool.csproj",
+      "sourceFileCount": 8
+    },
+    {
+      "id": "SecurityReview.RulePackBuilder",
+      "category": "tool",
+      "projectFile": "tools/SecurityReview.RulePackBuilder/SecurityReview.RulePackBuilder.csproj",
+      "sourceFileCount": 8
+    }
+  ],
+  "edges": [
+    {
+      "from": "SecurityReview.Application",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Application",
+      "to": "SecurityReview.ParserContracts",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Application",
+      "to": "SecurityReview.Parsers",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Application",
+      "to": "SecurityReview.RulePack",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Desktop",
+      "to": "SecurityReview.Application",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Desktop",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Desktop",
+      "to": "SecurityReview.Infrastructure",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Infrastructure",
+      "to": "SecurityReview.Application",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Infrastructure",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Infrastructure",
+      "to": "SecurityReview.ParserContracts",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Infrastructure",
+      "to": "SecurityReview.RulePack",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.ParserContracts",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Parsers",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Parsers",
+      "to": "SecurityReview.ParserContracts",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.RulePack",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.RulePack",
+      "to": "SecurityReview.ParserContracts",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Worker",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Worker",
+      "to": "SecurityReview.ParserContracts",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.Worker",
+      "to": "SecurityReview.Parsers",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.CorpusTool",
+      "to": "SecurityReview.Application",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.CorpusTool",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.CorpusTool",
+      "to": "SecurityReview.ParserContracts",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.CorpusTool",
+      "to": "SecurityReview.Parsers",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.CorpusTool",
+      "to": "SecurityReview.RulePack",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.RulePackBuilder",
+      "to": "SecurityReview.Domain",
+      "kind": "ProjectReference"
+    },
+    {
+      "from": "SecurityReview.RulePackBuilder",
+      "to": "SecurityReview.RulePack",
+      "kind": "ProjectReference"
+    }
+  ]
+}
