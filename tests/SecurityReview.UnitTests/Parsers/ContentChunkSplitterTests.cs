@@ -192,6 +192,52 @@ public sealed class ContentChunkSplitterTests
             MakeChunk("oversize but minimal"), _ => int.MaxValue));
     }
 
+    [Fact]
+    public void rebase_location_map_drops_source_overlapping_entries_with_disjoint_text()
+    {
+        // Pathological map (review Minor #2): text ranges are disjoint while
+        // source ranges overlap. Keeping both would trip the parent's
+        // location_map_overlapping check; the rebase keeps the first entry
+        // and drops the later source-overlapping one.
+        LocationMapEntry[] map =
+        [
+            new LocationMapEntry(100, 100, 0, 50),
+            new LocationMapEntry(150, 100, 100, 50),
+            new LocationMapEntry(300, 100, 200, 50),
+        ];
+
+        IReadOnlyList<LocationMapEntry> rebased =
+            ContentChunkSplitter.RebaseLocationMap(map, textWindowStart: 0, textWindowLength: 300);
+
+        Assert.Equal(2, rebased.Count);
+        Assert.Equal(new LocationMapEntry(100, 100, 0, 50), rebased[0]);
+        Assert.Equal(new LocationMapEntry(300, 100, 200, 50), rebased[1]);
+    }
+
+    [Fact]
+    public void split_with_source_overlapping_map_produces_validating_pieces()
+    {
+        string text = BuildOversizeText();
+        long declaredLength = Encoding.UTF8.GetByteCount(text);
+        // Text-sorted, text-disjoint entries whose source ranges overlap
+        // (each source start advances by half the source length).
+        var map = new List<LocationMapEntry>();
+        for (int start = 0; start < text.Length; start += 4_096)
+        {
+            int count = Math.Min(4_096, text.Length - start);
+            map.Add(new LocationMapEntry(start / 2, 4_096, start, count));
+        }
+
+        var chunk = MakeChunk(text, map: map);
+        IReadOnlyList<ContentChunk> pieces = SplitOrThrow(chunk);
+
+        Assert.True(pieces.Count > 1);
+        foreach (ContentChunk piece in pieces)
+        {
+            Assert.Empty(piece.Validate(declaredLength));
+        }
+    }
+
     private static IReadOnlyList<ContentChunk> SplitOrThrow(ContentChunk chunk) =>
         ContentChunkSplitter.SplitForFrame(chunk, MeasureFrameBytes)
         ?? throw new InvalidOperationException("Expected the chunk to split.");

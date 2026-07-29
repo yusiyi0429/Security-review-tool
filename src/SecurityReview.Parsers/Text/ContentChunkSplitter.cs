@@ -55,8 +55,12 @@ public static class ContentChunkSplitter
     /// stay absolute; entries crossing a window edge are clipped with linear
     /// interpolation inside the entry, the same assumption detectors already
     /// make when consuming the map. Entries are assumed sorted by TextStart;
-    /// entries overlapping the previous kept entry are dropped. Shared with
-    /// the ContentChunker location-map filtering path.
+    /// entries overlapping the previous kept entry in text are dropped, and
+    /// entries whose source range overlaps the previous kept entry are dropped
+    /// as well (first one wins), so the result always satisfies the parent's
+    /// sorted/non-overlapping source invariant in <see cref="ContentChunk.Validate"/>
+    /// even for pathological maps with disjoint text but overlapping source
+    /// ranges. Shared with the ContentChunker location-map filtering path.
     /// </summary>
     public static IReadOnlyList<LocationMapEntry> RebaseLocationMap(
         IReadOnlyList<LocationMapEntry> map,
@@ -70,6 +74,7 @@ public static class ContentChunkSplitter
         long textWindowEnd = textWindowStart + textWindowLength;
         var rebased = new List<LocationMapEntry>();
         long previousTextEnd = textWindowStart;
+        long previousSourceEnd = 0;
 
         foreach (LocationMapEntry entry in map)
         {
@@ -79,10 +84,13 @@ public static class ContentChunkSplitter
                 // the window, with source coordinates unchanged.
                 if (entry.TextStart < textWindowStart || entry.TextStart >= textWindowEnd)
                     continue;
+                if (entry.SourceStart < previousSourceEnd)
+                    continue; // source overlap; the parent's Validate would fail
 
                 rebased.Add(new LocationMapEntry(entry.SourceStart, entry.SourceLength,
                     entry.TextStart - textWindowStart, 0));
                 previousTextEnd = entry.TextStart;
+                previousSourceEnd = entry.SourceStart;
                 continue;
             }
 
@@ -99,10 +107,14 @@ public static class ContentChunkSplitter
             long sourceStart = entry.SourceStart
                 + (clipStart - entry.TextStart) * entry.SourceLength / entry.TextLength;
             long sourceLength = clipLength * entry.SourceLength / entry.TextLength;
+            if (sourceStart < previousSourceEnd)
+                continue; // pathological map: disjoint text but overlapping
+                          // source; keep the first so Validate stays clean
 
             rebased.Add(new LocationMapEntry(sourceStart, sourceLength,
                 clipStart - textWindowStart, clipLength));
             previousTextEnd = clipEnd;
+            previousSourceEnd = sourceStart + sourceLength;
         }
 
         return rebased;
