@@ -14,7 +14,7 @@ flowchart LR
     P2["SecurityReview.Domain<br/>50 C# files"]
     P3["SecurityReview.Infrastructure<br/>85 C# files"]
     P4["SecurityReview.ParserContracts<br/>11 C# files"]
-    P5["SecurityReview.Parsers<br/>59 C# files"]
+    P5["SecurityReview.Parsers<br/>60 C# files"]
     P6["SecurityReview.RulePack<br/>29 C# files"]
     P7["SecurityReview.Worker<br/>7 C# files"]
   end
@@ -63,7 +63,7 @@ flowchart LR
 | SecurityReview.Domain | `src/SecurityReview.Domain/SecurityReview.Domain.csproj` | 50 | — |
 | SecurityReview.Infrastructure | `src/SecurityReview.Infrastructure/SecurityReview.Infrastructure.csproj` | 85 | SecurityReview.Application, SecurityReview.Domain, SecurityReview.ParserContracts, SecurityReview.RulePack |
 | SecurityReview.ParserContracts | `src/SecurityReview.ParserContracts/SecurityReview.ParserContracts.csproj` | 11 | SecurityReview.Domain |
-| SecurityReview.Parsers | `src/SecurityReview.Parsers/SecurityReview.Parsers.csproj` | 59 | SecurityReview.Domain, SecurityReview.ParserContracts |
+| SecurityReview.Parsers | `src/SecurityReview.Parsers/SecurityReview.Parsers.csproj` | 60 | SecurityReview.Domain, SecurityReview.ParserContracts |
 | SecurityReview.RulePack | `src/SecurityReview.RulePack/SecurityReview.RulePack.csproj` | 29 | SecurityReview.Domain, SecurityReview.ParserContracts |
 | SecurityReview.Worker | `src/SecurityReview.Worker/SecurityReview.Worker.csproj` | 7 | SecurityReview.Domain, SecurityReview.ParserContracts, SecurityReview.Parsers |
 | SecurityReview.CorpusTool | `tools/SecurityReview.CorpusTool/SecurityReview.CorpusTool.csproj` | 8 | SecurityReview.Application, SecurityReview.Domain, SecurityReview.ParserContracts, SecurityReview.Parsers, SecurityReview.RulePack |

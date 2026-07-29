@@ -39,7 +39,7 @@
       "id": "SecurityReview.Parsers",
       "category": "source",
       "projectFile": "src/SecurityReview.Parsers/SecurityReview.Parsers.csproj",
-      "sourceFileCount": 59
+      "sourceFileCount": 60
     },
     {
       "id": "SecurityReview.RulePack",

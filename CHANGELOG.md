@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### 修复
+
+- 修复扫描大体积文本文件（如 1.2 MB、单行 >250 KB 的中文 jsonl）时解析器崩溃（parse/Crash）、整文件中止损且仅文件开头产出候选的问题：worker 发送 ContentChunk 前实测双重序列化帧大小，超过 1 MiB 协议上限 80% 安全阈值的块递归对半切分（文本按 Unicode 标量边界切分、源区间按 UTF-8 字节精确推进、LocationMap 按切点裁剪重基、IsFinal 仅末块保留），理论不可达的不可切分情形上报受控缺口 `chunk_frame_overflow` 而非崩溃。
+- 修复 `ContentChunker` 的 LocationMap 过滤把全文件坐标原样透传（父端 `ContentChunk.Validate` 必失败）以及 `FitEnvelope` 按估算截断静默丢文本的问题：分块时按文本窗口裁剪并重基为块相对坐标，帧安全统一由发送侧实测切分保证；重基同时丢弃源区间重叠的病态条目，保证父端校验恒通过。
+- worker 上报的 `exception:{TypeName}` 不再被丢弃，覆盖缺口 DetailCode 现在保留异常类型（如 `Crash:ProtocolException`），日志可定位真实崩溃原因。
+
+### 验证
+
+- 新增单元测试 23 项：帧切分 11 项、分块重基与防截断 4 项、worker 失败映射 2 项、病态 LocationMap 2 项、大文本帧管线端到端回归 4 项（分块→切分→协议写读→父端校验全链路，含结构化解析器单巨块崩溃形态还原）。
+- 以下命令推迟到有 .NET SDK 的环境执行：`dotnet test tests/SecurityReview.UnitTests`、`pwsh ./build/test.ps1 -Lane Unit,Contract,ParserCorpus,Integration`、`dotnet format SecurityReviewTool.sln --verify-no-changes`。
+
 ## 1.0.13 - 2026-07-28
 
 ### 新增
