@@ -267,7 +267,7 @@ public sealed class ContentChunkSplitterTests
             }
 
             long runBytes = Encoding.UTF8.GetByteCount(
-                text.Substring(charPosition, runLength));
+                text.AsSpan(charPosition, runLength));
             map.Add(new LocationMapEntry(bytePosition, runBytes, charPosition, runLength));
             bytePosition += runBytes;
             charPosition += runLength;

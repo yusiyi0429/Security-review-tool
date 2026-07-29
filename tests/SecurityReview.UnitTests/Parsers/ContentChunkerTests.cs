@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using SecurityReview.Domain;
 using SecurityReview.ParserContracts.Parsing;
@@ -48,7 +49,7 @@ public sealed class ContentChunkerTests
         // non-identity byte/char mapping.
         var builder = new StringBuilder(300_000);
         for (int i = 0; i < 20_000; i++)
-            builder.Append("中文密钥测试数据").Append(i.ToString("D6")).Append('；');
+            builder.Append("中文密钥测试数据").Append(i.ToString("D6", CultureInfo.InvariantCulture)).Append('；');
         string text = builder.ToString();
         long totalSourceLength = Encoding.UTF8.GetByteCount(text);
         List<LocationMapEntry> map = BuildUtf8RunMap(text);
@@ -121,7 +122,7 @@ public sealed class ContentChunkerTests
         // 8-char indexed blocks, truncated to the exact requested length.
         var builder = new StringBuilder(length);
         for (int i = 0; builder.Length < length; i++)
-            builder.Append(i.ToString("D8"));
+            builder.Append(i.ToString("D8", CultureInfo.InvariantCulture));
         return builder.ToString(0, length);
     }
 
@@ -155,7 +156,7 @@ public sealed class ContentChunkerTests
             }
 
             long runBytes = Encoding.UTF8.GetByteCount(
-                text.Substring(charPosition, runLength));
+                text.AsSpan(charPosition, runLength));
             map.Add(new LocationMapEntry(bytePosition, runBytes, charPosition, runLength));
             bytePosition += runBytes;
             charPosition += runLength;

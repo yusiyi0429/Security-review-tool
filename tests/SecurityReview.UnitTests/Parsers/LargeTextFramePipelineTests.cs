@@ -52,8 +52,7 @@ public sealed class LargeTextFramePipelineTests
 
         // The real write path threw ProtocolException for the original file;
         // every piece must now survive a full write/read round trip.
-        IReadOnlyList<ContentChunk> received = await SendAndReceiveAsync(pieces)
-            .ConfigureAwait(false);
+        IReadOnlyList<ContentChunk> received = await SendAndReceiveAsync(pieces);
         Assert.Equal(pieces.Select(p => p.Text), received.Select(r => r.Text));
     }
 
@@ -127,8 +126,7 @@ public sealed class LargeTextFramePipelineTests
         IReadOnlyList<ContentChunk> pieces = SplitOrThrow(giant);
         Assert.True(pieces.Count > 1);
 
-        IReadOnlyList<ContentChunk> received = await SendAndReceiveAsync(pieces)
-            .ConfigureAwait(false);
+        IReadOnlyList<ContentChunk> received = await SendAndReceiveAsync(pieces);
         foreach (ContentChunk piece in received)
         {
             Assert.Empty(piece.Validate(totalSourceLength));
@@ -225,7 +223,7 @@ public sealed class LargeTextFramePipelineTests
             }
 
             long runBytes = Encoding.UTF8.GetByteCount(
-                text.Substring(charPosition, runLength));
+                text.AsSpan(charPosition, runLength));
             map.Add(new LocationMapEntry(bytePosition, runBytes, charPosition, runLength));
             bytePosition += runBytes;
             charPosition += runLength;
