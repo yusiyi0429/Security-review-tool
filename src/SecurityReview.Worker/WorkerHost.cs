@@ -114,10 +114,29 @@ internal sealed class WorkerHost
             switch (evt)
             {
                 case ParserEvent.ChunkProduced chunk:
-                    string chunkPayload = System.Text.Json.JsonSerializer.Serialize(
-                        chunk.Chunk, ProtocolJsonContext.Default.ContentChunk);
-                    await _session.SendAsync(MessageType.ContentChunk, chunkPayload)
-                        .ConfigureAwait(false);
+                    IReadOnlyList<ContentChunk>? pieces = ContentChunkSplitter.SplitForFrame(
+                        chunk.Chunk, MeasureChunkFrameBytes);
+                    if (pieces is null)
+                    {
+                        // Defensive fallback (theoretically unreachable): a
+                        // chunk that cannot be split below the frame limit.
+                        // Report a controlled gap instead of letting the
+                        // protocol writer throw and crash the whole job.
+                        await SendGapAsync(GapReason.ParserProtocolMismatch,
+                                "chunk_frame_overflow", virtualPath,
+                                probe.Format.FormatId, chunk.Chunk.SourceLength, 0)
+                            .ConfigureAwait(false);
+                        return;
+                    }
+
+                    foreach (ContentChunk piece in pieces)
+                    {
+                        string chunkPayload = System.Text.Json.JsonSerializer.Serialize(
+                            piece, ProtocolJsonContext.Default.ContentChunk);
+                        await _session.SendAsync(MessageType.ContentChunk, chunkPayload)
+                            .ConfigureAwait(false);
+                    }
+
                     break;
 
                 case ParserEvent.ChildDiscovered child:
@@ -163,6 +182,21 @@ internal sealed class WorkerHost
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Measures the exact serialized frame size for a chunk using the same
+    /// double-serialization path as the send: the chunk payload embedded as a
+    /// string inside the protocol envelope. The sequence may differ by one
+    /// digit from the actual send; the splitter threshold leaves ample
+    /// headroom for that.
+    /// </summary>
+    private int MeasureChunkFrameBytes(ContentChunk chunk)
+    {
+        string payload = System.Text.Json.JsonSerializer.Serialize(
+            chunk, ProtocolJsonContext.Default.ContentChunk);
+        return _session.SerializeFrame(MessageType.ContentChunk, payload,
+            _session.NextSequence).Length;
     }
 
     private Task SendGapAsync(
