@@ -8,18 +8,19 @@ namespace SecurityReview.Parsers.Text;
 
 /// <summary>
 /// Produces <see cref="ContentChunk"/> instances from a decoded text source.
-/// Targets 512 KiB UTF-8 text per chunk, carries up to 4,096 bytes of source
-/// overlap, and ensures the full protocol envelope fits within 1 MiB
-/// (<see cref="ProtocolConstants.MaxFrameBytes"/>). Location maps are capped
-/// at 8,192 sorted non-overlapping entries; the chunk is shrunk before any
-/// entry is dropped. Monotonic sequence numbers, original source byte ranges,
-/// and IsFinal are guaranteed.
+/// Targets 512 KiB UTF-8 text per chunk and carries up to 4,096 bytes of
+/// source overlap. Location map entries are clipped to the chunk text window
+/// and re-based to chunk-relative text coordinates (capped at 8,192 sorted
+/// non-overlapping entries), so the parent's <see cref="ContentChunk.Validate"/>
+/// always passes. The chunker never truncates text: protocol frame safety is
+/// enforced at send time by <see cref="ContentChunkSplitter"/>, which measures
+/// the exact serialized frame and splits oversized chunks. Monotonic sequence
+/// numbers, original source byte ranges, and IsFinal are guaranteed.
 /// </summary>
 public sealed class ContentChunker
 {
     private const int TargetTextBytes = 512 * 1024;       // 512 KiB
     private const int OverlapSourceBytes = 4_096;          // 4 KiB source overlap
-    private const int MaxEnvelopeBytes = ProtocolConstants.MaxFrameBytes; // 1 MiB
     private const int MaxLocationMapEntries = ContentChunk.MaxLocationMapEntries; // 8,192
 
     private readonly JobId _jobId;
@@ -48,7 +49,11 @@ public sealed class ContentChunker
     /// <summary>
     /// Produce the next chunk from the given text segment. The text segment
     /// maps to bytes [sourceStart, sourceStart + sourceLength) in the original
-    /// source. The locationMap maps source-byte ranges to text-char ranges.
+    /// source. The locationMap maps source-byte ranges to text-char ranges
+    /// relative to <paramref name="text"/> (chunk-relative); callers with
+    /// full-file coordinates must re-base first (see <see cref="ChunkAll"/>).
+    /// The chunk text is emitted in full — frame-size splitting happens at
+    /// send time in <see cref="ContentChunkSplitter"/>.
     /// </summary>
     public ContentChunk NextChunk(string text, long sourceStart, long sourceLength,
         IReadOnlyList<LocationMapEntry> locationMap, bool isFinal)
@@ -59,9 +64,6 @@ public sealed class ContentChunker
         // Limit location map entries
         var cappedMap = CapLocationMap(locationMap);
 
-        // Measure envelope size and shrink if needed
-        (string finalText, var finalMap) = FitEnvelope(text, cappedMap, sourceStart, sourceLength);
-
         var chunk = new ContentChunk(
             ProtocolVersion: ProtocolConstants.Version,
             JobId: _jobId,
@@ -70,10 +72,10 @@ public sealed class ContentChunker
             FormatId: _formatId,
             ContentKind: _contentKind,
             Encoding: _encodingName,
-            Text: finalText,
+            Text: text,
             SourceStart: sourceStart,
             SourceLength: sourceLength,
-            LocationMap: finalMap.ToList(),
+            LocationMap: cappedMap.ToList(),
             IsFinal: isFinal);
 
         _sourceOffset = sourceStart + sourceLength;
@@ -126,8 +128,10 @@ public sealed class ContentChunker
             long segSourceLength = Math.Min(totalSourceLength - segSourceStart,
                 (long)Encoding.UTF8.GetByteCount(segment) + OverlapSourceBytes);
 
-            // Build location map for this segment
-            var segMap = FilterLocationMap(fullLocationMap, segSourceStart, segSourceLength);
+            // Build location map for this segment: clip the full-file map to
+            // the segment's text window and re-base entries to chunk-relative
+            // text coordinates (source coordinates stay absolute).
+            var segMap = FilterLocationMap(fullLocationMap, offset, segment.Length);
 
             chunks.Add(NextChunk(segment, segSourceStart, segSourceLength, segMap, isFinal));
 
@@ -186,77 +190,16 @@ public sealed class ContentChunker
         return result;
     }
 
-    private static (string Text, IReadOnlyList<LocationMapEntry> Map) FitEnvelope(
-        string text, IReadOnlyList<LocationMapEntry> map,
-        long sourceStart, long sourceLength)
-    {
-        // Estimate the complete envelope size: JSON escaping can roughly 2x text,
-        // plus metadata overhead (~512 bytes) and location map serialization.
-        // We need the total under MaxEnvelopeBytes.
-
-        int estimatedSize = EstimateEnvelopeSize(text, map);
-        if (estimatedSize <= MaxEnvelopeBytes)
-            return (text, map);
-
-        // Shrink text at a Unicode scalar boundary until the frame fits
-        var shrunkText = text;
-        var shrunkMap = map;
-
-        while (estimatedSize > MaxEnvelopeBytes && shrunkText.Length > 0)
-        {
-            int shrinkTo = (int)((long)shrunkText.Length * MaxEnvelopeBytes / estimatedSize);
-            // Round down to Unicode scalar boundary
-            shrinkTo = FindScalarBoundary(shrunkText, shrinkTo);
-            if (shrinkTo <= 0) shrinkTo = 1;
-
-            shrunkText = shrunkText[..shrinkTo];
-            shrunkMap = FilterLocationMap(map, 0, shrunkText.Length);
-            estimatedSize = EstimateEnvelopeSize(shrunkText, shrunkMap);
-        }
-
-        return (shrunkText, shrunkMap);
-    }
-
-    private static int EstimateEnvelopeSize(string text, IReadOnlyList<LocationMapEntry> map)
-    {
-        // Worst-case estimate: text might be all non-ASCII (3-4 bytes UTF-8),
-        // plus JSON escaping (backslash before special chars could roughly 2x).
-        // Location map entries: ~50 bytes each when serialized.
-        int textEstimate = Encoding.UTF8.GetByteCount(text) * 2; // JSON escaping headroom
-        int mapEstimate = map.Count * 60; // generous per-entry estimate
-        int overhead = 1024; // envelope metadata
-
-        return textEstimate + mapEstimate + overhead;
-    }
-
-    private static int FindScalarBoundary(string text, int position)
-    {
-        if (position <= 0) return 0;
-        if (position >= text.Length) return text.Length;
-
-        // Walk back to find a non-surrogate boundary
-        while (position > 0 && char.IsLowSurrogate(text[position]))
-            position--;
-
-        return position;
-    }
-
+    /// <summary>
+    /// Clip <paramref name="fullMap"/> to the text window
+    /// [textWindowStart, textWindowStart + textWindowLength) of the full text
+    /// and re-base the surviving entries to window-relative (chunk-relative)
+    /// text coordinates via <see cref="ContentChunkSplitter.RebaseLocationMap"/>.
+    /// </summary>
     private static IReadOnlyList<LocationMapEntry> FilterLocationMap(
-        IReadOnlyList<LocationMapEntry> fullMap, long sourceStart, long sourceLength)
+        IReadOnlyList<LocationMapEntry> fullMap, long textWindowStart, long textWindowLength)
     {
-        long sourceEnd = sourceStart + sourceLength;
-        var filtered = new List<LocationMapEntry>();
-
-        foreach (var entry in fullMap)
-        {
-            long entryEnd = entry.SourceStart + entry.SourceLength;
-            // Include entries that overlap with the window
-            if (entry.SourceStart < sourceEnd && entryEnd > sourceStart)
-            {
-                filtered.Add(entry);
-            }
-        }
-
-        return CapLocationMap(filtered);
+        return CapLocationMap(ContentChunkSplitter.RebaseLocationMap(
+            fullMap, textWindowStart, textWindowLength));
     }
 }

@@ -247,14 +247,8 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
                 case MessageType.ParseFailed:
                     WorkerFailurePayload? failure = JsonSerializer.Deserialize(
                         envelope.PayloadJson, ProtocolJsonContext.Default.WorkerFailurePayload);
-                    WorkerFailure mapped = failure?.ErrorCode switch
-                    {
-                        "cancelled" => WorkerFailure.Cancelled,
-                        "timeout" => WorkerFailure.Timeout,
-                        "invalid_parse_job" => WorkerFailure.ProtocolViolation,
-                        _ => WorkerFailure.Crash,
-                    };
-                    results.Add(Failed(item, mapped));
+                    (WorkerFailure mapped, string detailCode) = MapWorkerFailure(failure?.ErrorCode);
+                    results.Add(Failed(item, mapped, detailCode));
                     return;
 
                 case MessageType.Heartbeat:
@@ -289,13 +283,44 @@ public sealed class SandboxWorkerJobProcessor : IWorkerJobProcessor
         }
     }
 
-    private static WorkerJobResult Failed(ScanWorkItem item, WorkerFailure failure)
+    /// <summary>
+    /// Map a worker <see cref="WorkerFailurePayload.ErrorCode"/> to a
+    /// <see cref="WorkerFailure"/> and the coverage-gap detail code. Worker
+    /// exception reports (<c>exception:{TypeName}</c>) keep the exception type
+    /// in the detail code (e.g. <c>Crash:ProtocolException</c>) so logs and the
+    /// coverage view show why the worker failed; all other codes map exactly
+    /// as before.
+    /// </summary>
+    internal static (WorkerFailure Failure, string DetailCode) MapWorkerFailure(string? errorCode)
+    {
+        WorkerFailure failure = errorCode switch
+        {
+            "cancelled" => WorkerFailure.Cancelled,
+            "timeout" => WorkerFailure.Timeout,
+            "invalid_parse_job" => WorkerFailure.ProtocolViolation,
+            _ => WorkerFailure.Crash,
+        };
+
+        const string ExceptionPrefix = "exception:";
+        if (failure == WorkerFailure.Crash
+            && errorCode is not null
+            && errorCode.StartsWith(ExceptionPrefix, StringComparison.Ordinal)
+            && errorCode.Length > ExceptionPrefix.Length)
+        {
+            return (failure, $"Crash:{errorCode[ExceptionPrefix.Length..]}");
+        }
+
+        return (failure, failure.ToString());
+    }
+
+    private static WorkerJobResult Failed(
+        ScanWorkItem item, WorkerFailure failure, string? detailCode = null)
     {
         GapReason reason = WorkerFailureMapper.MapFailure(failure);
         var gap = new CoverageGap(
             Guid.NewGuid(), item.ScanId, item.FileId, item.VirtualPath,
             item.FormatHint, "parse", reason,
-            failure.ToString(), item.DeclaredLength, 0, DateTimeOffset.UtcNow);
+            detailCode ?? failure.ToString(), item.DeclaredLength, 0, DateTimeOffset.UtcNow);
 
         return new WorkerJobResult(
             item.JobId,
