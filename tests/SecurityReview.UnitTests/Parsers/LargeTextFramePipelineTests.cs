@@ -110,9 +110,9 @@ public sealed class LargeTextFramePipelineTests
     [Fact]
     public async Task single_giant_chunk_like_structured_parser_output_splits_losslessly()
     {
-        // The reported crash shape: JsonFormatParser flattens a whole jsonl
+        // A large JSON document shape: JsonFormatParser flattens a whole
         // document into one NextChunk call, producing a single chunk whose
-        // serialized frame exceeded MaxFrameBytes and crashed the worker.
+        // serialized frame can exceed MaxFrameBytes (JsonFormatParser.cs:307-313).
         string text = BuildLargeJsonl();
         long totalSourceLength = Encoding.UTF8.GetByteCount(text);
         List<LocationMapEntry> map = BuildUtf8RunMap(text);
